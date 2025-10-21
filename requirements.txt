@@ -2,3 +2,5 @@ requests
 beautifulsoup4
 pillow
 lxml
+customtkinter
+CTkListbox

@@ -2,7 +2,13 @@
 __pycache__/
 *.pyc
 /wishlist.txt
-/venv/
+/.venv/
+.vscode
 build/
 README.pdf
 /setup.py
+
+main.build
+main.dist
+main.onefile-build
+main.exe
