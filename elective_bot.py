@@ -3,6 +3,7 @@ import random
 import io
 import time
 import threading
+import customtkinter as ctk
 import tkinter
 from tkinter import ttk, messagebox
 from bs4 import BeautifulSoup
@@ -109,9 +110,9 @@ class ElectiveBot:
 
     def proc_course_elem(self,rows):
         for row in rows:
-            name=row.select('td:nth-of-type(1) span')[0].get_text()
-            classid=row.select('td:nth-of-type(6) span')[0].get_text()
-            teacher=row.select('td:nth-of-type(5) span')[0].get_text()
+            name=row.select('td:nth-of-type(2) span')[0].get_text()
+            classid=row.select('td:nth-of-type(1) span')[0].get_text()
+            teacher=row.select('td:nth-of-type(6) span')[0].get_text()
             selectbtn=(row.select('a[href^="/elective2008/edu/pku/stu/elective/controller/supplement/electSupplement.do"]') or [None])[0]
 
             volume_cnt,_,elected_cnt=row.select('td span[id^="electedNum"]')[0].get_text(strip=True).partition(' / ')
@@ -258,7 +259,9 @@ class ElectiveBot:
         else:
             self.log('info','doing manual captcha')
         
-            tl=tkinter.Toplevel(tk)
+            tl=ctk.CTkToplevel(tk)
+            tl.grid_columnconfigure(0, weight=1)
+            tl.grid_rowconfigure(0, weight=1)
             try:
                 tl.wm_attributes('-toolwindow',True)
             except Exception: # toolwindow only works on Windows
@@ -267,8 +270,8 @@ class ElectiveBot:
 
             captcha_var=tkinter.StringVar(tl)
 
-            label=ttk.Label(tl)
-            label.pack()
+            label=ctk.CTkLabel(tl, text="")
+            label.grid(row=0, column=0, sticky='nsew')
 
             def submit_captcha():
                 if self.verify_captcha(captcha_var.get()):
@@ -282,14 +285,15 @@ class ElectiveBot:
             def skip_captcha():
                 img=self.get_captcha()
                 #img.seek(15)
-                label._image=ImageTk.PhotoImage(img)
-                label['image']=label._image
+                label.image=ctk.CTkImage(img, size=img.size)
+                label.configure(image=label.image)
+                label['image']=label.image
                 tl.update_idletasks()
 
-            entry=ttk.Entry(tl,textvariable=captcha_var)
+            entry=ctk.CTkEntry(tl,textvariable=captcha_var)
             entry.bind('<Return>',lambda _:submit_captcha())
-            entry.pack()
-            ttk.Button(tl,text='Next Captcha',command=skip_captcha).pack()
+            entry.grid(row=1, column=0, sticky='nsew')
+            ctk.CTkButton(tl,text='Next Captcha',command=skip_captcha).grid(row=2, column=0, sticky='nsew')
 
             entry.focus_set()
             tl.after_idle(skip_captcha)

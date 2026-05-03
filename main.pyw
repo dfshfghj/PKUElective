@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from CTkListbox import *
 from CTkTreeView import *
+from ThemedTextbox import *
 from tkinter import *
 from tkinter.ttk import *
 import threading
@@ -84,6 +85,7 @@ class Orchestrator:
         dialog = ctk.CTkInputDialog(
             text="请先阅读README.md\n\nUsername:", title="Auth")
         dialog.geometry(center(400, 200))
+        dialog.overrideredirect(True)
         username = dialog.get_input()
         auth['username'] = username if username else ''
         if '@' in auth['username']:
@@ -94,6 +96,7 @@ class Orchestrator:
 
         dialog = ctk.CTkInputDialog(text="Password:", title="Auth")
         dialog.geometry(center(400, 200))
+        dialog.overrideredirect(True)
         password = dialog.get_input()
         auth['password'] = password if password else ''
         self.notifier.username = auth['username']
@@ -296,14 +299,15 @@ class Orchestrator:
         li.bind('<<ListboxSelect>>', onselect)
         li.grid(row=0, column=0, sticky='ns')
         # text=ScrolledText(tl,width=70)
-        text = ctk.CTkTextbox(tl, width=400, height=300)
+        #text = ctk.CTkTextbox(tl, width=400, height=300, text_color=("black", "white"))
+        text = ThemedTextBox(tl, width=400, height=300, text_color=("black", "white"))
         text.grid(row=0, column=1, sticky='nswe')
 
-        text.tag_config('time', foreground='black')
-        text.tag_config('debug', foreground='gray')
-        text.tag_config('info', foreground='blue')
-        text.tag_config('warning', background='yellow')
-        text.tag_config('success', background='#00ff00')
+        text.tag_config('time', foreground=('black', 'white'))
+        text.tag_config('debug', foreground=('#666666', '#999999'))
+        text.tag_config('info', foreground=('#052F78', '#5AAAFB'))
+        text.tag_config('warning', background=('#FDFA9D', '#785E07'))
+        text.tag_config('success', background=('#7EE18B', '#046625'))
         text.tag_config('critical', background='red', foreground='white')
 
         text_lid_begin = 0
@@ -376,7 +380,7 @@ class Orchestrator:
 
         tk.protocol('WM_DELETE_WINDOW', on_quit)
 
-        ctk.CTkLabel(btnpanel, text="HEED",font=ctk.CTkFont(size=20, weight="bold")).grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        ctk.CTkLabel(btnpanel, text="HEED",font=ctk.CTkFont(size=28, weight="bold")).grid(row=0, column=0, padx=10, pady=15, sticky="ew")
         ctk.CTkButton(btnpanel, text='Add Bot',
                       command=self.add_bot).grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         ctk.CTkSwitch(btnpanel, text='Captcha', variable=auto_captcha_var,
@@ -423,16 +427,21 @@ class Orchestrator:
 
         ctk.CTkSwitch(btnpanel, text='Notif', command=notif_changed,
                         variable=notif_var, onvalue='on', offvalue='off').grid(row=11, column=0)
-        
+        self.tree=Treeview(tk,columns=('teacher','volume_cnt','elected_cnt','status'),height=20)
+        self.tree.grid(row=0,column=1,sticky='nswe')
+
+        sbar=Scrollbar(tk,orient=VERTICAL,command=self.tree.yview)
+        sbar.grid(row=0,column=2,sticky='ns')
+        self.tree.configure(yscrollcommand=sbar.set)
         #self.tree = Treeview(tk, columns=(
         #    'teacher', 'volume_cnt', 'elected_cnt', 'status'), height=20)
-        self.tree_scroll = ctk.CTkScrollableFrame(tk, fg_color="transparent")
-        self.tree = CTkTreeView(self.tree_scroll, columns=(
-            'teacher', 'volume_cnt', 'elected_cnt', 'status'), height=20)
-        self.tree.grid(row=0, column=0, sticky='nswe')
-        self.tree_scroll.grid_rowconfigure(0, weight=1)
-        self.tree_scroll.grid_columnconfigure(0, weight=1)
-        self.tree_scroll.grid(row=0, column=1, sticky='nswe')
+        #self.tree_scroll = ctk.CTkScrollableFrame(tk, fg_color="transparent")
+        #self.tree = CTkTreeView(self.tree_scroll, columns=(
+        #    'teacher', 'volume_cnt', 'elected_cnt', 'status'), height=20)
+        #self.tree.grid(row=0, column=0, sticky='nswe')
+        #self.tree_scroll.grid_rowconfigure(0, weight=1)
+        #self.tree_scroll.grid_columnconfigure(0, weight=1)
+        #self.tree_scroll.grid(row=0, column=1, sticky='nswe')
 
         #sbar = ctk.CTkScrollbar(tk, orientation=VERTICAL, command=self.tree.yview)
         #sbar.grid(row=1, column=1, sticky='ns')
@@ -453,11 +462,18 @@ class Orchestrator:
 
         def remove_wish(e):
             idxs = wish_box.curselection()
-            if len(idxs) == 1:
-                course = self.wishlist[idxs[0]]
+            try:
+                if len(idxs) == 1:
+                    course = self.wishlist[idxs[0]]
+                    self.log(
+                        'info', f'remove from wishlist {course[0]} {course[1]}')
+                    del self.wishlist[idxs[0]]
+                    self.update_wish_var()
+            except:
+                course = self.wishlist[idxs]
                 self.log(
                     'info', f'remove from wishlist {course[0]} {course[1]}')
-                del self.wishlist[idxs[0]]
+                del self.wishlist[idxs]
                 self.update_wish_var()
 
         wish_box = CTkListbox(tk, listvariable=self.wish_var)
