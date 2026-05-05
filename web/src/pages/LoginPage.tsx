@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { useAppModel } from "../app-model";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
 import {
   Select,
@@ -72,6 +73,41 @@ export function LoginPage() {
                   </SelectContent>
                 </Select>
               </Field>
+              <div className="grid gap-3 rounded-2xl border border-stone-200/70 p-4 dark:border-stone-800">
+                <label className="flex items-center gap-3 text-sm text-stone-700 dark:text-stone-300">
+                  <Checkbox
+                    checked={loginForm.rememberPassword}
+                    disabled={!snapshot.auth.secure_store_available}
+                    onCheckedChange={(checked) =>
+                      setLoginForm((current) => ({
+                        ...current,
+                        rememberPassword: checked === true,
+                        autoLogin: checked === true ? current.autoLogin : false,
+                      }))
+                    }
+                  />
+                  <span>记住密码</span>
+                </label>
+                <label className="flex items-center gap-3 text-sm text-stone-700 dark:text-stone-300">
+                  <Checkbox
+                    checked={loginForm.autoLogin}
+                    disabled={!snapshot.auth.secure_store_available}
+                    onCheckedChange={(checked) =>
+                      setLoginForm((current) => ({
+                        ...current,
+                        rememberPassword: checked === true ? true : current.rememberPassword,
+                        autoLogin: checked === true,
+                      }))
+                    }
+                  />
+                  <span>启动时自动登录</span>
+                </label>
+                {!snapshot.auth.secure_store_available ? (
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    当前平台构建暂未接入安全凭据存储，因此不能保存密码。
+                  </p>
+                ) : null}
+              </div>
               <Button className="w-full" disabled={pending !== null} size="lg" type="submit">
                 {pending === "登录" ? "登录中…" : "进入控制台"}
               </Button>

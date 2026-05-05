@@ -12,11 +12,15 @@ export async function login(payload: {
   username: string;
   password: string;
   channel: Channel;
+  rememberPassword: boolean;
+  autoLogin: boolean;
 }): Promise<AuthStateView> {
   return invoke<AuthStateView>("login", {
     username: payload.username,
     password: payload.password,
     channel: payload.channel || null,
+    rememberPassword: payload.rememberPassword,
+    autoLogin: payload.autoLogin,
   });
 }
 

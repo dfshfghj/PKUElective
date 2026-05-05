@@ -3,6 +3,7 @@ use tauri::{AppHandle, Emitter};
 use crate::{
     app_state::AppState,
     commands::snapshot::{self, AuthStateView, BotView, SnapshotView},
+    logger,
 };
 
 pub const EVENT_SNAPSHOT: &str = "app://snapshot";
@@ -50,6 +51,11 @@ pub fn emit_message(
         kind: kind.into(),
         text: text.into(),
     };
+    match payload.kind.as_str() {
+        "error" => logger::error(format!("ui message: {}", payload.text)),
+        "warn" => logger::warn(format!("ui message: {}", payload.text)),
+        _ => logger::info(format!("ui message [{}]: {}", payload.kind, payload.text)),
+    }
     app.emit(EVENT_MESSAGE, payload)
         .map_err(|err| err.to_string())
 }

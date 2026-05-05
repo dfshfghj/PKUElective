@@ -4,6 +4,8 @@ use tauri::{AppHandle, State};
 use crate::app_state::AppState;
 use crate::commands::snapshot::SnapshotView;
 use crate::emit::{emit_message, emit_snapshot_events};
+use crate::logger;
+use crate::session_persistence::handle_session_result;
 
 #[tauri::command]
 pub async fn search_query_courses(
@@ -11,6 +13,7 @@ pub async fn search_query_courses(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: search_query_courses");
     let session = {
         let guard = state.manual_session.lock().await;
         guard
@@ -19,10 +22,8 @@ pub async fn search_query_courses(
     };
 
     emit_message(&app, "info", "正在查询课程…")?;
-    let query_courses = session
-        .search_query_courses(&filters)
-        .await
-        .map_err(|err| err.to_string())?;
+    let query_courses =
+        handle_session_result(session.search_query_courses(&filters).await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_query_courses(query_courses);
@@ -37,6 +38,7 @@ pub async fn add_course_to_plan(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: add_course_to_plan");
     let session = {
         let guard = state.manual_session.lock().await;
         guard
@@ -45,22 +47,13 @@ pub async fn add_course_to_plan(
     };
 
     emit_message(&app, "info", "正在加入选课计划…")?;
-    session
-        .add_course_to_plan(&add_url)
-        .await
-        .map_err(|err| err.to_string())?;
-    let plan_courses = session
-        .refresh_plan_courses()
-        .await
-        .map_err(|err| err.to_string())?;
-    let query_courses = session
-        .refresh_query_courses()
-        .await
-        .map_err(|err| err.to_string())?;
-    let preselect_courses = session
-        .refresh_preselect_courses()
-        .await
-        .map_err(|err| err.to_string())?;
+    handle_session_result(session.add_course_to_plan(&add_url).await, &app, &state).await?;
+    let plan_courses =
+        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
+    let query_courses =
+        handle_session_result(session.refresh_query_courses().await, &app, &state).await?;
+    let preselect_courses =
+        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_plan_courses(plan_courses);
@@ -77,6 +70,7 @@ pub async fn remove_plan_course(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: remove_plan_course");
     let session = {
         let guard = state.manual_session.lock().await;
         guard
@@ -85,18 +79,11 @@ pub async fn remove_plan_course(
     };
 
     emit_message(&app, "info", "正在移出选课计划…")?;
-    session
-        .remove_plan_course(&delete_url)
-        .await
-        .map_err(|err| err.to_string())?;
-    let plan_courses = session
-        .refresh_plan_courses()
-        .await
-        .map_err(|err| err.to_string())?;
-    let preselect_courses = session
-        .refresh_preselect_courses()
-        .await
-        .map_err(|err| err.to_string())?;
+    handle_session_result(session.remove_plan_course(&delete_url).await, &app, &state).await?;
+    let plan_courses =
+        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
+    let preselect_courses =
+        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_plan_courses(plan_courses);
@@ -113,6 +100,7 @@ pub async fn preselect_course(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: preselect_course");
     let session = {
         let guard = state.manual_session.lock().await;
         guard
@@ -121,18 +109,13 @@ pub async fn preselect_course(
     };
 
     emit_message(&app, "info", "正在提交预选…")?;
-    let result = session
-        .preselect_course(&select_url, preference)
-        .await
-        .map_err(|err| err.to_string())?;
-    let preselect_courses = session
-        .refresh_preselect_courses()
-        .await
-        .map_err(|err| err.to_string())?;
-    let plan_courses = session
-        .refresh_plan_courses()
-        .await
-        .map_err(|err| err.to_string())?;
+    let result =
+        handle_session_result(session.preselect_course(&select_url, preference).await, &app, &state)
+            .await?;
+    let preselect_courses =
+        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
+    let plan_courses =
+        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_preselect_courses(preselect_courses);

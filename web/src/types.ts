@@ -11,6 +11,11 @@ export type BotStatus =
 export type AuthStateView = {
   logged_in: boolean;
   username: string | null;
+  saved_username: string | null;
+  saved_channel: "bzx" | "bfx" | null;
+  remember_password: boolean;
+  auto_login: boolean;
+  secure_store_available: boolean;
 };
 
 export type AppConfig = {

@@ -5,6 +5,7 @@ use heed_core::WishlistItem;
 use crate::app_state::AppState;
 use crate::commands::snapshot::SnapshotView;
 use crate::emit::{emit_message, emit_snapshot_events};
+use crate::logger;
 
 #[tauri::command]
 pub async fn add_wishlist(
@@ -13,6 +14,7 @@ pub async fn add_wishlist(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: add_wishlist");
     let label = format!("已加入待选列表：{} {}", name, class_id);
     {
         let mut orchestrator = state.orchestrator.lock().await;
@@ -30,6 +32,7 @@ pub async fn remove_wishlist(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: remove_wishlist");
     let label = format!("已移出待选列表：{} {}", name, class_id);
     {
         let mut orchestrator = state.orchestrator.lock().await;

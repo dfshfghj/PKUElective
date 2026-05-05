@@ -1,10 +1,14 @@
+use cookie_store::serde::json::{load_all as load_cookies_json, save_incl_expired_and_nonpersistent};
 use reqwest::{
-    Client, Url,
-    cookie::Jar,
-    header::{CACHE_CONTROL, HeaderMap, HeaderValue, REFERER},
+    Client,
+    header::{CACHE_CONTROL, COOKIE, HeaderMap, HeaderValue, REFERER},
 };
+use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use serde::Deserialize;
-use std::sync::Arc;
+use std::{
+    io::{BufReader, BufWriter},
+    sync::Arc,
+};
 
 use crate::{
     error::{HeedError, Result},
@@ -15,6 +19,7 @@ const LOGIN_URL: &str = "https://iaaa.pku.edu.cn/iaaa/oauthlogin.do";
 const SSO_URL: &str = "https://elective.pku.edu.cn/elective2008/ssoLogin.do";
 const HELP_TITLE: &str = "<title>帮助-总体流程</title>";
 const COURSE_HOME_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/help/HelpController.jpf";
+type SharedCookieStore = Arc<CookieStoreMutex>;
 
 #[derive(Debug, Clone)]
 pub struct Credentials {
@@ -56,6 +61,7 @@ impl Credentials {
 #[derive(Clone)]
 pub struct AuthSession {
     client: Client,
+    cookie_store: SharedCookieStore,
     username: String,
     channel: Option<Channel>,
 }
@@ -72,6 +78,80 @@ impl AuthSession {
     pub fn channel(&self) -> Option<&Channel> {
         self.channel.as_ref()
     }
+
+    pub fn persist_cookies_json(&self) -> Result<String> {
+        let store = self
+            .cookie_store
+            .lock()
+            .map_err(|err| HeedError::Fatal(format!("cookie store lock poisoned: {err}")))?;
+        let mut writer = BufWriter::new(Vec::new());
+        save_incl_expired_and_nonpersistent(&*store, &mut writer)
+            .map_err(|err| HeedError::Fatal(format!("failed to serialize cookies: {err}")))?;
+        let bytes = writer
+            .into_inner()
+            .map_err(|err| HeedError::Fatal(format!("failed to flush cookies: {err}")))?;
+        String::from_utf8(bytes)
+            .map_err(|err| HeedError::Fatal(format!("cookie store contained invalid utf8: {err}")))
+    }
+
+    pub fn from_persisted_cookies(
+        username: String,
+        channel: Option<Channel>,
+        cookies_json: &str,
+    ) -> Result<Self> {
+        let cookie_store = load_cookies_json(BufReader::new(cookies_json.as_bytes()))
+            .map_err(|err| HeedError::Fatal(format!("failed to deserialize cookies: {err}")))?;
+        Self::build(username, channel, Arc::new(CookieStoreMutex::new(cookie_store)))
+    }
+
+    pub async fn verify_alive(&self) -> Result<()> {
+        let body = self
+            .client
+            .get(COURSE_HOME_URL)
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
+
+        if body.contains(HELP_TITLE) {
+            Ok(())
+        } else {
+            Err(HeedError::SessionExpired)
+        }
+    }
+}
+
+fn build_client(cookie_store: SharedCookieStore) -> Result<Client> {
+    let mut default_headers = HeaderMap::new();
+    default_headers.insert(REFERER, HeaderValue::from_static(COURSE_HOME_URL));
+    default_headers.insert(CACHE_CONTROL, HeaderValue::from_static("max-age=0"));
+
+    Ok(Client::builder()
+        .default_headers(default_headers)
+        .cookie_provider(cookie_store)
+        .danger_accept_invalid_certs(true)
+        .user_agent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+             (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36",
+        )
+        .build()?)
+}
+
+impl AuthSession {
+    fn build(
+        username: String,
+        channel: Option<Channel>,
+        cookie_store: SharedCookieStore,
+    ) -> Result<Self> {
+        let client = build_client(Arc::clone(&cookie_store))?;
+        Ok(Self {
+            client,
+            cookie_store,
+            username,
+            channel,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,26 +165,12 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
         return Err(HeedError::AuthFailed("missing username or password".into()));
     }
 
-    let cookie_store = Arc::new(Jar::default());
-    let login_url = Url::parse(LOGIN_URL).expect("LOGIN_URL should be a valid URL");
-    cookie_store.add_cookie_str(&format!("userName={}", credentials.username), &login_url);
-
-    let mut default_headers = HeaderMap::new();
-    default_headers.insert(REFERER, HeaderValue::from_static(COURSE_HOME_URL));
-    default_headers.insert(CACHE_CONTROL, HeaderValue::from_static("max-age=0"));
-
-    let client = Client::builder()
-        .default_headers(default_headers)
-        .cookie_provider(cookie_store)
-        .danger_accept_invalid_certs(true)
-        .user_agent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
-             (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36",
-        )
-        .build()?;
+    let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
+    let client = build_client(Arc::clone(&cookie_store))?;
 
     let response = client
         .post(LOGIN_URL)
+        .header(COOKIE, format!("userName={}", credentials.username))
         .form(&[
             ("appid", "syllabus"),
             ("userName", credentials.username.as_str()),
@@ -141,11 +207,11 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
     let body = response.text().await?;
 
     if body.contains(HELP_TITLE) {
-        return Ok(AuthSession {
-            client,
-            username: credentials.username.clone(),
-            channel: credentials.channel.clone(),
-        });
+        return AuthSession::build(
+            credentials.username.clone(),
+            credentials.channel.clone(),
+            cookie_store,
+        );
     }
 
     if body.contains("/scnStAthVef.jsp/") {
@@ -167,11 +233,11 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
             .error_for_status()?;
         let body = response.text().await?;
         if body.contains(HELP_TITLE) {
-            return Ok(AuthSession {
-                client,
-                username: credentials.username.clone(),
-                channel: credentials.channel.clone(),
-            });
+            return AuthSession::build(
+                credentials.username.clone(),
+                credentials.channel.clone(),
+                cookie_store,
+            );
         }
     }
 

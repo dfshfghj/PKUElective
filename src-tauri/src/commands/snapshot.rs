@@ -2,12 +2,17 @@ use heed_core::{AppConfig, BotStatus, Course, PlanCourse, PreselectCourse, Query
 use serde::Serialize;
 use tauri::State;
 
-use crate::app_state::AppState;
+use crate::{app_state::AppState, auth_persistence};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AuthStateView {
     pub logged_in: bool,
     pub username: Option<String>,
+    pub saved_username: Option<String>,
+    pub saved_channel: Option<String>,
+    pub remember_password: bool,
+    pub auto_login: bool,
+    pub secure_store_available: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -33,9 +38,17 @@ pub struct SnapshotView {
 pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     let auth = {
         let username = state.auth_username.lock().await.clone();
+        let preferences = state.auth_preferences.lock().await.clone();
         AuthStateView {
             logged_in: username.is_some(),
             username,
+            saved_username: preferences.saved_username,
+            saved_channel: auth_persistence::auth_preferences_to_channel_string(
+                preferences.saved_channel.as_ref(),
+            ),
+            remember_password: preferences.remember_password,
+            auto_login: preferences.auto_login,
+            secure_store_available: auth_persistence::secure_store_available(),
         }
     };
 

@@ -5,6 +5,7 @@ use tauri::{AppHandle, State};
 use crate::app_state::AppState;
 use crate::commands::snapshot::SnapshotView;
 use crate::emit::{emit_message, emit_snapshot_events};
+use crate::logger;
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigPatch {
@@ -21,6 +22,7 @@ pub async fn update_config(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
+    logger::info("command: update_config");
     {
         let mut orchestrator = state.orchestrator.lock().await;
         let current = orchestrator.config().clone();

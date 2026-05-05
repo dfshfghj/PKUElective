@@ -29,7 +29,15 @@ import { subscribeToAppEvents } from "./events";
 import type { ConfigPatch, CourseQueryFilters, MessageEvent, SnapshotView } from "./types";
 
 const emptySnapshot: SnapshotView = {
-  auth: { logged_in: false, username: null },
+  auth: {
+    logged_in: false,
+    username: null,
+    saved_username: null,
+    saved_channel: null,
+    remember_password: false,
+    auto_login: false,
+    secure_store_available: true,
+  },
   config: {
     auto_refresh: false,
     auto_captcha: false,
@@ -49,6 +57,8 @@ type LoginFormState = {
   username: string;
   password: string;
   channel: "" | "bzx" | "bfx";
+  rememberPassword: boolean;
+  autoLogin: boolean;
 };
 
 type WishlistFormState = {
@@ -97,6 +107,8 @@ export function AppProvider(props: { children: ReactNode }) {
     username: "",
     password: "",
     channel: "",
+    rememberPassword: false,
+    autoLogin: false,
   });
   const [wishlistFormState, setWishlistFormState] = useState<WishlistFormState>({
     name: "",
@@ -110,6 +122,26 @@ export function AppProvider(props: { children: ReactNode }) {
   useEffect(() => {
     void syncSnapshot("正在加载当前状态…");
   }, []);
+
+  useEffect(() => {
+    setLoginFormState((current) => ({
+      ...current,
+      username: snapshot.auth.logged_in
+        ? current.username
+        : (snapshot.auth.saved_username ?? current.username),
+      channel: snapshot.auth.logged_in
+        ? current.channel
+        : ((snapshot.auth.saved_channel ?? current.channel) as "" | "bzx" | "bfx"),
+      rememberPassword: snapshot.auth.remember_password,
+      autoLogin: snapshot.auth.auto_login,
+    }));
+  }, [
+    snapshot.auth.auto_login,
+    snapshot.auth.logged_in,
+    snapshot.auth.remember_password,
+    snapshot.auth.saved_channel,
+    snapshot.auth.saved_username,
+  ]);
 
   useEffect(() => {
     let disposed = false;
