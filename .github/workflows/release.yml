@@ -66,7 +66,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: src-tauri
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', github.sha) }}
           releaseName: ${{ github.ref_type == 'tag' && format('HEED {0}', github.ref_name) || format('HEED build {0}', github.sha) }}
           releaseBody: |
