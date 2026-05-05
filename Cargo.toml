@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/heed-core", "src-tauri"]
+resolver = "2"

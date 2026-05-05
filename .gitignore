@@ -12,3 +12,7 @@ main.build
 main.dist
 main.onefile-build
 main.exe
+/target/
+/web/node_modules/
+/web/dist
+/example
