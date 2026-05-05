@@ -1,113 +1,104 @@
 # HEED
-High Efficiency Elective Dominator (with GUI)
 
+High Efficiency Elective Dominator
 
+当前仓库已经切换为基于 `Rust + Tauri 2 + React + Vite` 的桌面应用。原先以 Python GUI 为主的实现已经弃用，不再是推荐运行方式；仓库里保留的 `main.pyw`、`captcha.py`、`notifier.py` 等旧文件目前仅供历史参考。
+
+## 当前架构
+
+- `crates/heed-core`：核心选课逻辑、会话管理、验证码/通知接口抽象
+- `src-tauri`：桌面端宿主、命令暴露、日志与持久化
+- `web`：React 前端界面
+
+## 开发环境
+
+建议使用：
+
+- Rust stable
+- Node.js 18+
+- npm
+
+安装前端依赖：
+
+```bash
+cd web
+npm install
+```
+
+启动开发版：
+
+```bash
+cargo tauri dev
+```
+
+构建前端：
+
+```bash
+cd web
+npm run build
+```
+
+如果需要构建桌面应用，请在本机准备好 Tauri 2 所需依赖后执行对应的 `cargo tauri build`。
 
 ## 基本使用流程
 
-1. 选择使用构建好的版本或者从源码运行
-     - 如果要从源码运行，请确认 Python 版本 ≥ 3.6，然后 `pip install -r requirements.txt`，已在 Windows 10 和 Ubuntu 20.04（GNOME 桌面环境）上测试可用
-     - 如果要运行构建好的版本，只需要一个 64 位的 Windows，然后 [从 releases 里进行一个下载](https://github.com/xmcp/HEED-GUI/releases)，注意这样将**无法支持识别验证码和推送通知**功能（其实源码版也不支持，但是留了相应接口允许你配置，参见后面 “高级功能”）
-2. 运行 `main.pyw`，输入学号和密码
-   - 如果你有双学位，请在学号后面加 `@bzx`（表示主修）或者 `@bfx`（表示辅双），例如 `1900012345@bfx` 
-3. 你将看到一个主窗口（用于操作）和一个日志窗口（用于查看工作状态）
-4. 点击主窗口的 `Add Bot` 一到三次
-   - 将提示输入验证码，请手动输入然后按回车确认（点击 `Next Captcha` 跳过当前验证码），或者参阅后面 ”高级功能“ 的 ”自动识别验证码“
-   - 日志窗口将出现一些形如 “Bot 1 [idle]” 的内容，表示这个 Bot 已经可用于选课了
-5. 点击主窗口的 `Refresh`，将显示课程列表
-6. 在课程列表里双击来选课（未满）或加到待选列表（已满）
-   - 右边那个窄的列表是待选课程列表，双击删除
-7. 勾选上 `Auto` 开始自动选课
-   - 为了使结果更加清晰，`Auto` 模式下将仅显示待选课程，如果需要添加其他课程请取消勾选 `Auto` 然后再点一下 `Refresh`
-8. 保持程序运行
-   - 可以在主窗口的标题栏看到最近一次刷新的时间
-   - 可以在日志窗口观察状态，或者等待推送通知（参阅后面 ”高级功能“ 的 “推送通知”）
-   - 如果没有设置自动识别验证码，Session 过期后 Bot 会死掉，此时需要再点击 `Add Bot` 并重新输入验证码，请时刻关注日志窗口或者推送通知；如果设置了自动识别验证码，Session 过期后 Bot 会自动重启，无需人工操作
-9. 为防止误操作，**先取消选择 `Auto` 才能点击主窗口的关闭按钮**
+1. 启动应用后，在登录页输入学号和密码。
+2. 如果有主修或辅双渠道需求，可在“身份渠道”中选择 `bzx` 或 `bfx`。
+3. 登录后进入控制台，可以先在“概览”页确认当前账号状态。
+4. 前往“课程查询”页，按课程类别、课程号、课程名、开课单位、上课时间等条件查询课程。
+5. 在查询结果中点击“加入选课计划”，把目标课程加入你的选课计划。
+6. 前往“选课计划”页查看当前计划，并按需删除不再需要的课程。
+7. 前往“预选”页刷新“选课计划中本学期可选列表”，填写意愿值后执行预选。
+8. 前往“设置”页开启或关闭自动化能力，并调整刷新间隔与请求超时。
 
+## 当前功能
 
+### 登录与会话恢复
 
-## 高级功能
+- 支持登录选课网
+- 支持在可用平台上记住密码和启动时自动登录
+- 应用启动时会尝试恢复之前保存的认证状态
 
-### 自动识别验证码
+### 课程查询
 
-请自己想办法接入商业 API 或者凹模型。
+- 支持按课程类别、课程号、课程名、开课单位、星期、节次进行查询
+- 支持“时间反查”
+- 查询结果可直接加入选课计划
 
-修改 `captcha.py`，函数 `recognize` 接收一个 `PIL.Image` 类型的图片作为参数，返回一个字符串作为识别结果。
+### 选课计划
 
-配置完后勾选主窗口的 `Captcha` 来启用自动识别验证码。
+- 可查看后端中的当前选课计划
+- 可删除计划中的课程
 
-为了方便调试模型，还有一个 `aux_captcha_widget.pyw` 脚本可以单独测试验证码识别功能。
+### 预选
 
+- 可拉取“选课计划中本学期可选列表”
+- 可填写意愿值并直接发起预选
 
+### 自动化设置
 
-### 推送通知
+- `Auto Runner`：自动刷新/自动化补退选开关
+- `Auto Captcha`：自动验证码识别开关
+- `Notifications`：通知开关
+- `Interval ms`：自动刷新间隔，默认 `5000`
+- `Timeout ms`：请求超时，默认 `30000`
 
-请自己想办法接入推送 API。
+## 当前限制
 
-修改 `notifier.py`，方法 `_do_notif` 接收一个字符串类型的消息内容。目前给的例子是飞书的机器人发消息 API。
+- 旧版 Python GUI 已弃用，`README` 中不再提供 `main.pyw` 的运行说明
+- 验证码识别和通知目前在核心层只保留了接口，默认实现为 no-op，需要自行接入具体服务
+- 仓库中仍有部分旧 Python 文件，但它们不是当前桌面端主流程的一部分
+- 频繁刷新仍可能触发选课系统限制，请谨慎调低刷新间隔
 
-配置完后勾选主窗口的 `Notif` 来启用推送通知。
+## 迁移说明
 
-勾选后会立即发送一条 “服务已启动” 来帮助你测试推送通知是否功能正常。
+如果你之前是按旧版 README 使用本项目，请注意下面这些变化：
 
+- 不再使用 `pip install -r requirements.txt`
+- 不再通过 `python main.pyw` 或 `main.pyw` 启动
+- 不再通过修改根目录下的 Python GUI 逻辑来驱动主程序
+- 当前推荐入口是 `cargo tauri dev`
 
+## License
 
-### 预先输入待选列表
-
-如果你想预先输入待选课程列表，请在当前目录（即程序的 Working Directory）下创建文件 `wishlist.txt`。
-
-文件内容是一行一个要选的课程，格式是 `课程名称|班号`，例如 `计算机系统导论|1`。请注意不要有多余的空格。
-
-这些课程将在程序启动时就添加到待选列表里。
-
-
-
-### 自动刷新参数配置
-
-`Intv` 用于设置自动刷新间隔（毫秒），最低限制是 5000。
-
-`Timeout` 用于设置网络请求超时时间（毫秒）。
-
-`Verbose` 用于在日志窗口里显示更详细的内容。
-
-
-
-## 使用提示
-
-- **不要把 `Intv` 设置的太低**
-  - 选课网有缓存机制，设置为每秒刷新好几次只是每秒读好几次缓存的数据，并不会改善成功率
-  - 而且经验表明，刷新频率过快会被禁止登录一段时间，得不偿失
-  - 一般来说，5000ms 是一个相对于缓存时间来说足够快的刷新频率，也是默认的最快频率
-- **不要点 `Add Bot` 太多次**
-  - 每个 Bot 对应一个选课网的 Session，经验表明超过 5 个的话可能会被选课网限制
-  - 一般来说，如果你设置了自动识别验证码，开 3 个 Bot 就够了；如果是手动识别验证码，开 5 个 Bot 就够了
-- 减少选课计划中的课程数可以提高网络不佳时的成功率
-  - 建议把补退选的列表控制在一页，这样程序不需要翻页
-- 本软件会跳过人数为 0 的课
-  - 这是因为选课系统偶尔把选课人数错误地显示为 0
-  - 如果你确实要选一门 0 人选的课，请直接去选课网上操作
-- “请不要使用刷课机刷课”
-  - **使用本软件的一切后果自负**
-  - 不要问 “本软件是否会把课退光” 之类的问题，如有任何疑惑请直接看代码
-
-
-
-## LICENSE
-
-```
-Copyright (C) 2022 xmcp
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
+项目使用 GPLv3，完整文本见 [LICENSE.md](./LICENSE.md)。
