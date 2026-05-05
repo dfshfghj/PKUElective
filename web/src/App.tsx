@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AppProvider, useAppModel } from "./app-model";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { CoursesPage } from "./pages/CoursesPage";
 import { CourseQueryPage } from "./pages/CourseQueryPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -17,8 +18,10 @@ export function App() {
 
   return (
     <AppProvider>
-      <AppRoutes />
-      <Toaster closeButton richColors position="top-right" theme={themeMode} />
+      <TooltipProvider>
+        <AppRoutes />
+        <Toaster closeButton richColors position="top-right" theme={themeMode} />
+      </TooltipProvider>
     </AppProvider>
   );
 }
