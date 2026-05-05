@@ -9,6 +9,7 @@ pub struct AppState {
     pub manual_session: Mutex<Option<ElectiveSession>>,
     pub auth_username: Mutex<Option<String>>,
     pub auth_preferences: Mutex<AuthPreferences>,
+    pub auth_restoring: Mutex<bool>,
 }
 
 impl Default for AppState {
@@ -20,6 +21,7 @@ impl Default for AppState {
             manual_session: Mutex::new(None),
             auth_username: Mutex::new(None),
             auth_preferences: Mutex::new(AuthPreferences::default()),
+            auth_restoring: Mutex::new(true),
         }
     }
 }
@@ -62,5 +64,10 @@ impl AppState {
             let mut orchestrator = self.orchestrator.lock().await;
             orchestrator.clear_runtime_state();
         }
+    }
+
+    pub async fn finish_auth_restore(&self) {
+        let mut restoring = self.auth_restoring.lock().await;
+        *restoring = false;
     }
 }

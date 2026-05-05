@@ -8,6 +8,7 @@ mod logger;
 mod session_persistence;
 
 use crate::app_state::AppState;
+use crate::emit::emit_snapshot_events;
 use tauri::Manager;
 
 fn main() {
@@ -24,8 +25,8 @@ fn main() {
 
             app.manage(AppState::default());
             let handle = app.handle().clone();
-            let state = app.state::<AppState>();
-            tauri::async_runtime::block_on(async move {
+            tauri::async_runtime::spawn(async move {
+                let state = handle.state::<AppState>();
                 match auth_persistence::restore_auth_on_startup(&handle, state.inner()).await {
                     Ok(restored) => {
                         if restored {
@@ -37,6 +38,10 @@ fn main() {
                     Err(err) => {
                         logger::error(format!("failed to restore session on startup: {err}"));
                     }
+                }
+                state.finish_auth_restore().await;
+                if let Err(err) = emit_snapshot_events(&handle, state.inner()).await {
+                    logger::error(format!("failed to emit startup snapshot events: {err}"));
                 }
             });
             Ok(())

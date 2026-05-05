@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ const emptySnapshot: SnapshotView = {
     saved_channel: null,
     remember_password: false,
     auto_login: false,
+    auth_restoring: true,
     secure_store_available: true,
   },
   config: {
@@ -118,6 +120,7 @@ export function AppProvider(props: { children: ReactNode }) {
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("正在连接后端…");
   const [error, setError] = useState<string | null>(null);
+  const authRestorePollTimer = useRef<number | null>(null);
 
   useEffect(() => {
     void syncSnapshot("正在加载当前状态…");
@@ -183,25 +186,56 @@ export function AppProvider(props: { children: ReactNode }) {
     };
   }, []);
 
-  async function syncSnapshot(nextMessage?: string) {
+  useEffect(() => {
+    if (!snapshot.auth.auth_restoring) {
+      if (authRestorePollTimer.current !== null) {
+        window.clearTimeout(authRestorePollTimer.current);
+        authRestorePollTimer.current = null;
+      }
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setMessage(snapshot.auth.auto_login ? "正在自动登录…" : "正在恢复登录状态…");
+
+    authRestorePollTimer.current = window.setTimeout(() => {
+      authRestorePollTimer.current = null;
+      void syncSnapshot(snapshot.auth.auto_login ? "正在自动登录…" : "正在恢复登录状态…");
+    }, 900);
+
+    return () => {
+      if (authRestorePollTimer.current !== null) {
+        window.clearTimeout(authRestorePollTimer.current);
+        authRestorePollTimer.current = null;
+      }
+    };
+  }, [snapshot.auth.auth_restoring, snapshot.auth.auto_login]);
+
+  async function syncSnapshot(nextMessage?: string) {
     setError(null);
     if (nextMessage) {
       setMessage(nextMessage);
     }
 
+    let nextSnapshot: SnapshotView | null = null;
     try {
-      const next = await getSnapshot();
-      setSnapshot(next);
-      setMessage("后端已连接，状态已同步。");
-      toast.success("状态已同步");
+      nextSnapshot = await getSnapshot();
+      setSnapshot(nextSnapshot);
+      if (nextSnapshot.auth.auth_restoring) {
+        setMessage(nextSnapshot.auth.auto_login ? "正在自动登录…" : "正在恢复登录状态…");
+      } else {
+        setMessage("后端已连接，状态已同步。");
+      }
     } catch (err) {
       const message = toErrorMessage(err);
       setError(message);
       setMessage("还没拿到后端状态。");
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (!nextSnapshot?.auth.auth_restoring) {
+        setLoading(false);
+      }
     }
   }
 
@@ -211,7 +245,6 @@ export function AppProvider(props: { children: ReactNode }) {
     setMessage(`${label}中…`);
     try {
       await action();
-      toast.success(`${label}完成`);
     } catch (err) {
       const message = toErrorMessage(err);
       setError(message);

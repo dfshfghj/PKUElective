@@ -60,6 +60,7 @@ pub async fn login(
         ),
         remember_password: effective_prefs.remember_password,
         auto_login: effective_prefs.auto_login,
+        auth_restoring: false,
         secure_store_available: auth_persistence::secure_store_available(),
     })
 }

@@ -15,6 +15,7 @@ export type AuthStateView = {
   saved_channel: "bzx" | "bfx" | null;
   remember_password: boolean;
   auto_login: boolean;
+  auth_restoring: boolean;
   secure_store_available: boolean;
 };
 

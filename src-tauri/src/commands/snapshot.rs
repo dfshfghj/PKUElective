@@ -12,6 +12,7 @@ pub struct AuthStateView {
     pub saved_channel: Option<String>,
     pub remember_password: bool,
     pub auto_login: bool,
+    pub auth_restoring: bool,
     pub secure_store_available: bool,
 }
 
@@ -39,6 +40,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     let auth = {
         let username = state.auth_username.lock().await.clone();
         let preferences = state.auth_preferences.lock().await.clone();
+        let auth_restoring = *state.auth_restoring.lock().await;
         AuthStateView {
             logged_in: username.is_some(),
             username,
@@ -48,6 +50,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
             ),
             remember_password: preferences.remember_password,
             auto_login: preferences.auto_login,
+            auth_restoring,
             secure_store_available: auth_persistence::secure_store_available(),
         }
     };

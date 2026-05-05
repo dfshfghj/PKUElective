@@ -303,7 +303,7 @@ export function CourseQueryPage() {
 
       <Surface title="查询结果" meta={`${snapshot.query_courses.length} 门`}>
         {snapshot.query_courses.length === 0 ? (
-          <EmptyState text="还没有课程查询结果，先提交一次查询。" />
+          <EmptyState text="暂无更多结果。" />
         ) : (
           <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
             <div className="overflow-auto">

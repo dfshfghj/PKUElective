@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { EmptyState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
 import { useAppModel } from "../app-model";
@@ -6,6 +6,7 @@ import { useAppModel } from "../app-model";
 export function CoursesPage() {
   const { pending, snapshot, handlePreselectCourse, handleRefreshPreselect } = useAppModel();
   const [preferenceDrafts, setPreferenceDrafts] = useState<Record<string, string>>({});
+  const hasAutoLoadedRef = useRef(false);
   const rows = useMemo(
     () =>
       snapshot.preselect_courses.map((course) => ({
@@ -15,6 +16,14 @@ export function CoursesPage() {
       })),
     [snapshot.preselect_courses],
   );
+
+  useEffect(() => {
+    if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || pending !== null) {
+      return;
+    }
+    hasAutoLoadedRef.current = true;
+    void handleRefreshPreselect();
+  }, [handleRefreshPreselect, pending, snapshot.auth.logged_in]);
 
   return (
     <div className="space-y-6">
@@ -26,12 +35,6 @@ export function CoursesPage() {
             <div className="rounded-full bg-white/70 px-4 py-2 text-sm text-stone-600 shadow-sm dark:bg-stone-900 dark:text-stone-300">
               {rows.length} 门课程
             </div>
-            <PrimaryButton
-              disabled={pending !== null || !snapshot.auth.logged_in}
-              onClick={() => void handleRefreshPreselect()}
-            >
-              刷新预选列表
-            </PrimaryButton>
           </>
         }
       />

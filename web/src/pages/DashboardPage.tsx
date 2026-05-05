@@ -22,12 +22,6 @@ export function DashboardPage() {
         description=""
         actions={
           <>
-            <SecondaryButton
-              disabled={loading || pending !== null}
-              onClick={() => void syncSnapshot("正在重新同步状态…")}
-            >
-              同步 snapshot
-            </SecondaryButton>
           </>
         }
       />
@@ -46,10 +40,6 @@ export function DashboardPage() {
 
         <Surface title="快速控制" meta="常用命令">
           <div className="grid gap-4">
-            <div className="rounded-3xl bg-orange-50/80 p-5 dark:bg-orange-950/30">
-              <p className="text-sm font-medium text-orange-950">手动操作</p>
-              <p className="mt-2 text-sm leading-6 text-orange-900/80 dark:text-orange-200/80">课程查询、选课计划和预选现在都会直接走当前登录会话，不再依赖 Bot。</p>
-            </div>
             <div className="grid gap-3 sm:grid-cols-1">
               <SecondaryButton
                 disabled={!snapshot.auth.logged_in || pending !== null}

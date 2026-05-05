@@ -47,10 +47,10 @@ function AppRoutes() {
 }
 
 function GuestRoute() {
-  const { snapshot, loading } = useAppModel();
+  const { snapshot, loading, message } = useAppModel();
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message={message} />;
   }
 
   if (snapshot.auth.logged_in) {
@@ -61,10 +61,10 @@ function GuestRoute() {
 }
 
 function ProtectedLayout() {
-  const { snapshot, loading } = useAppModel();
+  const { snapshot, loading, message } = useAppModel();
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message={message} />;
   }
 
   if (!snapshot.auth.logged_in) {
@@ -90,11 +90,27 @@ function ProtectedLayout() {
   );
 }
 
-function LoadingScreen() {
+function LoadingScreen(props: { message: string }) {
+  const title = props.message.includes("自动登录") ? "正在自动登录" : "正在连接后端";
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-transparent px-4">
-      <div className="rounded-2xl border border-stone-200 bg-white px-5 py-4 text-sm text-stone-500 shadow-sm dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
-        正在连接后端…
+      <div className="w-full max-w-sm rounded-[2rem] border border-orange-200/70 bg-white/88 p-8 shadow-xl shadow-orange-100/60 backdrop-blur dark:border-stone-800 dark:bg-stone-950/88 dark:shadow-black/20">
+        <div className="flex items-center justify-center">
+          <div className="relative flex h-16 w-16 items-center justify-center">
+            <div className="absolute h-16 w-16 rounded-full border border-orange-200 dark:border-stone-700" />
+            <div className="absolute h-16 w-16 animate-ping rounded-full bg-orange-200/40 dark:bg-stone-700/40" />
+            <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-stone-300 border-t-orange-500 dark:border-stone-700 dark:border-t-orange-400" />
+          </div>
+        </div>
+        <div className="mt-5 space-y-2 text-center">
+          <p className="text-base font-semibold text-stone-900 dark:text-stone-100">
+            {title}
+          </p>
+          <p className="text-sm leading-6 text-stone-500 dark:text-stone-400">
+            {props.message || "首次启动或网络较慢时会多等一会儿，页面会在状态恢复后自动进入。"}
+          </p>
+        </div>
       </div>
     </div>
   );
