@@ -7,7 +7,8 @@
     "beforeDevCommand": "npm --prefix ../web run dev",
     "beforeBuildCommand": "npm --prefix ../web run build",
     "devUrl": "http://localhost:1420",
-    "frontendDist": "../web/dist"
+    "frontendDist": "../web/dist",
+    "removeUnusedCommands": true
   },
   "app": {
     "windows": [
