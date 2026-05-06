@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import {
   EmptyState,
@@ -7,11 +8,160 @@ import {
   Surface,
 } from "../components";
 import { useAppModel } from "../app-model";
+import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
+import type { PlanCourse } from "@/types";
 
 export function WishlistPage() {
   const { snapshot, pending, handleRefreshPlan, handleRemovePlanCourse } = useAppModel();
   const planRows = snapshot.plan_courses;
   const hasTriggeredAutoRefresh = useRef(false);
+  const columns = useMemo<ColumnDef<PlanCourse>[]>(
+    () => [
+      {
+        accessorKey: "course_id",
+        meta: { label: "课程号" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程号"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "name",
+        meta: { label: "课程名称" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程名称"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "class_id",
+        meta: { label: "课程班号" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程班号"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "category",
+        meta: { label: "课程类别" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程类别"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "credits",
+        meta: { label: "学分" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="学分"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "total_hours",
+        meta: { label: "总学时" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="总学时"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "weekly_hours",
+        meta: { label: "周学时" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="周学时"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "grade",
+        meta: { label: "年级" },
+        cell: ({ row }) => tableCellMuted(row.original.grade),
+        header: ({ column }) => (
+          <SortableHeader
+            label="年级"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "schedule",
+        meta: { label: "上课时间" },
+        cell: ({ row }) => <div className={tableCellWrap("min-w-72")}>{tableCellMuted(row.original.schedule)}</div>,
+        header: ({ column }) => (
+          <SortableHeader
+            label="上课时间"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "pnp_status",
+        meta: { label: "自选P/NP" },
+        cell: ({ row }) => tableCellMuted(row.original.pnp_status),
+        header: ({ column }) => (
+          <SortableHeader
+            label="自选P/NP"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "selection_mark",
+        meta: { label: "选课标志" },
+        cell: ({ row }) => tableCellMuted(row.original.selection_mark),
+        header: ({ column }) => (
+          <SortableHeader
+            label="选课标志"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        id: "actions",
+        meta: { label: "删除" },
+        enableHiding: false,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <SecondaryButton
+            disabled={pending !== null || !row.original.delete_url}
+            onClick={() =>
+              row.original.delete_url && void handleRemovePlanCourse(row.original.delete_url)
+            }
+          >
+            点击删除
+          </SecondaryButton>
+        ),
+        header: () => <span className="px-2">删除</span>,
+      },
+    ],
+    [handleRemovePlanCourse, pending],
+  );
 
   useEffect(() => {
     if (hasTriggeredAutoRefresh.current) {
@@ -47,44 +197,17 @@ export function WishlistPage() {
         {planRows.length === 0 ? (
           <EmptyState text="选课计划还是空的，先去课程查询页加入几门课试试。" />
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
-            <div className="overflow-auto">
-              <table className="truncate min-w-full divide-y divide-stone-900/6 bg-white/80 text-left text-sm dark:divide-stone-800 dark:bg-stone-950/80">
-                <thead className="bg-stone-100/90 text-stone-700 dark:bg-stone-900 dark:text-stone-300">
-                  <tr>
-                    {["课程号", "课程名称", "课程班号", "课程类别", "学分", "总学时", "上课时间", "自选P/NP", "选课标志", "删除"].map((label) => (
-                      <th key={label} className="px-4 py-4 font-semibold">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-900/6 text-stone-800 dark:divide-stone-800 dark:text-stone-200">
-                  {planRows.map((item) => (
-                    <tr key={`${item.course_id}-${item.class_id}`} className="hover:bg-orange-50/60 dark:hover:bg-stone-900">
-                      <td className="px-4 py-4">{item.course_id}</td>
-                      <td className="px-4 py-4">{item.name}</td>
-                      <td className="px-4 py-4">{item.class_id}</td>
-                      <td className="px-4 py-4">{item.category}</td>
-                      <td className="px-4 py-4">{item.credits}</td>
-                      <td className="px-4 py-4">{item.total_hours}</td>
-                      <td className="px-4 py-4 text-xs leading-6">{item.schedule || "—"}</td>
-                      <td className="px-4 py-4">{item.pnp_status || "—"}</td>
-                      <td className="px-4 py-4">{item.selection_mark || "—"}</td>
-                      <td className="px-4 py-4">
-                        <SecondaryButton
-                          disabled={pending !== null || !item.delete_url}
-                          onClick={() => item.delete_url && void handleRemovePlanCourse(item.delete_url)}
-                        >
-                          点击删除
-                        </SecondaryButton>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            columns={columns}
+            data={planRows}
+            getRowId={(item) => `${item.course_id}-${item.class_id}`}
+            initialVisibility={{
+              weekly_hours: false,
+              grade: false,
+              pnp_status: false,
+              selection_mark: false,
+            }}
+          />
         )}
       </Surface>
     </div>

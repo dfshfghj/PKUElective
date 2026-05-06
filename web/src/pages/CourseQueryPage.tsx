@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
 import {
@@ -11,7 +12,9 @@ import {
   Surface,
 } from "../components";
 import { useAppModel } from "../app-model";
+import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { QueryCourse } from "@/types";
 
 const categoryOptions = [
   { label: "专业课", value: "speciality" },
@@ -136,6 +139,174 @@ export function CourseQueryPage() {
     queryDateFlag: false,
   });
   const departmentState = departmentStateForCategory(filters.courseSettingType);
+  const columns = useMemo<ColumnDef<QueryCourse>[]>(
+    () => [
+      {
+        accessorKey: "course_id",
+        meta: { label: "课程号" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程号"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "name",
+        meta: { label: "课程名" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程名"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "category",
+        meta: { label: "课程类别" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="课程类别"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "credits",
+        meta: { label: "学分" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="学分"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "teacher",
+        meta: { label: "教师" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="教师"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "class_id",
+        meta: { label: "班号" },
+        header: ({ column }) => (
+          <SortableHeader
+            label="班号"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "department",
+        meta: { label: "开课单位" },
+        cell: ({ row }) => tableCellMuted(row.original.department),
+        header: ({ column }) => (
+          <SortableHeader
+            label="开课单位"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "grade",
+        meta: { label: "年级" },
+        cell: ({ row }) => tableCellMuted(row.original.grade),
+        header: ({ column }) => (
+          <SortableHeader
+            label="年级"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "schedule",
+        meta: { label: "上课时间及教室" },
+        cell: ({ row }) => <div className={tableCellWrap("min-w-72 xl:min-w-96")}>{tableCellMuted(row.original.schedule)}</div>,
+        header: ({ column }) => (
+          <SortableHeader
+            label="上课时间及教室"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        id: "availability",
+        accessorFn: (row) => row.volume_cnt - row.elected_cnt,
+        meta: { label: "限数/已选" },
+        cell: ({ row }) => (
+          <div className="space-y-1">
+            <div>
+              {row.original.volume_cnt} / {row.original.elected_cnt}
+            </div>
+          </div>
+        ),
+        header: ({ column }) => (
+          <SortableHeader
+            label="限数/已选"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "pnp_status",
+        meta: { label: "自选P/NP" },
+        cell: ({ row }) => tableCellMuted(row.original.pnp_status),
+        header: ({ column }) => (
+          <SortableHeader
+            label="自选P/NP"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        accessorKey: "note",
+        meta: { label: "备注" },
+        cell: ({ row }) => <div className={tableCellWrap("max-w-80")}>{tableCellMuted(row.original.note)}</div>,
+        header: ({ column }) => (
+          <SortableHeader
+            label="备注"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            sorted={column.getIsSorted()}
+          />
+        ),
+      },
+      {
+        id: "actions",
+        meta: { label: "加入选课计划" },
+        enableHiding: false,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <PrimaryButton
+            disabled={pending !== null || !row.original.add_to_plan_url}
+            onClick={() =>
+              row.original.add_to_plan_url &&
+              void handleAddCourseToPlan(row.original.add_to_plan_url)
+            }
+          >
+            加入选课计划
+          </PrimaryButton>
+        ),
+        header: () => <span className="px-2">加入选课计划</span>,
+      },
+    ],
+    [handleAddCourseToPlan, pending],
+  );
 
   return (
     <div className="space-y-6">
@@ -252,58 +423,17 @@ export function CourseQueryPage() {
         {snapshot.query_courses.length === 0 ? (
           <EmptyState text="暂无更多结果。" />
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
-            <div className="overflow-auto">
-              <table className="truncate min-w-full divide-y divide-stone-900/6 bg-white/80 text-left text-sm dark:divide-stone-800 dark:bg-stone-950/80">
-                <thead className="bg-stone-100/90 text-stone-700 dark:bg-stone-900 dark:text-stone-300">
-                  <tr>
-                    <th className="px-4 py-4 font-semibold">课程号</th>
-                    <th className="px-4 py-4 font-semibold">课程名</th>
-                    <th className="px-4 py-4 font-semibold">课程类别</th>
-                    <th className="hidden px-4 py-4 font-semibold lg:table-cell">学分</th>
-                    <th className="px-4 py-4 font-semibold">教师</th>
-                    <th className="px-4 py-4 font-semibold">班号</th>
-                    <th className="hidden px-4 py-4 font-semibold 2xl:table-cell">开课单位</th>
-                    <th className="hidden px-4 py-4 font-semibold xl:table-cell">年级</th>
-                    <th className="px-4 py-4 font-semibold">上课时间及教室</th>
-                    <th className="px-4 py-4 font-semibold">限数/已选</th>
-                    <th className="hidden px-4 py-4 font-semibold 2xl:table-cell">自选P/NP</th>
-                    <th className="hidden px-4 py-4 font-semibold 2xl:table-cell">备注</th>
-                    <th className="px-4 py-4 font-semibold">加入选课计划</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-900/6 text-stone-800 dark:divide-stone-800 dark:text-stone-200">
-                  {snapshot.query_courses.map((course) => (
-                    <tr key={`${course.course_id}-${course.class_id}`} className="hover:bg-orange-50/60 dark:hover:bg-stone-900">
-                      <td className="px-4 py-4">{course.course_id}</td>
-                      <td className="px-4 py-4">{course.name}</td>
-                      <td className="px-4 py-4">{course.category}</td>
-                      <td className="hidden px-4 py-4 lg:table-cell">{course.credits}</td>
-                      <td className="px-4 py-4">{course.teacher}</td>
-                      <td className="px-4 py-4">{course.class_id}</td>
-                      <td className="hidden px-4 py-4 2xl:table-cell">{course.department || "—"}</td>
-                      <td className="hidden px-4 py-4 xl:table-cell">{course.grade || "—"}</td>
-                      <td className="min-w-72 px-4 py-4 text-xs leading-6 xl:min-w-96">{course.schedule || "—"}</td>
-                      <td className="px-4 py-4">{course.volume_cnt} / {course.elected_cnt}</td>
-                      <td className="hidden px-4 py-4 2xl:table-cell">{course.pnp_status || "—"}</td>
-                      <td className="hidden max-w-80 px-4 py-4 text-xs leading-6 2xl:table-cell">{course.note || "—"}</td>
-                      <td className="px-4 py-4">
-                        <PrimaryButton
-                          disabled={pending !== null || !course.add_to_plan_url}
-                          onClick={() =>
-                            course.add_to_plan_url &&
-                            void handleAddCourseToPlan(course.add_to_plan_url)
-                          }
-                        >
-                          加入选课计划
-                        </PrimaryButton>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            columns={columns}
+            data={snapshot.query_courses}
+            getRowId={(course) => `${course.course_id}-${course.class_id}`}
+            initialVisibility={{
+              department: false,
+              grade: false,
+              pnp_status: false,
+              note: false,
+            }}
+          />
         )}
       </Surface>
     </div>
