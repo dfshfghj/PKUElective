@@ -53,12 +53,14 @@ pub async fn refresh_now(
         handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
     let query_courses =
         handle_session_result(session.refresh_query_courses().await, &app, &state).await?;
+    let results = handle_session_result(session.refresh_results().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_courses(courses);
         orchestrator.set_latest_preselect_courses(preselect_courses);
         orchestrator.set_latest_plan_courses(plan_courses);
         orchestrator.set_latest_query_courses(query_courses);
+        orchestrator.set_latest_results(results);
     }
     emit_message(&app, "success", "课程列表已更新。")?;
 
@@ -108,6 +110,29 @@ pub async fn refresh_plan_courses(
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_plan_courses(plan_courses);
     }
+
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn refresh_results(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_results");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard
+            .clone()
+            .ok_or_else(|| "not logged in".to_string())?
+    };
+
+    let results = handle_session_result(session.refresh_results().await, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_results(results);
+    }
+    emit_message(&app, "success", "选课结果已更新。")?;
 
     emit_snapshot_events(&app, &state).await
 }

@@ -44,6 +44,10 @@ export async function refreshPlanCourses(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_plan_courses");
 }
 
+export async function refreshResults(): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_results");
+}
+
 export async function addWishlist(name: string, classId: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("add_wishlist", {
     name,

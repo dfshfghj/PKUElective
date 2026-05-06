@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
-    course::{Course, PlanCourse, PreselectCourse, QueryCourse},
+    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse},
     error::{HeedError, Result},
-    parser::{parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page},
+    parser::{
+        parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
+        parse_results_page,
+    },
 };
 
 const SUPPLY_CANCEL_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/SupplyCancel.do";
@@ -13,6 +16,7 @@ const ELECTIVE_PLAN_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pk
 const COURSE_QUERY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/CourseQueryController.jpf";
 const COURSE_QUERY_FORM_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/getCurriculmByForm.do";
 const PRESELECT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/ElectiveWorkController.jpf";
+const RESULTS_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/showResults.do";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectResult {
@@ -169,6 +173,20 @@ impl ElectiveSession {
         }
 
         Ok(courses)
+    }
+
+    pub async fn refresh_results(&self) -> Result<ElectiveResults> {
+        let body = self.fetch_html(RESULTS_URL).await?;
+        let page = parse_results_page(&body)?;
+
+        if let Some(error) = page.fatal_error {
+            return Err(HeedError::Fatal(error));
+        }
+        if page.title.as_deref() != Some("选课结果") {
+            return Err(HeedError::SessionExpired);
+        }
+
+        Ok(page.results)
     }
 
     pub async fn search_query_courses(&self, filters: &CourseQueryFilters) -> Result<Vec<QueryCourse>> {

@@ -1,6 +1,7 @@
 import {
   ChevronsLeft,
   ChevronsRight,
+  CalendarRange,
   Gauge,
   LogOut,
   Search,
@@ -33,6 +34,7 @@ const navigation = [
   { to: "/", label: "概览", icon: Gauge },
   { to: "/preselect", label: "预选", icon: Sparkles },
   { to: "/plan", label: "选课计划", icon: TableProperties },
+  { to: "/results", label: "选课结果", icon: CalendarRange },
   { to: "/query", label: "课程查询", icon: Search },
   { to: "/settings", label: "设置", icon: Settings2 },
 ];

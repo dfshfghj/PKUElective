@@ -9,6 +9,7 @@ import { CoursesPage } from "./pages/CoursesPage";
 import { CourseQueryPage } from "./pages/CourseQueryPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { ResultsPage } from "./pages/ResultsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WishlistPage } from "./pages/WishlistPage";
 import { useThemeMode } from "./theme";
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route element={<DashboardPage />} path="/" />
         <Route element={<CoursesPage />} path="/preselect" />
         <Route element={<WishlistPage />} path="/plan" />
+        <Route element={<ResultsPage />} path="/results" />
         <Route element={<CourseQueryPage />} path="/query" />
         <Route element={<SettingsPage />} path="/settings" />
       </Route>

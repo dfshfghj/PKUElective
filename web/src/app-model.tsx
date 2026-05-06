@@ -19,6 +19,7 @@ import {
   preselectCourse,
   refreshPlanCourses,
   refreshPreselectCourses,
+  refreshResults,
   removePlanCourse,
   logout,
   refreshNow,
@@ -52,6 +53,13 @@ const emptySnapshot: SnapshotView = {
   preselect_courses: [],
   plan_courses: [],
   query_courses: [],
+  results: {
+    summary: null,
+    notice: null,
+    export_url: null,
+    courses: [],
+    timetable: null,
+  },
   wishlist: [],
 };
 
@@ -89,6 +97,7 @@ type AppModel = {
   handleRefresh: () => Promise<void>;
   handleRefreshPreselect: () => Promise<void>;
   handleRefreshPlan: () => Promise<void>;
+  handleRefreshResults: () => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -273,6 +282,8 @@ export function AppProvider(props: { children: ReactNode }) {
         setSnapshot(nextSnapshot);
         nextSnapshot = await refreshPlanCourses();
         setSnapshot(nextSnapshot);
+        nextSnapshot = await refreshResults();
+        setSnapshot(nextSnapshot);
         setMessage("登录成功，课程数据已就绪。");
         toast.success("登录成功，已自动完成初始化");
       } catch (err) {
@@ -309,6 +320,10 @@ export function AppProvider(props: { children: ReactNode }) {
 
   async function handleRefreshPlan() {
     await runAction("刷新选课计划", refreshPlanCourses);
+  }
+
+  async function handleRefreshResults() {
+    await runAction("刷新选课结果", refreshResults);
   }
 
   async function handleConfigToggle(key: "auto_refresh" | "auto_captcha" | "notifications") {
@@ -431,6 +446,7 @@ export function AppProvider(props: { children: ReactNode }) {
     handleRefresh,
     handleRefreshPreselect,
     handleRefreshPlan,
+    handleRefreshResults,
     handleConfigToggle,
     handleConfigSave,
     handleConfigNumberSubmit,

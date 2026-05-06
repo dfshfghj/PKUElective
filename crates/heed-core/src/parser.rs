@@ -1,7 +1,10 @@
 use scraper::{Html, Selector};
 
 use crate::{
-    course::{Course, PlanCourse, PreselectCourse, QueryCourse},
+    course::{
+        Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse,
+        Timetable, TimetableCell, TimetableRow,
+    },
     error::{HeedError, Result},
 };
 
@@ -38,6 +41,13 @@ pub struct ParsedQueryPage {
     pub fatal_error: Option<String>,
     pub courses: Vec<QueryCourse>,
     pub next_page_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedResultsPage {
+    pub title: Option<String>,
+    pub fatal_error: Option<String>,
+    pub results: ElectiveResults,
 }
 
 pub fn parse_course_page(html: &str) -> Result<ParsedCoursePage> {
@@ -85,6 +95,15 @@ pub fn parse_query_page(html: &str) -> Result<ParsedQueryPage> {
         fatal_error: detect_fatal_error(html)?,
         courses: parse_query_courses(&document)?,
         next_page_url: find_next_page_url(&document)?,
+    })
+}
+
+pub fn parse_results_page(html: &str) -> Result<ParsedResultsPage> {
+    let document = Html::parse_document(html);
+    Ok(ParsedResultsPage {
+        title: page_title(&document)?,
+        fatal_error: detect_fatal_error(html)?,
+        results: parse_results(&document)?,
     })
 }
 
@@ -309,6 +328,111 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
     Ok(courses)
 }
 
+fn parse_results(document: &Html) -> Result<ElectiveResults> {
+    let result_table_selector = selector("table.datagrid")?;
+    let result_row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
+    let cell_selector = selector("td")?;
+    let remark_selector = selector("p.pkuportal-remark")?;
+    let timetable_selector = selector("#classAssignment")?;
+    let timetable_header_selector = selector("tr.course-header th")?;
+    let timetable_row_selector = selector("tr.course-even, tr.course-odd")?;
+    let timetable_cell_selector = selector("td")?;
+    let caption_selector = selector("caption")?;
+    let export_selector = selector(r#"a[href*="/electiveWork/createExcel.do"]"#)?;
+
+    let summary = document
+        .select(&remark_selector)
+        .next()
+        .map(cell_text)
+        .filter(|text| !text.is_empty());
+    let notice = document
+        .select(&remark_selector)
+        .last()
+        .map(cell_text)
+        .filter(|text| !text.is_empty());
+    let export_url = document
+        .select(&export_selector)
+        .next()
+        .and_then(|node| node.value().attr("href"))
+        .map(absolute_url);
+
+    let mut courses = Vec::new();
+    if let Some(table) = document.select(&result_table_selector).next() {
+        for row in table.select(&result_row_selector) {
+            let cells = row.select(&cell_selector).collect::<Vec<_>>();
+            if cells.len() < 13 {
+                continue;
+            }
+
+            courses.push(CourseResult {
+                course_id: cell_text(cells[0]),
+                name: cell_text(cells[1]),
+                category: cell_text(cells[2]),
+                credits: cell_text(cells[3]),
+                weekly_hours: cell_text(cells[4]),
+                teacher: cell_text(cells[5]),
+                class_id: cell_text(cells[6]),
+                department: cell_text(cells[7]),
+                classroom_info: cell_text(cells[8]),
+                pnp_status: cell_text(cells[9]),
+                result: cell_text(cells[10]),
+                ip_address: cell_text(cells[11]),
+                operation_time: cell_text(cells[12]),
+            });
+        }
+    }
+
+    let timetable = document.select(&timetable_selector).next().map(|table| {
+        let caption = table
+            .select(&caption_selector)
+            .next()
+            .map(cell_text)
+            .filter(|text| !text.is_empty());
+        let headers = table
+            .select(&timetable_header_selector)
+            .map(cell_text)
+            .collect::<Vec<_>>();
+        let rows = table
+            .select(&timetable_row_selector)
+            .filter_map(|row| {
+                let cells = row.select(&timetable_cell_selector).collect::<Vec<_>>();
+                if cells.len() < 2 {
+                    return None;
+                }
+
+                Some(TimetableRow {
+                    section: cell_text(cells[0]),
+                    cells: cells
+                        .iter()
+                        .skip(1)
+                        .map(|cell| TimetableCell {
+                            text: cell_text(*cell),
+                            background_color: cell
+                                .value()
+                                .attr("style")
+                                .and_then(extract_background_color),
+                        })
+                        .collect(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        Timetable {
+            caption,
+            headers,
+            rows,
+        }
+    });
+
+    Ok(ElectiveResults {
+        summary,
+        notice,
+        export_url,
+        courses,
+        timetable,
+    })
+}
+
 fn find_next_page_url(document: &Html) -> Result<Option<String>> {
     let selector = selector("a")?;
     for link in document.select(&selector) {
@@ -378,13 +502,27 @@ fn absolute_url(path: &str) -> String {
     }
 }
 
+fn extract_background_color(style: &str) -> Option<String> {
+    style
+        .split(';')
+        .filter_map(|part| part.split_once(':'))
+        .find_map(|(key, value)| {
+            (key.trim().eq_ignore_ascii_case("background-color"))
+                .then(|| value.trim().to_string())
+        })
+        .filter(|value| !value.is_empty())
+}
+
 fn selector(value: &str) -> Result<Selector> {
     Selector::parse(value).map_err(|_| HeedError::Parse(format!("invalid selector: {value}")))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{detect_tips, parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page};
+    use super::{
+        detect_tips, parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
+        parse_results_page,
+    };
 
     #[test]
     fn parses_courses_and_next_page() {
@@ -459,5 +597,26 @@ mod tests {
         assert!(!parsed.courses.is_empty());
         assert_eq!(parsed.courses[0].course_id, "01235260");
         assert!(parsed.courses[0].add_to_plan_url.is_some());
+    }
+
+    #[test]
+    fn parses_example_results_page() {
+        let html = include_str!("../../../example/选课结果.html");
+        let parsed = parse_results_page(html).expect("results page should parse");
+        assert_eq!(parsed.title.as_deref(), Some("选课结果"));
+        assert_eq!(parsed.results.courses.len(), 1);
+        assert_eq!(parsed.results.courses[0].course_id, "01233170");
+        assert_eq!(parsed.results.courses[0].result, "待抽签");
+        assert!(parsed.results.timetable.is_some());
+        assert_eq!(
+            parsed
+                .results
+                .timetable
+                .as_ref()
+                .expect("timetable should exist")
+                .rows[0]
+                .section,
+            "第一节"
+        );
     }
 }

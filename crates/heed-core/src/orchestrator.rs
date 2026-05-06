@@ -4,7 +4,7 @@ use crate::{
     auth::Credentials,
     bot::{BotStatus, ElectiveBot},
     config::AppConfig,
-    course::{Course, PlanCourse, PreselectCourse, QueryCourse, WishlistItem},
+    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse, WishlistItem},
     error::{HeedError, Result},
     session::{CourseQueryFilters, SelectResult},
     types::BotId,
@@ -17,6 +17,7 @@ pub struct Orchestrator {
     latest_preselect_courses: Vec<PreselectCourse>,
     latest_plan_courses: Vec<PlanCourse>,
     latest_query_courses: Vec<QueryCourse>,
+    latest_results: ElectiveResults,
     wishlist: Vec<WishlistItem>,
     next_bot_id: usize,
 }
@@ -30,6 +31,7 @@ impl Orchestrator {
             latest_preselect_courses: Vec::new(),
             latest_plan_courses: Vec::new(),
             latest_query_courses: Vec::new(),
+            latest_results: ElectiveResults::default(),
             wishlist: Vec::new(),
             next_bot_id: 1,
         }
@@ -49,6 +51,7 @@ impl Orchestrator {
         self.latest_preselect_courses.clear();
         self.latest_plan_courses.clear();
         self.latest_query_courses.clear();
+        self.latest_results = ElectiveResults::default();
         self.next_bot_id = 1;
     }
 
@@ -76,6 +79,10 @@ impl Orchestrator {
         &self.latest_query_courses
     }
 
+    pub fn latest_results(&self) -> &ElectiveResults {
+        &self.latest_results
+    }
+
     pub fn set_latest_courses(&mut self, courses: Vec<Course>) {
         self.latest_courses = courses;
     }
@@ -90,6 +97,10 @@ impl Orchestrator {
 
     pub fn set_latest_query_courses(&mut self, courses: Vec<QueryCourse>) {
         self.latest_query_courses = courses;
+    }
+
+    pub fn set_latest_results(&mut self, results: ElectiveResults) {
+        self.latest_results = results;
     }
 
     pub fn add_wishlist(&mut self, item: WishlistItem) {
@@ -131,6 +142,7 @@ impl Orchestrator {
         self.latest_preselect_courses = bot.refresh_preselect_courses().await?;
         self.latest_plan_courses = bot.refresh_plan_courses().await?;
         self.latest_query_courses = bot.refresh_query_courses().await?;
+        self.latest_results = bot.refresh_results().await?;
         Ok(&self.latest_courses)
     }
 

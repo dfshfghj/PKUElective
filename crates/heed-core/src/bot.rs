@@ -150,6 +150,19 @@ impl ElectiveBot {
         }
     }
 
+    pub async fn refresh_results(&mut self) -> Result<crate::course::ElectiveResults> {
+        self.status = BotStatus::Looping;
+        self.last_loop_time = Some(SystemTime::now());
+        match self.session.refresh_results().await {
+            Ok(results) => {
+                self.last_error = None;
+                self.status = BotStatus::Idle;
+                Ok(results)
+            }
+            Err(err) => self.fail_loop(err),
+        }
+    }
+
     pub async fn search_query_courses(
         &mut self,
         filters: &CourseQueryFilters,

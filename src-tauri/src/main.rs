@@ -54,6 +54,7 @@ fn main() {
             commands::bot::refresh_now,
             commands::bot::refresh_preselect_courses,
             commands::bot::refresh_plan_courses,
+            commands::bot::refresh_results,
             commands::elective::search_query_courses,
             commands::elective::add_course_to_plan,
             commands::elective::remove_plan_course,

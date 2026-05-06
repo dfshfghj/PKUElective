@@ -80,6 +80,51 @@ pub struct QueryCourse {
     pub add_to_plan_url: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CourseResult {
+    pub course_id: String,
+    pub name: String,
+    pub category: String,
+    pub credits: String,
+    pub weekly_hours: String,
+    pub teacher: String,
+    pub class_id: String,
+    pub department: String,
+    pub classroom_info: String,
+    pub pnp_status: String,
+    pub result: String,
+    pub ip_address: String,
+    pub operation_time: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimetableCell {
+    pub text: String,
+    pub background_color: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimetableRow {
+    pub section: String,
+    pub cells: Vec<TimetableCell>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Timetable {
+    pub caption: Option<String>,
+    pub headers: Vec<String>,
+    pub rows: Vec<TimetableRow>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ElectiveResults {
+    pub summary: Option<String>,
+    pub notice: Option<String>,
+    pub export_url: Option<String>,
+    pub courses: Vec<CourseResult>,
+    pub timetable: Option<Timetable>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WishlistItem {
     pub name: String,

@@ -94,6 +94,46 @@ export type QueryCourse = {
   add_to_plan_url: string | null;
 };
 
+export type CourseResult = {
+  course_id: string;
+  name: string;
+  category: string;
+  credits: string;
+  weekly_hours: string;
+  teacher: string;
+  class_id: string;
+  department: string;
+  classroom_info: string;
+  pnp_status: string;
+  result: string;
+  ip_address: string;
+  operation_time: string;
+};
+
+export type TimetableCell = {
+  text: string;
+  background_color: string | null;
+};
+
+export type TimetableRow = {
+  section: string;
+  cells: TimetableCell[];
+};
+
+export type Timetable = {
+  caption: string | null;
+  headers: string[];
+  rows: TimetableRow[];
+};
+
+export type ElectiveResults = {
+  summary: string | null;
+  notice: string | null;
+  export_url: string | null;
+  courses: CourseResult[];
+  timetable: Timetable | null;
+};
+
 export type CourseQueryFilters = {
   course_setting_type?: string | null;
   course_id?: string | null;
@@ -118,6 +158,7 @@ export type SnapshotView = {
   preselect_courses: PreselectCourse[];
   plan_courses: PlanCourse[];
   query_courses: QueryCourse[];
+  results: ElectiveResults;
   wishlist: WishlistItem[];
 };
 

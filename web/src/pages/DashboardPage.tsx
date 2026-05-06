@@ -61,6 +61,10 @@ export function DashboardPage() {
                 <dt>Wishlist</dt>
                 <dd className="font-semibold text-stone-950 dark:text-stone-100">{snapshot.wishlist.length}</dd>
               </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt>已出结果课程</dt>
+                <dd className="font-semibold text-stone-950 dark:text-stone-100">{snapshot.results.courses.length}</dd>
+              </div>
             </dl>
           </div>
         </Surface>
