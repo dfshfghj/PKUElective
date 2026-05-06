@@ -12,13 +12,6 @@ import {
 } from "../components";
 import { useAppModel } from "../app-model";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const categoryOptions = [
   { label: "专业课", value: "speciality" },
@@ -67,10 +60,8 @@ const departmentOptions = [
   { label: "国际合作部", value: "610" },
 ];
 
-const EMPTY_SELECT_VALUE = "__empty__";
-
 const courseDayOptions = [
-  { label: "不限", value: EMPTY_SELECT_VALUE },
+  { label: "不限", value: "" },
   { label: "星期一", value: "1" },
   { label: "星期二", value: "2" },
   { label: "星期三", value: "3" },
@@ -81,7 +72,7 @@ const courseDayOptions = [
 ];
 
 const courseTimeOptions = [
-  { label: "不限", value: EMPTY_SELECT_VALUE },
+  { label: "不限", value: "" },
   { label: "第01节", value: "01" },
   { label: "第02节", value: "02" },
   { label: "第03节", value: "03" },
@@ -133,14 +124,6 @@ function checkedStateToBoolean(checked: CheckedState) {
   return checked === true;
 }
 
-function toSelectValue(value: string) {
-  return value || EMPTY_SELECT_VALUE;
-}
-
-function fromSelectValue(value: string) {
-  return value === EMPTY_SELECT_VALUE ? "" : value;
-}
-
 export function CourseQueryPage() {
   const { snapshot, pending, handleSearchQuery, handleAddCourseToPlan } = useAppModel();
   const [filters, setFilters] = useState({
@@ -186,10 +169,6 @@ export function CourseQueryPage() {
                   return {
                     ...current,
                     courseSettingType: value,
-                    courseId: "",
-                    courseName: "",
-                    courseDay: "",
-                    courseTime: "",
                     deptId: nextDepartmentState.value ?? current.deptId,
                   };
                 })
@@ -218,50 +197,18 @@ export function CourseQueryPage() {
             />
           </div>
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr_auto]">
-            <label className="grid gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
-                上课星期
-              </span>
-              <Select
-                onValueChange={(value) =>
-                  setFilters((current) => ({ ...current, courseDay: fromSelectValue(value) }))
-                }
-                value={toSelectValue(filters.courseDay)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="可留空" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courseDayOptions.map((option) => (
-                    <SelectItem key={option.label} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
-                上课节次
-              </span>
-              <Select
-                onValueChange={(value) =>
-                  setFilters((current) => ({ ...current, courseTime: fromSelectValue(value) }))
-                }
-                value={toSelectValue(filters.courseTime)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="可留空" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courseTimeOptions.map((option) => (
-                    <SelectItem key={option.label} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
+            <SelectField
+              label="上课星期"
+              onChange={(value) => setFilters((current) => ({ ...current, courseDay: value }))}
+              options={courseDayOptions}
+              value={filters.courseDay}
+            />
+            <SelectField
+              label="上课节次"
+              onChange={(value) => setFilters((current) => ({ ...current, courseTime: value }))}
+              options={courseTimeOptions}
+              value={filters.courseTime}
+            />
             <label className="flex items-center gap-3 pb-2 mt-auto text-sm text-stone-600 dark:text-stone-300">
               <Checkbox
                 className="size-4"
