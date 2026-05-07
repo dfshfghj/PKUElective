@@ -70,6 +70,10 @@ export async function searchQueryCourses(filters: CourseQueryFilters): Promise<S
   return invoke<SnapshotView>("search_query_courses", { filters });
 }
 
+export async function refreshSupplementPage(): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_supplement_page");
+}
+
 export async function addCourseToPlan(addUrl: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("add_course_to_plan", { addUrl });
 }
@@ -86,4 +90,12 @@ export async function preselectCourse(
     selectUrl,
     preference: preference ?? null,
   });
+}
+
+export async function supplementSelectCourse(selectUrl: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("supplement_select_course", { selectUrl });
+}
+
+export async function supplementCancelCourse(cancelUrl: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("supplement_cancel_course", { cancelUrl });
 }

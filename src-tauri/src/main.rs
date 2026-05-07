@@ -17,7 +17,10 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let log_path = logger::init(&app.handle())?;
-            logger::info(format!("application starting; log file at {}", log_path.display()));
+            logger::info(format!(
+                "application starting; log file at {}",
+                log_path.display()
+            ));
             logger::info(format!(
                 "secure credential backend configured as {}",
                 auth_persistence::secure_store_backend_name()
@@ -56,9 +59,12 @@ fn main() {
             commands::bot::refresh_plan_courses,
             commands::bot::refresh_results,
             commands::elective::search_query_courses,
+            commands::elective::refresh_supplement_page,
             commands::elective::add_course_to_plan,
             commands::elective::remove_plan_course,
             commands::elective::preselect_course,
+            commands::elective::supplement_select_course,
+            commands::elective::supplement_cancel_course,
             commands::wishlist::add_wishlist,
             commands::wishlist::remove_wishlist,
             commands::config::update_config,

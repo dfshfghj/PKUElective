@@ -172,7 +172,10 @@ pub async fn restore_auth_on_startup(app: &AppHandle, state: &AppState) -> Resul
     state
         .set_auth_state(Some(credentials), session, username.clone())
         .await;
-    logger::info(format!("restored auth using secure credential store for user {}", username));
+    logger::info(format!(
+        "restored auth using secure credential store for user {}",
+        username
+    ));
     Ok(true)
 }
 
@@ -209,7 +212,12 @@ pub fn secure_store_backend_name() -> &'static str {
     {
         "android-adapter-pending"
     }
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux", target_os = "android")))]
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "linux",
+        target_os = "android"
+    )))]
     {
         "unsupported"
     }
@@ -251,7 +259,9 @@ fn store_password(app: &AppHandle, username: &str, password: &str) -> Result<(),
         service, username
     ));
     let entry = keyring::Entry::new(&service, username).map_err(|err| err.to_string())?;
-    entry.set_password(password).map_err(|err| err.to_string())?;
+    entry
+        .set_password(password)
+        .map_err(|err| err.to_string())?;
     match entry.get_password() {
         Ok(loaded) => {
             if loaded == password {

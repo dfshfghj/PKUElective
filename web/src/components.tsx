@@ -52,6 +52,11 @@ export function Surface(props: {
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between gap-4">
             <CardTitle>{props.title}</CardTitle>
+            {props.meta ? (
+              <span className="shrink-0 text-sm text-stone-500 dark:text-stone-400">
+                {props.meta}
+              </span>
+            ) : null}
           </div>
         </CardHeader>
       ) : null}

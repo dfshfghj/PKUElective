@@ -16,9 +16,7 @@ pub async fn search_query_courses(
     logger::info("command: search_query_courses");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     emit_message(&app, "info", "正在查询课程…")?;
@@ -33,6 +31,28 @@ pub async fn search_query_courses(
 }
 
 #[tauri::command]
+pub async fn refresh_supplement_page(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_supplement_page");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在刷新补选退选…")?;
+    let supplement =
+        handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_supplement_page(supplement);
+    }
+    emit_message(&app, "success", "补选退选列表已更新。")?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
 pub async fn add_course_to_plan(
     add_url: String,
     app: AppHandle,
@@ -41,9 +61,7 @@ pub async fn add_course_to_plan(
     logger::info("command: add_course_to_plan");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     emit_message(&app, "info", "正在加入选课计划…")?;
@@ -73,9 +91,7 @@ pub async fn remove_plan_course(
     logger::info("command: remove_plan_course");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     emit_message(&app, "info", "正在移出选课计划…")?;
@@ -103,15 +119,16 @@ pub async fn preselect_course(
     logger::info("command: preselect_course");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     emit_message(&app, "info", "正在提交预选…")?;
-    let result =
-        handle_session_result(session.preselect_course(&select_url, preference).await, &app, &state)
-            .await?;
+    let result = handle_session_result(
+        session.preselect_course(&select_url, preference).await,
+        &app,
+        &state,
+    )
+    .await?;
     let preselect_courses =
         handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
     let plan_courses =
@@ -126,6 +143,80 @@ pub async fn preselect_course(
         if result.ok { "success" } else { "error" },
         if result.message.is_empty() {
             "预选请求已完成。".to_string()
+        } else {
+            result.message
+        },
+    )?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn supplement_select_course(
+    select_url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: supplement_select_course");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在提交补选…")?;
+    let result = handle_session_result(
+        session.select_supplement_course(&select_url).await,
+        &app,
+        &state,
+    )
+    .await?;
+    let supplement =
+        handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_supplement_page(supplement);
+    }
+    emit_message(
+        &app,
+        if result.ok { "success" } else { "error" },
+        if result.message.is_empty() {
+            "补选请求已完成。".to_string()
+        } else {
+            result.message
+        },
+    )?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn supplement_cancel_course(
+    cancel_url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: supplement_cancel_course");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在提交退选…")?;
+    let result = handle_session_result(
+        session.cancel_supplement_course(&cancel_url).await,
+        &app,
+        &state,
+    )
+    .await?;
+    let supplement =
+        handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_supplement_page(supplement);
+    }
+    emit_message(
+        &app,
+        if result.ok { "success" } else { "error" },
+        if result.message.is_empty() {
+            "退选请求已完成。".to_string()
         } else {
             result.message
         },

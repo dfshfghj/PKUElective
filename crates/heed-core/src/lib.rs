@@ -15,8 +15,9 @@ pub use auth::{AuthSession, Credentials};
 pub use bot::{BotStatus, ElectiveBot};
 pub use config::AppConfig;
 pub use course::{
-    Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse, Timetable,
-    TimetableCell, TimetableRow, WishlistItem,
+    Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse,
+    SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable, TimetableCell,
+    TimetableRow, WishlistItem,
 };
 pub use error::{HeedError, Result};
 pub use orchestrator::Orchestrator;

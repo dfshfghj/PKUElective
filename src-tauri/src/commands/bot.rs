@@ -12,7 +12,13 @@ pub async fn add_bot(app: AppHandle, state: State<'_, AppState>) -> Result<Snaps
     let credentials = {
         let guard = state.credentials.lock().await;
         guard.clone().ok_or_else(|| {
-            if state.auth_username.try_lock().ok().and_then(|value| value.clone()).is_some() {
+            if state
+                .auth_username
+                .try_lock()
+                .ok()
+                .and_then(|value| value.clone())
+                .is_some()
+            {
                 "session restored, but adding Bot requires re-login with password".to_string()
             } else {
                 "not logged in".to_string()
@@ -41,9 +47,7 @@ pub async fn refresh_now(
     logger::info("command: refresh_now");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     let courses = handle_session_result(session.refresh_courses().await, &app, &state).await?;
@@ -75,9 +79,7 @@ pub async fn refresh_preselect_courses(
     logger::info("command: refresh_preselect_courses");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     let preselect_courses =
@@ -99,9 +101,7 @@ pub async fn refresh_plan_courses(
     logger::info("command: refresh_plan_courses");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     let plan_courses =
@@ -122,9 +122,7 @@ pub async fn refresh_results(
     logger::info("command: refresh_results");
     let session = {
         let guard = state.manual_session.lock().await;
-        guard
-            .clone()
-            .ok_or_else(|| "not logged in".to_string())?
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
     let results = handle_session_result(session.refresh_results().await, &app, &state).await?;

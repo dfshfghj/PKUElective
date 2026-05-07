@@ -10,6 +10,52 @@ pub struct Course {
     pub elected_cnt: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct SupplementPage {
+    pub notices: Vec<String>,
+    pub available_courses: Vec<SupplementAvailableCourse>,
+    pub selected_courses: Vec<SupplementSelectedCourse>,
+    pub selected_credits: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupplementAvailableCourse {
+    pub course_id: String,
+    pub name: String,
+    pub category: String,
+    pub credits: String,
+    pub weekly_hours: String,
+    pub teacher: String,
+    pub class_id: String,
+    pub department: String,
+    pub grade: String,
+    pub schedule: String,
+    pub pnp_status: String,
+    pub volume_cnt: u32,
+    pub elected_cnt: u32,
+    pub action_label: String,
+    pub select_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupplementSelectedCourse {
+    pub course_id: String,
+    pub name: String,
+    pub category: String,
+    pub credits: String,
+    pub weekly_hours: String,
+    pub teacher: String,
+    pub class_id: String,
+    pub department: String,
+    pub grade: String,
+    pub schedule: String,
+    pub pnp_status: String,
+    pub volume_cnt: u32,
+    pub elected_cnt: u32,
+    pub status: String,
+    pub cancel_url: Option<String>,
+}
+
 impl Course {
     pub fn selectable(&self) -> bool {
         self.elected_cnt < self.volume_cnt

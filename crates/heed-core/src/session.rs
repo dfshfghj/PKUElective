@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
-    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse},
+    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse, SupplementPage},
     error::{HeedError, Result},
     parser::{
         parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
-        parse_results_page,
+        parse_results_page, parse_supplement_page,
     },
 };
 
@@ -89,6 +89,29 @@ impl ElectiveSession {
         }
 
         Ok(courses)
+    }
+
+    pub async fn refresh_supplement_page(&self) -> Result<SupplementPage> {
+        let body = self
+            .auth
+            .client()
+            .get(SUPPLY_CANCEL_URL)
+            .query(&[("xh", self.auth.username())])
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
+        let page = parse_supplement_page(&body)?;
+
+        if let Some(error) = page.fatal_error {
+            return Err(HeedError::Fatal(error));
+        }
+        if page.title.as_deref() != Some("补选退选") {
+            return Err(HeedError::SessionExpired);
+        }
+
+        Ok(page.page)
     }
 
     pub async fn refresh_preselect_courses(&self) -> Result<Vec<PreselectCourse>> {
@@ -189,7 +212,10 @@ impl ElectiveSession {
         Ok(page.results)
     }
 
-    pub async fn search_query_courses(&self, filters: &CourseQueryFilters) -> Result<Vec<QueryCourse>> {
+    pub async fn search_query_courses(
+        &self,
+        filters: &CourseQueryFilters,
+    ) -> Result<Vec<QueryCourse>> {
         let mut form = vec![
             (
                 "wlw-radio_button_group_key:{actionForm.courseSettingType}".to_string(),
@@ -322,6 +348,49 @@ impl ElectiveSession {
         Ok(SelectResult { ok, message })
     }
 
+    pub async fn select_supplement_course(&self, select_url: &str) -> Result<SelectResult> {
+        let response = self
+            .auth
+            .client()
+            .post(select_url)
+            .send()
+            .await?
+            .error_for_status()?;
+        let body = response.text().await?;
+        let page = parse_supplement_page(&body)?;
+
+        if let Some(error) = page.fatal_error {
+            return Ok(SelectResult {
+                ok: false,
+                message: error,
+            });
+        }
+
+        let message = page.tips.unwrap_or_else(|| "补选请求已完成。".to_string());
+        Ok(SelectResult {
+            ok: !message.contains("失败"),
+            message,
+        })
+    }
+
+    pub async fn cancel_supplement_course(&self, cancel_url: &str) -> Result<SelectResult> {
+        let body = self.fetch_html(cancel_url).await?;
+        let page = parse_supplement_page(&body)?;
+
+        if let Some(error) = page.fatal_error {
+            return Ok(SelectResult {
+                ok: false,
+                message: error,
+            });
+        }
+
+        let message = page.tips.unwrap_or_else(|| "退选请求已提交。".to_string());
+        Ok(SelectResult {
+            ok: !message.contains("失败"),
+            message,
+        })
+    }
+
     async fn fetch_html(&self, url: &str) -> Result<String> {
         Ok(self
             .auth
@@ -351,6 +420,8 @@ fn with_optional_query(url: &str, key: &str, value: Option<u32>) -> Result<Strin
 
     let mut parsed =
         Url::parse(url).map_err(|err| HeedError::Config(format!("invalid action url: {err}")))?;
-    parsed.query_pairs_mut().append_pair(key, &value.to_string());
+    parsed
+        .query_pairs_mut()
+        .append_pair(key, &value.to_string());
     Ok(parsed.to_string())
 }

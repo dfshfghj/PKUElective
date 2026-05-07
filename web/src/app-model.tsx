@@ -17,6 +17,7 @@ import {
   getSnapshot,
   login,
   preselectCourse,
+  refreshSupplementPage,
   refreshPlanCourses,
   refreshPreselectCourses,
   refreshResults,
@@ -25,6 +26,8 @@ import {
   refreshNow,
   removeWishlist,
   searchQueryCourses,
+  supplementCancelCourse,
+  supplementSelectCourse,
   updateConfig,
 } from "./api";
 import { subscribeToAppEvents } from "./events";
@@ -53,6 +56,12 @@ const emptySnapshot: SnapshotView = {
   preselect_courses: [],
   plan_courses: [],
   query_courses: [],
+  supplement: {
+    notices: [],
+    available_courses: [],
+    selected_courses: [],
+    selected_credits: null,
+  },
   results: {
     summary: null,
     notice: null,
@@ -98,6 +107,7 @@ type AppModel = {
   handleRefreshPreselect: () => Promise<void>;
   handleRefreshPlan: () => Promise<void>;
   handleRefreshResults: () => Promise<void>;
+  handleRefreshSupplement: () => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -108,6 +118,8 @@ type AppModel = {
   handleAddCourseToPlan: (addUrl: string) => Promise<void>;
   handleRemovePlanCourse: (deleteUrl: string) => Promise<void>;
   handlePreselectCourse: (selectUrl: string, preference?: number | null) => Promise<void>;
+  handleSupplementSelectCourse: (selectUrl: string) => Promise<void>;
+  handleSupplementCancelCourse: (cancelUrl: string) => Promise<void>;
 };
 
 const AppModelContext = createContext<AppModel | null>(null);
@@ -326,6 +338,10 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("刷新选课结果", refreshResults);
   }
 
+  async function handleRefreshSupplement() {
+    await runAction("刷新补选退选", refreshSupplementPage);
+  }
+
   async function handleConfigToggle(key: "auto_refresh" | "auto_captcha" | "notifications") {
     await runAction("更新配置", () =>
       updateConfig({
@@ -382,6 +398,14 @@ export function AppProvider(props: { children: ReactNode }) {
 
   async function handlePreselectCourse(selectUrl: string, preference?: number | null) {
     await runAction("提交预选", () => preselectCourse(selectUrl, preference));
+  }
+
+  async function handleSupplementSelectCourse(selectUrl: string) {
+    await runAction("提交补选", () => supplementSelectCourse(selectUrl));
+  }
+
+  async function handleSupplementCancelCourse(cancelUrl: string) {
+    await runAction("提交退选", () => supplementCancelCourse(cancelUrl));
   }
 
   function applyMessage(payload: MessageEvent) {
@@ -447,6 +471,7 @@ export function AppProvider(props: { children: ReactNode }) {
     handleRefreshPreselect,
     handleRefreshPlan,
     handleRefreshResults,
+    handleRefreshSupplement,
     handleConfigToggle,
     handleConfigSave,
     handleConfigNumberSubmit,
@@ -457,6 +482,8 @@ export function AppProvider(props: { children: ReactNode }) {
     handleAddCourseToPlan,
     handleRemovePlanCourse,
     handlePreselectCourse,
+    handleSupplementSelectCourse,
+    handleSupplementCancelCourse,
   };
 
   return <AppModelContext.Provider value={value}>{props.children}</AppModelContext.Provider>;

@@ -11,6 +11,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ResultsPage } from "./pages/ResultsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SupplementPage } from "./pages/SupplementPage";
 import { WishlistPage } from "./pages/WishlistPage";
 import { useThemeMode } from "./theme";
 
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route element={<DashboardPage />} path="/" />
         <Route element={<CoursesPage />} path="/preselect" />
         <Route element={<WishlistPage />} path="/plan" />
+        <Route element={<SupplementPage />} path="/supplement" />
         <Route element={<ResultsPage />} path="/results" />
         <Route element={<CourseQueryPage />} path="/query" />
         <Route element={<SettingsPage />} path="/settings" />

@@ -47,7 +47,11 @@ pub async fn login(
         .await;
     let _ = emit_snapshot_events(&app, &state).await?;
     if remember_password && !effective_prefs.remember_password {
-        emit_message(&app, "warn", "登录成功，但当前平台凭据存储不可用，未能保存密码。")?;
+        emit_message(
+            &app,
+            "warn",
+            "登录成功，但当前平台凭据存储不可用，未能保存密码。",
+        )?;
     }
     emit_message(&app, "success", "登录成功。")?;
 

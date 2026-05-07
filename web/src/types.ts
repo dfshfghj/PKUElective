@@ -43,6 +43,49 @@ export type Course = {
   elected_cnt: number;
 };
 
+export type SupplementPage = {
+  notices: string[];
+  available_courses: SupplementAvailableCourse[];
+  selected_courses: SupplementSelectedCourse[];
+  selected_credits: string | null;
+};
+
+export type SupplementAvailableCourse = {
+  course_id: string;
+  name: string;
+  category: string;
+  credits: string;
+  weekly_hours: string;
+  teacher: string;
+  class_id: string;
+  department: string;
+  grade: string;
+  schedule: string;
+  pnp_status: string;
+  volume_cnt: number;
+  elected_cnt: number;
+  action_label: string;
+  select_url: string | null;
+};
+
+export type SupplementSelectedCourse = {
+  course_id: string;
+  name: string;
+  category: string;
+  credits: string;
+  weekly_hours: string;
+  teacher: string;
+  class_id: string;
+  department: string;
+  grade: string;
+  schedule: string;
+  pnp_status: string;
+  volume_cnt: number;
+  elected_cnt: number;
+  status: string;
+  cancel_url: string | null;
+};
+
 export type PreselectCourse = {
   course_id: string;
   name: string;
@@ -158,6 +201,7 @@ export type SnapshotView = {
   preselect_courses: PreselectCourse[];
   plan_courses: PlanCourse[];
   query_courses: QueryCourse[];
+  supplement: SupplementPage;
   results: ElectiveResults;
   wishlist: WishlistItem[];
 };

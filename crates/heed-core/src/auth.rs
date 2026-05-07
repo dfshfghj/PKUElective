@@ -1,4 +1,6 @@
-use cookie_store::serde::json::{load_all as load_cookies_json, save_incl_expired_and_nonpersistent};
+use cookie_store::serde::json::{
+    load_all as load_cookies_json, save_incl_expired_and_nonpersistent,
+};
 use reqwest::{
     Client,
     header::{CACHE_CONTROL, COOKIE, HeaderMap, HeaderValue, REFERER},
@@ -101,7 +103,11 @@ impl AuthSession {
     ) -> Result<Self> {
         let cookie_store = load_cookies_json(BufReader::new(cookies_json.as_bytes()))
             .map_err(|err| HeedError::Fatal(format!("failed to deserialize cookies: {err}")))?;
-        Self::build(username, channel, Arc::new(CookieStoreMutex::new(cookie_store)))
+        Self::build(
+            username,
+            channel,
+            Arc::new(CookieStoreMutex::new(cookie_store)),
+        )
     }
 
     pub async fn verify_alive(&self) -> Result<()> {

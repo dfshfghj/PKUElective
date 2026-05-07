@@ -3,7 +3,8 @@ use scraper::{Html, Selector};
 use crate::{
     course::{
         Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse,
-        Timetable, TimetableCell, TimetableRow,
+        SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable,
+        TimetableCell, TimetableRow,
     },
     error::{HeedError, Result},
 };
@@ -17,6 +18,14 @@ pub struct ParsedCoursePage {
     pub tips: Option<String>,
     pub courses: Vec<Course>,
     pub next_page_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedSupplementPage {
+    pub title: Option<String>,
+    pub fatal_error: Option<String>,
+    pub tips: Option<String>,
+    pub page: SupplementPage,
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +74,16 @@ pub fn parse_course_page(html: &str) -> Result<ParsedCoursePage> {
         tips,
         courses,
         next_page_url,
+    })
+}
+
+pub fn parse_supplement_page(html: &str) -> Result<ParsedSupplementPage> {
+    let document = Html::parse_document(html);
+    Ok(ParsedSupplementPage {
+        title: page_title(&document)?,
+        fatal_error: detect_fatal_error(html)?,
+        tips: detect_tips(html)?,
+        page: parse_supplement(&document)?,
     })
 }
 
@@ -195,6 +214,128 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
     Ok(courses)
 }
 
+fn parse_supplement(document: &Html) -> Result<SupplementPage> {
+    let table_selector = selector("table.datagrid")?;
+    let header_selector = selector("tr.datagrid-header th")?;
+    let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
+    let message_selector = selector(".message_success + td, .errmsg")?;
+    let remark_selector = selector(".pkuportal-remark")?;
+
+    let mut page = SupplementPage {
+        notices: document
+            .select(&message_selector)
+            .map(cell_text)
+            .filter(|text| !text.is_empty())
+            .collect(),
+        ..SupplementPage::default()
+    };
+
+    for remark in document.select(&remark_selector) {
+        let text = cell_text(remark);
+        if let Some((_, credits)) = text.split_once("当前已选总学分为：") {
+            page.selected_credits = Some(credits.trim().to_string());
+        }
+    }
+
+    for table in document.select(&table_selector) {
+        let headers = table
+            .select(&header_selector)
+            .map(normalized_text)
+            .collect::<Vec<_>>();
+
+        if headers.iter().any(|header| header == "补选") {
+            for row in table.select(&row_selector) {
+                if let Some(course) = parse_supplement_available_row(row)? {
+                    page.available_courses.push(course);
+                }
+            }
+        } else if headers.iter().any(|header| header == "退选") {
+            for row in table.select(&row_selector) {
+                if let Some(course) = parse_supplement_selected_row(row)? {
+                    page.selected_courses.push(course);
+                }
+            }
+        }
+    }
+
+    Ok(page)
+}
+
+fn parse_supplement_available_row(
+    row: scraper::ElementRef<'_>,
+) -> Result<Option<SupplementAvailableCourse>> {
+    let cell_selector = selector("td")?;
+    let action_selector = selector(
+        r#"a[href*="/elective2008/edu/pku/stu/elective/controller/supplement/electSupplement.do"]"#,
+    )?;
+    let cells = row.select(&cell_selector).collect::<Vec<_>>();
+    if cells.len() < 13 {
+        return Ok(None);
+    }
+
+    let action_link = row.select(&action_selector).next();
+    let count_text = cell_text(cells[11]);
+    let (volume_cnt, elected_cnt) = parse_count_pair(&count_text)?;
+
+    Ok(Some(SupplementAvailableCourse {
+        course_id: cell_text(cells[0]),
+        name: cell_text(cells[1]),
+        category: cell_text(cells[2]),
+        credits: cell_text(cells[3]),
+        weekly_hours: cell_text(cells[4]),
+        teacher: cell_text(cells[5]),
+        class_id: cell_text(cells[6]),
+        department: cell_text(cells[7]),
+        grade: cell_text(cells[8]),
+        schedule: cell_text(cells[9]),
+        pnp_status: parse_pnp_status(cells[10]),
+        volume_cnt,
+        elected_cnt,
+        action_label: action_link.map(normalized_text).unwrap_or_default(),
+        select_url: action_link
+            .and_then(|link| link.value().attr("href"))
+            .map(absolute_url),
+    }))
+}
+
+fn parse_supplement_selected_row(
+    row: scraper::ElementRef<'_>,
+) -> Result<Option<SupplementSelectedCourse>> {
+    let cell_selector = selector("td")?;
+    let action_selector = selector(
+        r#"a[href*="/elective2008/edu/pku/stu/elective/controller/supplement/cancelCourse.do"]"#,
+    )?;
+    let cells = row.select(&cell_selector).collect::<Vec<_>>();
+    if cells.len() < 14 {
+        return Ok(None);
+    }
+
+    let count_text = cell_text(cells[11]);
+    let (volume_cnt, elected_cnt) = parse_count_pair(&count_text)?;
+
+    Ok(Some(SupplementSelectedCourse {
+        course_id: cell_text(cells[0]),
+        name: cell_text(cells[1]),
+        category: cell_text(cells[2]),
+        credits: cell_text(cells[3]),
+        weekly_hours: cell_text(cells[4]),
+        teacher: cell_text(cells[5]),
+        class_id: cell_text(cells[6]),
+        department: cell_text(cells[7]),
+        grade: cell_text(cells[8]),
+        schedule: cell_text(cells[9]),
+        pnp_status: parse_pnp_status(cells[10]),
+        volume_cnt,
+        elected_cnt,
+        status: cell_text(cells[12]),
+        cancel_url: row
+            .select(&action_selector)
+            .next()
+            .and_then(|link| link.value().attr("href"))
+            .map(absolute_url),
+    }))
+}
+
 fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
     let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
     let cell_selector = selector("td")?;
@@ -251,8 +392,7 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
 fn parse_plan_courses(document: &Html) -> Result<Vec<PlanCourse>> {
     let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
     let cell_selector = selector("td")?;
-    let link_selector =
-        selector(r#"a[href*="/electivePlan/deleElecPlanCurriclum.do"]"#)?;
+    let link_selector = selector(r#"a[href*="/electivePlan/deleElecPlanCurriclum.do"]"#)?;
 
     let mut courses = Vec::new();
     for row in document.select(&row_selector) {
@@ -494,6 +634,17 @@ fn cell_text(element: scraper::ElementRef<'_>) -> String {
         .join(" ")
 }
 
+fn parse_pnp_status(element: scraper::ElementRef<'_>) -> String {
+    let class = element.value().attr("class").unwrap_or_default();
+    if class.contains("pku-art-pnp-invalid") {
+        "不可选".to_string()
+    } else if class.contains("pku-art-pnp-valid") {
+        "可选".to_string()
+    } else {
+        cell_text(element)
+    }
+}
+
 fn absolute_url(path: &str) -> String {
     if path.starts_with("http://") || path.starts_with("https://") {
         path.to_string()
@@ -507,8 +658,7 @@ fn extract_background_color(style: &str) -> Option<String> {
         .split(';')
         .filter_map(|part| part.split_once(':'))
         .find_map(|(key, value)| {
-            (key.trim().eq_ignore_ascii_case("background-color"))
-                .then(|| value.trim().to_string())
+            (key.trim().eq_ignore_ascii_case("background-color")).then(|| value.trim().to_string())
         })
         .filter(|value| !value.is_empty())
 }
@@ -521,7 +671,7 @@ fn selector(value: &str) -> Result<Selector> {
 mod tests {
     use super::{
         detect_tips, parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
-        parse_results_page,
+        parse_results_page, parse_supplement_page,
     };
 
     #[test]
@@ -618,5 +768,19 @@ mod tests {
                 .section,
             "第一节"
         );
+    }
+
+    #[test]
+    fn parses_example_supplement_page() {
+        let html = include_str!("../../../example/补选退选.html");
+        let parsed = parse_supplement_page(html).expect("supplement page should parse");
+        assert_eq!(parsed.title.as_deref(), Some("补选退选"));
+        assert_eq!(parsed.page.available_courses[0].course_id, "00432011");
+        assert_eq!(parsed.page.available_courses[0].action_label, "补选");
+        assert!(parsed.page.available_courses[0].select_url.is_some());
+        assert_eq!(parsed.page.selected_courses[0].name, "广义相对论");
+        assert_eq!(parsed.page.selected_courses[0].status, "已选上");
+        assert!(parsed.page.selected_courses[0].cancel_url.is_some());
+        assert_eq!(parsed.page.selected_credits.as_deref(), Some("22.0"));
     }
 }

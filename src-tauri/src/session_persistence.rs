@@ -53,10 +53,7 @@ pub fn clear_persisted_session(app: &AppHandle) -> Result<(), String> {
     }
 }
 
-pub async fn restore_session_on_startup(
-    app: &AppHandle,
-    state: &AppState,
-) -> Result<bool, String> {
+pub async fn restore_session_on_startup(app: &AppHandle, state: &AppState) -> Result<bool, String> {
     let Some(persisted) = load_persisted_session(app)? else {
         logger::info("no persisted session file found");
         return Ok(false);
@@ -98,12 +95,16 @@ pub async fn restore_session_on_startup(
             Ok(true)
         }
         Err(HeedError::SessionExpired) | Err(HeedError::AuthFailed(_)) => {
-            logger::warn("persisted session was expired or rejected during startup verification; clearing session file");
+            logger::warn(
+                "persisted session was expired or rejected during startup verification; clearing session file",
+            );
             clear_persisted_session(app)?;
             Ok(false)
         }
         Err(err) => {
-            logger::error(format!("failed to refresh persisted session on startup: {err}"));
+            logger::error(format!(
+                "failed to refresh persisted session on startup: {err}"
+            ));
             Err(err.to_string())
         }
     }

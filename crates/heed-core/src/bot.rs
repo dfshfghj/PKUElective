@@ -82,7 +82,10 @@ impl ElectiveBot {
             .auth_session()
             .client()
             .post(CAPTCHA_VERIFY_URL)
-            .form(&[("validCode", code), ("xh", self.session.auth_session().username())])
+            .form(&[
+                ("validCode", code),
+                ("xh", self.session.auth_session().username()),
+            ])
             .send()
             .await?
             .error_for_status()?;
