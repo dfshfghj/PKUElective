@@ -36,6 +36,10 @@ export async function refreshNow(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_now");
 }
 
+export async function refreshAutomationCourses(): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_automation_courses");
+}
+
 export async function refreshPreselectCourses(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_preselect_courses");
 }

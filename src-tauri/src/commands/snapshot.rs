@@ -31,6 +31,7 @@ pub struct BotView {
 pub struct SnapshotView {
     pub auth: AuthStateView,
     pub config: AppConfig,
+    pub automation_running: bool,
     pub bots: Vec<BotView>,
     pub courses: Vec<Course>,
     pub preselect_courses: Vec<PreselectCourse>,
@@ -61,6 +62,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     };
 
     let orchestrator = state.orchestrator.lock().await;
+    let automation_running = *state.automation_running.lock().await;
     let bots = orchestrator
         .bots()
         .map(|bot| BotView {
@@ -78,6 +80,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     SnapshotView {
         auth,
         config: orchestrator.config().clone(),
+        automation_running,
         bots,
         courses: orchestrator.latest_courses().to_vec(),
         preselect_courses: orchestrator.latest_preselect_courses().to_vec(),

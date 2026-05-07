@@ -10,6 +10,7 @@ pub struct AppState {
     pub auth_username: Mutex<Option<String>>,
     pub auth_preferences: Mutex<AuthPreferences>,
     pub auth_restoring: Mutex<bool>,
+    pub automation_running: Mutex<bool>,
 }
 
 impl Default for AppState {
@@ -22,6 +23,7 @@ impl Default for AppState {
             auth_username: Mutex::new(None),
             auth_preferences: Mutex::new(AuthPreferences::default()),
             auth_restoring: Mutex::new(true),
+            automation_running: Mutex::new(false),
         }
     }
 }

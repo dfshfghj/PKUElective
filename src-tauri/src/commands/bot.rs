@@ -72,6 +72,28 @@ pub async fn refresh_now(
 }
 
 #[tauri::command]
+pub async fn refresh_automation_courses(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_automation_courses");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在刷新可抢课程…")?;
+    let courses = handle_session_result(session.refresh_courses().await, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_courses(courses);
+    }
+    emit_message(&app, "success", "可抢课程已更新。")?;
+
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
 pub async fn refresh_preselect_courses(
     app: AppHandle,
     state: State<'_, AppState>,

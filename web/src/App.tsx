@@ -43,7 +43,8 @@ function AppRoutes() {
         <Route element={<SupplementPage />} path="/supplement" />
         <Route element={<ResultsPage />} path="/results" />
         <Route element={<CourseQueryPage />} path="/query" />
-        <Route element={<SettingsPage />} path="/settings" />
+        <Route element={<SettingsPage />} path="/automation" />
+        <Route element={<Navigate replace to="/automation" />} path="/settings" />
       </Route>
       <Route
         element={<Navigate replace to={snapshot.auth.logged_in ? "/" : "/login"} />}

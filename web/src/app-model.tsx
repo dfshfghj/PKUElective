@@ -21,6 +21,7 @@ import {
   refreshPlanCourses,
   refreshPreselectCourses,
   refreshResults,
+  refreshAutomationCourses,
   removePlanCourse,
   logout,
   refreshNow,
@@ -51,6 +52,7 @@ const emptySnapshot: SnapshotView = {
     interval_ms: 5000,
     timeout_ms: 30000,
   },
+  automation_running: false,
   bots: [],
   courses: [],
   preselect_courses: [],
@@ -103,6 +105,7 @@ type AppModel = {
   handleLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleLogout: () => Promise<void>;
   handleAddBot: () => Promise<void>;
+  handleRefreshAutomationCourses: () => Promise<void>;
   handleRefresh: () => Promise<void>;
   handleRefreshPreselect: () => Promise<void>;
   handleRefreshPlan: () => Promise<void>;
@@ -322,6 +325,10 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("添加 Bot", addBot);
   }
 
+  async function handleRefreshAutomationCourses() {
+    await runAction("刷新可抢课程", refreshAutomationCourses);
+  }
+
   async function handleRefresh() {
     await runAction("刷新课程", refreshNow);
   }
@@ -467,6 +474,7 @@ export function AppProvider(props: { children: ReactNode }) {
     handleLogin,
     handleLogout,
     handleAddBot,
+    handleRefreshAutomationCourses,
     handleRefresh,
     handleRefreshPreselect,
     handleRefreshPlan,

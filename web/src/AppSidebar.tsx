@@ -1,12 +1,10 @@
 import {
-  ChevronsLeft,
-  ChevronsRight,
+  Bot,
   CalendarRange,
   Gauge,
   LogOut,
   Repeat2,
   Search,
-  Settings2,
   SidebarClose,
   SidebarOpen,
   Sparkles,
@@ -15,9 +13,7 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 
 import { useAppModel } from "./app-model";
-import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
-import { Card, CardContent } from "./components/ui/card";
 import {
   Sidebar,
   SidebarContent,
@@ -38,7 +34,7 @@ const navigation = [
   { to: "/supplement", label: "补选退选", icon: Repeat2 },
   { to: "/results", label: "选课结果", icon: CalendarRange },
   { to: "/query", label: "课程查询", icon: Search },
-  { to: "/settings", label: "设置", icon: Settings2 },
+  { to: "/automation", label: "自动化", icon: Bot },
 ];
 
 export function AppSidebar() {

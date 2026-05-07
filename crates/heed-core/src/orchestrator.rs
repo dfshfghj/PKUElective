@@ -13,6 +13,13 @@ use crate::{
     types::BotId,
 };
 
+#[derive(Debug, Clone)]
+pub struct AutomationTick {
+    pub checked_courses: usize,
+    pub selected_course: Option<String>,
+    pub select_result: Option<SelectResult>,
+}
+
 pub struct Orchestrator {
     config: AppConfig,
     bots: HashMap<BotId, ElectiveBot>,
@@ -160,6 +167,62 @@ impl Orchestrator {
         Ok(&self.latest_courses)
     }
 
+    pub async fn run_automation_once(&mut self) -> Result<AutomationTick> {
+        let courses = {
+            let bot = self
+                .idle_bot_mut()
+                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+            bot.refresh_courses().await?
+        };
+        self.latest_courses = courses.clone();
+
+        let target = courses
+            .iter()
+            .find(|course| {
+                course.selectable()
+                    && self
+                        .wishlist
+                        .iter()
+                        .any(|item| !item.busy && item.matches_course(course))
+            })
+            .cloned();
+
+        let Some(target) = target else {
+            return Ok(AutomationTick {
+                checked_courses: self.latest_courses.len(),
+                selected_course: None,
+                select_result: None,
+            });
+        };
+
+        self.mark_wishlist_busy_by_name(&target.name, true);
+        let select_result = {
+            let bot = self
+                .idle_bot_mut()
+                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+            bot.select_course(&target.select_url).await
+        };
+
+        match select_result {
+            Ok(result) => {
+                if result.ok {
+                    self.remove_wishlist_by_name(&target.name);
+                } else {
+                    self.mark_wishlist_busy_by_name(&target.name, false);
+                }
+                Ok(AutomationTick {
+                    checked_courses: self.latest_courses.len(),
+                    selected_course: Some(format!("{} {}", target.name, target.class_id)),
+                    select_result: Some(result),
+                })
+            }
+            Err(err) => {
+                self.mark_wishlist_busy_by_name(&target.name, false);
+                Err(err)
+            }
+        }
+    }
+
     pub async fn search_query_with_idle_bot(
         &mut self,
         filters: &CourseQueryFilters,
@@ -238,5 +301,17 @@ impl Orchestrator {
             .iter()
             .find_map(|(id, bot)| (bot.status() == &BotStatus::Idle).then_some(id.clone()))?;
         self.bots.get_mut(&bot_id)
+    }
+
+    fn mark_wishlist_busy_by_name(&mut self, name: &str, busy: bool) {
+        for item in &mut self.wishlist {
+            if item.name == name {
+                item.busy = busy;
+            }
+        }
+    }
+
+    fn remove_wishlist_by_name(&mut self, name: &str) {
+        self.wishlist.retain(|item| item.name != name);
     }
 }

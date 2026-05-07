@@ -55,6 +55,7 @@ fn main() {
             commands::snapshot::get_snapshot,
             commands::bot::add_bot,
             commands::bot::refresh_now,
+            commands::bot::refresh_automation_courses,
             commands::bot::refresh_preselect_courses,
             commands::bot::refresh_plan_courses,
             commands::bot::refresh_results,

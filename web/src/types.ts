@@ -196,6 +196,7 @@ export type WishlistItem = {
 export type SnapshotView = {
   auth: AuthStateView;
   config: AppConfig;
+  automation_running: boolean;
   bots: BotView[];
   courses: Course[];
   preselect_courses: PreselectCourse[];
