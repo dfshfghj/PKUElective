@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Bot, Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -20,9 +20,12 @@ export function SettingsPage() {
     handleAddWishlistDirect,
     handleConfigNumberSubmit,
     handleConfigToggle,
+    handleRefreshBotCaptcha,
     handleRefreshAutomationCourses,
     handleRemoveWishlist,
+    handleVerifyBotCaptcha,
   } = useAppModel();
+  const [captchaInputs, setCaptchaInputs] = useState<Record<string, string>>({});
 
   const wantedCount = snapshot.wishlist.length;
   const selectableWantedCount = courseRows.filter((course) => course.wanted && course.selectable).length;
@@ -244,6 +247,64 @@ export function SettingsPage() {
                       <p className="mt-2 text-xs leading-5 text-rose-600 dark:text-rose-300">
                         {bot.last_error}
                       </p>
+                    ) : null}
+                    {bot.status === "waiting_captcha" ? (
+                      <div className="mt-3 space-y-3 rounded-lg border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+                        <p className="text-xs text-amber-800 dark:text-amber-200">
+                          这个 Bot 还在等验证码，验证通过后才会参与自动化。
+                        </p>
+                        <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+                          {bot.captcha_image_b64 ? (
+                            <img
+                              alt={`${bot.id} 验证码`}
+                              className="block h-24 w-full object-contain"
+                              src={`data:image/png;base64,${bot.captcha_image_b64}`}
+                            />
+                          ) : (
+                            <div className="flex h-24 items-center justify-center text-xs text-stone-500 dark:text-stone-400">
+                              暂无验证码
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            className="h-9 w-32 rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none transition focus:border-emerald-400 dark:border-stone-700 dark:bg-stone-950"
+                            disabled={pending !== null}
+                            maxLength={5}
+                            onChange={(event) =>
+                              setCaptchaInputs((current) => ({
+                                ...current,
+                                [bot.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="输入验证码"
+                            type="text"
+                            value={captchaInputs[bot.id] ?? ""}
+                          />
+                          <Button
+                            disabled={pending !== null || !(captchaInputs[bot.id] ?? "").trim()}
+                            onClick={() => {
+                              const code = (captchaInputs[bot.id] ?? "").trim();
+                              if (!code) return;
+                              void handleVerifyBotCaptcha(bot.id, code);
+                              setCaptchaInputs((current) => ({ ...current, [bot.id]: "" }));
+                            }}
+                            size="sm"
+                            type="button"
+                          >
+                            验证
+                          </Button>
+                          <Button
+                            disabled={pending !== null}
+                            onClick={() => void handleRefreshBotCaptcha(bot.id)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            刷新验证码
+                          </Button>
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                 ))}

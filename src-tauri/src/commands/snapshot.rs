@@ -25,6 +25,7 @@ pub struct BotView {
     pub status: BotStatus,
     pub last_error: Option<String>,
     pub last_loop_unix_ms: Option<u128>,
+    pub captcha_image_b64: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -38,6 +39,8 @@ pub struct SnapshotView {
     pub plan_courses: Vec<PlanCourse>,
     pub query_courses: Vec<QueryCourse>,
     pub supplement: SupplementPage,
+    pub supplement_captcha_image_b64: Option<String>,
+    pub supplement_captcha_verified: bool,
     pub results: ElectiveResults,
     pub wishlist: Vec<WishlistItem>,
 }
@@ -63,6 +66,8 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
 
     let orchestrator = state.orchestrator.lock().await;
     let automation_running = *state.automation_running.lock().await;
+    let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
+    let supplement_captcha_verified = *state.manual_captcha_verified.lock().await;
     let bots = orchestrator
         .bots()
         .map(|bot| BotView {
@@ -74,6 +79,9 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
                     .ok()
                     .map(|duration| duration.as_millis())
             }),
+            captcha_image_b64: bot
+                .captcha_image()
+                .map(|bytes| base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)),
         })
         .collect();
 
@@ -87,6 +95,8 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         plan_courses: orchestrator.latest_plan_courses().to_vec(),
         query_courses: orchestrator.latest_query_courses().to_vec(),
         supplement: orchestrator.latest_supplement_page().clone(),
+        supplement_captcha_image_b64,
+        supplement_captcha_verified,
         results: orchestrator.latest_results().clone(),
         wishlist: orchestrator.wishlist().to_vec(),
     }

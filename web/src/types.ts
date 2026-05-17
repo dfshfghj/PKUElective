@@ -32,6 +32,7 @@ export type BotView = {
   status: BotStatus;
   last_error: string | null;
   last_loop_unix_ms: number | null;
+  captcha_image_b64: string | null;
 };
 
 export type Course = {
@@ -203,6 +204,8 @@ export type SnapshotView = {
   plan_courses: PlanCourse[];
   query_courses: QueryCourse[];
   supplement: SupplementPage;
+  supplement_captcha_image_b64: string | null;
+  supplement_captcha_verified: boolean;
   results: ElectiveResults;
   wishlist: WishlistItem[];
 };

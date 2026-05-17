@@ -27,15 +27,61 @@ pub async fn add_bot(app: AppHandle, state: State<'_, AppState>) -> Result<Snaps
     };
 
     emit_message(&app, "info", "正在创建 Bot…")?;
-    {
+    let bot_id = {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator
             .add_bot(&credentials)
             .await
+            .map_err(|err| err.to_string())?
+    };
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator
+            .refresh_bot_captcha(&bot_id)
+            .await
             .map_err(|err| err.to_string())?;
     }
-    emit_message(&app, "success", "Bot 已添加。")?;
+    emit_message(&app, "success", format!("Bot 已添加，请先完成 {bot_id} 的验证码。"))?;
 
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn refresh_bot_captcha(
+    bot_id: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_bot_captcha");
+    emit_message(&app, "info", format!("正在刷新 {bot_id} 的验证码…"))?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator
+            .refresh_bot_captcha(&bot_id)
+            .await
+            .map_err(|err| err.to_string())?;
+    }
+    emit_message(&app, "success", format!("{bot_id} 的验证码已刷新。"))?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn verify_bot_captcha(
+    bot_id: String,
+    code: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: verify_bot_captcha");
+    emit_message(&app, "info", format!("正在验证 {bot_id} 的验证码…"))?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator
+            .verify_bot_captcha(&bot_id, code.trim())
+            .await
+            .map_err(|err| err.to_string())?;
+    }
+    emit_message(&app, "success", format!("{bot_id} 的验证码验证通过。"))?;
     emit_snapshot_events(&app, &state).await
 }
 

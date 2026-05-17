@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { RefreshCw } from "lucide-react";
@@ -16,10 +16,13 @@ export function SupplementPage() {
     pending,
     snapshot,
     handleRefreshSupplement,
+    handleRefreshSupplementCaptcha,
     handleSupplementCancelCourse,
     handleSupplementSelectCourse,
+    handleVerifySupplementCaptcha,
   } = useAppModel();
   const hasAutoLoadedRef = useRef(false);
+  const [captchaCode, setCaptchaCode] = useState("");
   const availableRows = useMemo<AvailableRow[]>(
     () =>
       snapshot.supplement.available_courses.map((course, index) => ({
@@ -148,6 +151,63 @@ export function SupplementPage() {
           </div>
         </Surface>
       ) : null}
+
+      <Surface
+        title="验证码"
+        meta={snapshot.supplement_captcha_verified ? "已验证" : "补选/退选前需要先验证"}
+      >
+        <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
+          <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+            {snapshot.supplement_captcha_image_b64 ? (
+              <img
+                alt="补选退选验证码"
+                className="block h-24 w-full object-contain"
+                src={`data:image/png;base64,${snapshot.supplement_captcha_image_b64}`}
+              />
+            ) : (
+              <div className="flex h-24 items-center justify-center text-sm text-stone-500 dark:text-stone-400">
+                暂无验证码
+              </div>
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-stone-600 dark:text-stone-300">
+              {snapshot.supplement_captcha_verified
+                ? "当前验证码已通过，接下来可以继续补选或退选。"
+                : "验证码不区分大小写，验证通过后再进行补选或退选。"}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <input
+                className="h-10 w-40 rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none ring-0 transition focus:border-emerald-400 dark:border-stone-700 dark:bg-stone-950"
+                disabled={pending !== null}
+                maxLength={5}
+                onChange={(event) => setCaptchaCode(event.target.value)}
+                placeholder="输入验证码"
+                type="text"
+                value={captchaCode}
+              />
+              <PrimaryButton
+                disabled={pending !== null || captchaCode.trim().length === 0}
+                onClick={() => {
+                  void handleVerifySupplementCaptcha(captchaCode.trim());
+                  setCaptchaCode("");
+                }}
+              >
+                验证
+              </PrimaryButton>
+              <SecondaryButton
+                disabled={pending !== null}
+                onClick={() => {
+                  void handleRefreshSupplementCaptcha();
+                  setCaptchaCode("");
+                }}
+              >
+                刷新验证码
+              </SecondaryButton>
+            </div>
+          </div>
+        </div>
+      </Surface>
 
       <Surface title="选课计划中本学期可选列表">
         {availableRows.length === 0 ? (

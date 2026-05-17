@@ -32,6 +32,14 @@ export async function addBot(): Promise<SnapshotView> {
   return invoke<SnapshotView>("add_bot");
 }
 
+export async function refreshBotCaptcha(botId: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_bot_captcha", { botId });
+}
+
+export async function verifyBotCaptcha(botId: string, code: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("verify_bot_captcha", { botId, code });
+}
+
 export async function refreshNow(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_now");
 }
@@ -76,6 +84,14 @@ export async function searchQueryCourses(filters: CourseQueryFilters): Promise<S
 
 export async function refreshSupplementPage(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_supplement_page");
+}
+
+export async function refreshSupplementCaptcha(): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_supplement_captcha");
+}
+
+export async function verifySupplementCaptcha(code: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("verify_supplement_captcha", { code });
 }
 
 export async function addCourseToPlan(addUrl: string): Promise<SnapshotView> {

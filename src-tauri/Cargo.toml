@@ -7,6 +7,7 @@ edition = "2024"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+base64 = "0.22"
 heed-core = { path = "../crates/heed-core" }
 keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 serde = { version = "1", features = ["derive"] }

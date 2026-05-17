@@ -11,6 +11,8 @@ pub struct AppState {
     pub auth_preferences: Mutex<AuthPreferences>,
     pub auth_restoring: Mutex<bool>,
     pub automation_running: Mutex<bool>,
+    pub manual_captcha_image_b64: Mutex<Option<String>>,
+    pub manual_captcha_verified: Mutex<bool>,
 }
 
 impl Default for AppState {
@@ -24,6 +26,8 @@ impl Default for AppState {
             auth_preferences: Mutex::new(AuthPreferences::default()),
             auth_restoring: Mutex::new(true),
             automation_running: Mutex::new(false),
+            manual_captcha_image_b64: Mutex::new(None),
+            manual_captcha_verified: Mutex::new(false),
         }
     }
 }
@@ -47,6 +51,14 @@ impl AppState {
             let mut guard = self.auth_username.lock().await;
             *guard = Some(username);
         }
+        {
+            let mut guard = self.manual_captcha_image_b64.lock().await;
+            *guard = None;
+        }
+        {
+            let mut guard = self.manual_captcha_verified.lock().await;
+            *guard = false;
+        }
     }
 
     pub async fn clear_auth_state(&self) {
@@ -65,6 +77,14 @@ impl AppState {
         {
             let mut orchestrator = self.orchestrator.lock().await;
             orchestrator.clear_runtime_state();
+        }
+        {
+            let mut captcha = self.manual_captcha_image_b64.lock().await;
+            *captcha = None;
+        }
+        {
+            let mut verified = self.manual_captcha_verified.lock().await;
+            *verified = false;
         }
     }
 

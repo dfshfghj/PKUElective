@@ -147,6 +147,23 @@ impl Orchestrator {
         Ok(bot_id)
     }
 
+    pub async fn refresh_bot_captcha(&mut self, bot_id: &str) -> Result<()> {
+        let bot = self
+            .bots
+            .get_mut(bot_id)
+            .ok_or_else(|| HeedError::Config(format!("unknown bot: {bot_id}")))?;
+        bot.fetch_captcha().await?;
+        Ok(())
+    }
+
+    pub async fn verify_bot_captcha(&mut self, bot_id: &str, code: &str) -> Result<()> {
+        let bot = self
+            .bots
+            .get_mut(bot_id)
+            .ok_or_else(|| HeedError::Config(format!("unknown bot: {bot_id}")))?;
+        bot.verify_captcha(code).await
+    }
+
     pub async fn refresh_with_idle_bot(&mut self) -> Result<&[Course]> {
         let bot_id = self
             .bots

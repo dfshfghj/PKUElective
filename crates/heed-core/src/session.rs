@@ -12,6 +12,8 @@ use crate::{
 };
 
 const SUPPLY_CANCEL_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/SupplyCancel.do";
+const CAPTCHA_URL: &str = "https://elective.pku.edu.cn/elective2008/DrawServlet";
+const CAPTCHA_VERIFY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/validate.do";
 const ELECTIVE_PLAN_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electivePlan/ElectivePlanController.jpf";
 const COURSE_QUERY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/CourseQueryController.jpf";
 const COURSE_QUERY_FORM_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/getCurriculmByForm.do";
@@ -112,6 +114,34 @@ impl ElectiveSession {
         }
 
         Ok(page.page)
+    }
+
+    pub async fn fetch_captcha(&self) -> Result<Vec<u8>> {
+        let response = self
+            .auth
+            .client()
+            .get(CAPTCHA_URL)
+            .query(&[("Rand", "0.1")])
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(response.bytes().await?.to_vec())
+    }
+
+    pub async fn verify_captcha(&self, code: &str) -> Result<()> {
+        let response = self
+            .auth
+            .client()
+            .post(CAPTCHA_VERIFY_URL)
+            .form(&[("validCode", code), ("xh", self.auth.username())])
+            .send()
+            .await?
+            .error_for_status()?;
+        let body: serde_json::Value = response.json().await?;
+        match body.get("valid").and_then(|value| value.as_str()) {
+            Some("2") => Ok(()),
+            _ => Err(HeedError::CaptchaInvalid),
+        }
     }
 
     pub async fn refresh_preselect_courses(&self) -> Result<Vec<PreselectCourse>> {

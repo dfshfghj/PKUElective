@@ -1611,6 +1611,7 @@ dependencies = [
 name = "heed-tauri"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "heed-core",
  "keyring",
  "serde",

@@ -9,9 +9,6 @@ use crate::{
     types::BotId,
 };
 
-const CAPTCHA_URL: &str = "https://elective.pku.edu.cn/elective2008/DrawServlet";
-const CAPTCHA_VERIFY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/validate.do";
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BotStatus {
@@ -32,6 +29,7 @@ pub struct ElectiveBot {
     status: BotStatus,
     last_loop_time: Option<SystemTime>,
     last_error: Option<String>,
+    captcha_image: Option<Vec<u8>>,
 }
 
 impl ElectiveBot {
@@ -43,6 +41,7 @@ impl ElectiveBot {
             status: BotStatus::Idle,
             last_loop_time: None,
             last_error: None,
+            captcha_image: None,
         })
     }
 
@@ -62,40 +61,31 @@ impl ElectiveBot {
         self.last_error.as_deref()
     }
 
+    pub fn captcha_image(&self) -> Option<&[u8]> {
+        self.captcha_image.as_deref()
+    }
+
     pub async fn fetch_captcha(&mut self) -> Result<Vec<u8>> {
+        let bytes = self.session.fetch_captcha().await?;
         self.status = BotStatus::WaitingCaptcha;
-        let response = self
-            .session
-            .auth_session()
-            .client()
-            .get(CAPTCHA_URL)
-            .query(&[("Rand", "0.1")])
-            .send()
-            .await?
-            .error_for_status()?;
-        Ok(response.bytes().await?.to_vec())
+        self.last_error = None;
+        self.captcha_image = Some(bytes.clone());
+        Ok(bytes)
     }
 
     pub async fn verify_captcha(&mut self, code: &str) -> Result<()> {
-        let response = self
-            .session
-            .auth_session()
-            .client()
-            .post(CAPTCHA_VERIFY_URL)
-            .form(&[
-                ("validCode", code),
-                ("xh", self.session.auth_session().username()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?;
-        let body: serde_json::Value = response.json().await?;
-        match body.get("valid").and_then(|value| value.as_str()) {
-            Some("2") => {
+        match self.session.verify_captcha(code).await {
+            Ok(()) => {
                 self.status = BotStatus::Idle;
+                self.last_error = None;
+                self.captcha_image = None;
                 Ok(())
             }
-            _ => Err(HeedError::CaptchaInvalid),
+            Err(err) => {
+                self.status = BotStatus::WaitingCaptcha;
+                self.last_error = Some(err.to_string());
+                Err(err)
+            }
         }
     }
 
@@ -239,6 +229,7 @@ impl ElectiveBot {
                 } else {
                     Some(value.message.clone())
                 };
+                self.captcha_image = None;
                 Ok(value)
             }
             Err(err) => {

@@ -17,7 +17,9 @@ import {
   getSnapshot,
   login,
   preselectCourse,
+  refreshBotCaptcha,
   refreshSupplementPage,
+  refreshSupplementCaptcha,
   refreshPlanCourses,
   refreshPreselectCourses,
   refreshResults,
@@ -30,6 +32,8 @@ import {
   supplementCancelCourse,
   supplementSelectCourse,
   updateConfig,
+  verifyBotCaptcha,
+  verifySupplementCaptcha,
 } from "./api";
 import { subscribeToAppEvents } from "./events";
 import type { ConfigPatch, CourseQueryFilters, MessageEvent, SnapshotView } from "./types";
@@ -64,6 +68,8 @@ const emptySnapshot: SnapshotView = {
     selected_courses: [],
     selected_credits: null,
   },
+  supplement_captcha_image_b64: null,
+  supplement_captcha_verified: false,
   results: {
     summary: null,
     notice: null,
@@ -106,11 +112,15 @@ type AppModel = {
   handleLogout: () => Promise<void>;
   handleAddBot: () => Promise<void>;
   handleRefreshAutomationCourses: () => Promise<void>;
+  handleRefreshBotCaptcha: (botId: string) => Promise<void>;
+  handleVerifyBotCaptcha: (botId: string, code: string) => Promise<void>;
   handleRefresh: () => Promise<void>;
   handleRefreshPreselect: () => Promise<void>;
   handleRefreshPlan: () => Promise<void>;
   handleRefreshResults: () => Promise<void>;
   handleRefreshSupplement: () => Promise<void>;
+  handleRefreshSupplementCaptcha: () => Promise<void>;
+  handleVerifySupplementCaptcha: (code: string) => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -329,6 +339,14 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("刷新可抢课程", refreshAutomationCourses);
   }
 
+  async function handleRefreshBotCaptcha(botId: string) {
+    await runAction("刷新 Bot 验证码", () => refreshBotCaptcha(botId));
+  }
+
+  async function handleVerifyBotCaptcha(botId: string, code: string) {
+    await runAction("验证 Bot 验证码", () => verifyBotCaptcha(botId, code));
+  }
+
   async function handleRefresh() {
     await runAction("刷新课程", refreshNow);
   }
@@ -347,6 +365,14 @@ export function AppProvider(props: { children: ReactNode }) {
 
   async function handleRefreshSupplement() {
     await runAction("刷新补选退选", refreshSupplementPage);
+  }
+
+  async function handleRefreshSupplementCaptcha() {
+    await runAction("刷新验证码", refreshSupplementCaptcha);
+  }
+
+  async function handleVerifySupplementCaptcha(code: string) {
+    await runAction("验证验证码", () => verifySupplementCaptcha(code));
   }
 
   async function handleConfigToggle(key: "auto_refresh" | "auto_captcha" | "notifications") {
@@ -475,11 +501,15 @@ export function AppProvider(props: { children: ReactNode }) {
     handleLogout,
     handleAddBot,
     handleRefreshAutomationCourses,
+    handleRefreshBotCaptcha,
+    handleVerifyBotCaptcha,
     handleRefresh,
     handleRefreshPreselect,
     handleRefreshPlan,
     handleRefreshResults,
     handleRefreshSupplement,
+    handleRefreshSupplementCaptcha,
+    handleVerifySupplementCaptcha,
     handleConfigToggle,
     handleConfigSave,
     handleConfigNumberSubmit,

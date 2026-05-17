@@ -7,6 +7,10 @@ use crate::emit::{emit_message, emit_snapshot_events};
 use crate::logger;
 use crate::session_persistence::handle_session_result;
 
+fn encode_captcha(bytes: &[u8]) -> String {
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)
+}
+
 #[tauri::command]
 pub async fn search_query_courses(
     filters: CourseQueryFilters,
@@ -44,11 +48,68 @@ pub async fn refresh_supplement_page(
     emit_message(&app, "info", "正在刷新补选退选…")?;
     let supplement =
         handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    let captcha =
+        handle_session_result(session.fetch_captcha().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_supplement_page(supplement);
     }
+    {
+        let mut image = state.manual_captcha_image_b64.lock().await;
+        *image = Some(encode_captcha(&captcha));
+    }
+    {
+        let mut verified = state.manual_captcha_verified.lock().await;
+        *verified = false;
+    }
     emit_message(&app, "success", "补选退选列表已更新。")?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn refresh_supplement_captcha(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_supplement_captcha");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在刷新验证码…")?;
+    let captcha = handle_session_result(session.fetch_captcha().await, &app, &state).await?;
+    {
+        let mut image = state.manual_captcha_image_b64.lock().await;
+        *image = Some(encode_captcha(&captcha));
+    }
+    {
+        let mut verified = state.manual_captcha_verified.lock().await;
+        *verified = false;
+    }
+    emit_message(&app, "success", "验证码已刷新。")?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn verify_supplement_captcha(
+    code: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: verify_supplement_captcha");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在验证验证码…")?;
+    handle_session_result(session.verify_captcha(code.trim()).await, &app, &state).await?;
+    {
+        let mut verified = state.manual_captcha_verified.lock().await;
+        *verified = true;
+    }
+    emit_message(&app, "success", "验证码验证通过。")?;
     emit_snapshot_events(&app, &state).await
 }
 
@@ -163,6 +224,10 @@ pub async fn supplement_select_course(
     };
 
     emit_message(&app, "info", "正在提交补选…")?;
+    let captcha_verified = *state.manual_captcha_verified.lock().await;
+    if !captcha_verified {
+        return Err("请先完成验证码验证。".to_string());
+    }
     let result = handle_session_result(
         session.select_supplement_course(&select_url).await,
         &app,
@@ -171,9 +236,18 @@ pub async fn supplement_select_course(
     .await?;
     let supplement =
         handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    let captcha = handle_session_result(session.fetch_captcha().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_supplement_page(supplement);
+    }
+    {
+        let mut image = state.manual_captcha_image_b64.lock().await;
+        *image = Some(encode_captcha(&captcha));
+    }
+    {
+        let mut verified = state.manual_captcha_verified.lock().await;
+        *verified = false;
     }
     emit_message(
         &app,
@@ -200,6 +274,10 @@ pub async fn supplement_cancel_course(
     };
 
     emit_message(&app, "info", "正在提交退选…")?;
+    let captcha_verified = *state.manual_captcha_verified.lock().await;
+    if !captcha_verified {
+        return Err("请先完成验证码验证。".to_string());
+    }
     let result = handle_session_result(
         session.cancel_supplement_course(&cancel_url).await,
         &app,
@@ -208,9 +286,18 @@ pub async fn supplement_cancel_course(
     .await?;
     let supplement =
         handle_session_result(session.refresh_supplement_page().await, &app, &state).await?;
+    let captcha = handle_session_result(session.fetch_captcha().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_supplement_page(supplement);
+    }
+    {
+        let mut image = state.manual_captcha_image_b64.lock().await;
+        *image = Some(encode_captcha(&captcha));
+    }
+    {
+        let mut verified = state.manual_captcha_verified.lock().await;
+        *verified = false;
     }
     emit_message(
         &app,
