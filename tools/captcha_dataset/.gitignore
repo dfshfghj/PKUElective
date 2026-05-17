@@ -1,0 +1,5 @@
+data/
+session_cookies.json
+*.pyc
+__pycache__/
+*.class
