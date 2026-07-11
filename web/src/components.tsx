@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
@@ -15,28 +16,31 @@ import { Input } from "./components/ui/input";
 import { cn } from "./lib/utils";
 
 export function PageHeader(props: {
-  eyebrow: string;
+  breadcrumb: string;
   title: string;
   description?: string;
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <p className="mb-2 text-xs uppercase tracking-[0.24em] text-stone-400 dark:text-stone-500">
-          {props.eyebrow}
-        </p>
-        <h2 className="text-3xl font-semibold leading-tight text-stone-950 dark:text-stone-100 md:text-4xl">
-          {props.title}
-        </h2>
-        {props.description ? (
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-500 dark:text-stone-400">
-            {props.description}
-          </p>
-        ) : null}
+    <>
+      <div data-tauri-drag-region="deep" className="sticky top-0 z-10 flex items-center gap-1 border-b border-sidebar-border bg-white/80 px-4 py-4 backdrop-blur md:-mx-8 md:px-8 dark:border-stone-800/60 dark:bg-stone-950/80">
+        <ChevronRight className="h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
+        <span className="text-sm text-stone-500 dark:text-stone-400">{props.breadcrumb}</span>
       </div>
-      {props.actions ? <div className="flex flex-wrap gap-3">{props.actions}</div> : null}
-    </header>
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold leading-tight text-stone-950 dark:text-stone-100">
+            {props.title}
+          </h2>
+          {props.description ? (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-500 dark:text-stone-400">
+              {props.description}
+            </p>
+          ) : null}
+        </div>
+        {props.actions ? <div className="flex flex-wrap gap-3">{props.actions}</div> : null}
+      </header>
+    </>
   );
 }
 

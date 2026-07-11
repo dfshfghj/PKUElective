@@ -39,7 +39,7 @@ export function ResultsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Results"
+        breadcrumb="选课结果"
         title="选课结果"
       />
 

@@ -180,7 +180,7 @@ export function WishlistPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Elective Plan"
+        breadcrumb="选课计划"
         title="选课计划"
       />
 

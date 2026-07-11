@@ -313,7 +313,7 @@ export function CourseQueryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Course Query"
+        breadcrumb="课程查询"
         title="课程查询"
       />
 

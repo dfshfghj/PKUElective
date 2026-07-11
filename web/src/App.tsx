@@ -87,7 +87,7 @@ function ProtectedLayout() {
           <div className="border-b border-stone-200/80 bg-white/70 px-4 py-3 backdrop-blur dark:border-stone-800 dark:bg-stone-950/70 md:hidden">
             <SidebarTrigger />
           </div>
-          <main className="mx-auto min-w-0 flex min-h-screen w-full flex-1 px-4 py-6 md:px-8 md:py-8">
+          <main className="min-w-0 flex min-h-screen w-full flex-1 px-4 md:px-8">
             <div className="w-full space-y-6">
               <Outlet />
             </div>

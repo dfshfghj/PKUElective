@@ -17,7 +17,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Overview"
+        breadcrumb="概览"
         title="概览"
         description=""
         actions={

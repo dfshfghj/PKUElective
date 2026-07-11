@@ -118,7 +118,7 @@ export function SupplementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Supplement"
+        breadcrumb="补选退选"
         title="补选退选"
         actions={
           <>

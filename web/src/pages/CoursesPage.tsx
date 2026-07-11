@@ -224,7 +224,7 @@ export function CoursesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Elective Work"
+        breadcrumb="预选"
         title="预选"
         actions={
           <>

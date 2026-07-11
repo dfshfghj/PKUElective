@@ -115,7 +115,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Automation"
+        breadcrumb="自动化"
         title="自动化"
         actions={
           <>
