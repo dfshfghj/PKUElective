@@ -55,7 +55,7 @@ export function DataTable<TData>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     initialVisibility ?? {},
   );
-  const [showColumnPanel, setShowColumnPanel] = useState(false);
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
   const isMobile = useIsMobile();
 
   const table = useReactTable({
@@ -89,37 +89,42 @@ export function DataTable<TData>({
           {table.getRowModel().rows.length} 条结果
         </div>
         {hideableColumns.length > 0 ? (
-          <Button
-            className="gap-2"
-            onClick={() => setShowColumnPanel((current) => !current)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <Columns3 className="size-4" />
-            显示字段
-          </Button>
+          <div className="relative">
+            <Button
+              aria-expanded={showColumnMenu}
+              aria-haspopup="menu"
+              className="gap-2"
+              onClick={() => setShowColumnMenu((current) => !current)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <Columns3 className="size-4" />
+              显示字段
+              <ChevronDown className="size-4" />
+            </Button>
+            {showColumnMenu ? (
+              <div
+                aria-label="列显示设置"
+                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-stone-200/80 bg-white p-2 shadow-lg dark:border-stone-800 dark:bg-stone-950"
+                role="menu"
+              >
+                <div className="mt-1 grid gap-1">
+                  {hideableColumns.map((column) => (
+                    <ColumnVisibilityToggle
+                      key={column.id}
+                      id={column.id}
+                      label={column.label}
+                      onToggle={column.toggle}
+                      visible={column.visible}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
-
-      {showColumnPanel ? (
-        <div className="grid gap-3 rounded-2xl border border-stone-200/80 bg-stone-50/80 p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900/70">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
-            列显示设置
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {hideableColumns.map((column) => (
-              <ColumnVisibilityToggle
-                key={column.id}
-                id={column.id}
-                label={column.label}
-                onToggle={column.toggle}
-                visible={column.visible}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {isMobile ? (
         table.getRowModel().rows.length > 0 ? (
@@ -313,15 +318,18 @@ function ColumnVisibilityToggle(props: {
   const inputId = useId();
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200">
+    <label
+      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-900"
+      htmlFor={inputId}
+      role="menuitemcheckbox"
+      aria-checked={props.visible}
+    >
       <Checkbox
         checked={props.visible}
         id={inputId}
         onCheckedChange={(checked) => props.onToggle(checked === true)}
       />
-      <label className="cursor-pointer select-none" htmlFor={inputId}>
-        {props.label}
-      </label>
-    </div>
+      <span className="select-none">{props.label}</span>
+    </label>
   );
 }

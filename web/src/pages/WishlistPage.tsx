@@ -9,7 +9,7 @@ import {
   Surface,
 } from "../components";
 import { useAppModel } from "../app-model";
-import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
+import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import type { PlanCourse } from "@/types";
 
@@ -111,7 +111,7 @@ export function WishlistPage() {
       {
         accessorKey: "schedule",
         meta: { label: "上课时间" },
-        cell: ({ row }) => <div className={tableCellWrap("min-w-72")}><LineBreakText text={row.original.schedule} /></div>,
+        cell: ({ row }) => <LineBreakText text={row.original.schedule} />,
         header: ({ column }) => (
           <SortableHeader
             label="上课时间"

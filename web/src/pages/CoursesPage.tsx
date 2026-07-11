@@ -235,11 +235,6 @@ export function CoursesPage() {
         }
       />
 
-      <Surface title="预选提示">
-        <div className="grid gap-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-        </div>
-      </Surface>
-
       <Surface title="选课计划中本学期可选列表">
         {rows.length === 0 ? (
           <EmptyState text="还没有预选课程数据，先刷新一次。" />
