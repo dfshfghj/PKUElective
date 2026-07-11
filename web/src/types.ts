@@ -105,6 +105,10 @@ export type PreselectCourse = {
   select_url: string;
 };
 
+export type PreselectedCourse = Omit<PreselectCourse, "select_url"> & {
+  cancel_url: string;
+};
+
 export type PlanCourse = {
   course_id: string;
   name: string;
@@ -201,6 +205,7 @@ export type SnapshotView = {
   bots: BotView[];
   courses: Course[];
   preselect_courses: PreselectCourse[];
+  preselected_courses: PreselectedCourse[];
   plan_courses: PlanCourse[];
   query_courses: QueryCourse[];
   supplement: SupplementPage;

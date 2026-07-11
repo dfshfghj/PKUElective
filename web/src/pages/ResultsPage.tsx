@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { EmptyState, PageHeader, Surface } from "../components";
+import { EmptyState, LineBreakText, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { useIsMobile } from "../hooks/use-mobile";
 import type { TimetableCell } from "../types";
@@ -43,7 +43,7 @@ export function ResultsPage() {
         title="选课结果"
       />
 
-      <Surface title="结果说明" meta="真实后端数据">
+      <Surface title="结果说明">
         <div className="grid gap-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
           <div className="rounded-2xl bg-stone-100/80 p-4 dark:bg-stone-900/80">
             {results.notice ?? "这里会显示选课状态、操作时间，以及课表中的具体排课信息。"}
@@ -87,7 +87,9 @@ export function ResultsPage() {
                       <td className="px-4 py-4">{course.teacher}</td>
                       <td className="px-4 py-4">{course.class_id}</td>
                       <td className="px-4 py-4">{course.department || "—"}</td>
-                      <td className="min-w-80 px-4 py-4 text-xs leading-6">{course.classroom_info || "—"}</td>
+                      <td className="min-w-80 px-4 py-4 text-xs leading-6">
+                        <LineBreakText text={course.classroom_info} />
+                      </td>
                       <td className="px-4 py-4">{course.pnp_status || "—"}</td>
                       <td className="px-4 py-4">
                         <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-900 dark:bg-orange-950/40 dark:text-orange-100">

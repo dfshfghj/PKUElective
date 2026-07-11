@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { RefreshCw } from "lucide-react";
 
-import { EmptyState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
+import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
 import { useAppModel } from "../app-model";
-import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
+import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
 
 type AvailableRow = SupplementAvailableCourse & { key: string; remaining: number };
@@ -47,7 +48,7 @@ export function SupplementPage() {
       availabilityColumn<AvailableRow>(),
       {
         id: "actions",
-        meta: { label: "补选" },
+        meta: { label: "补选", mobileSlot: "footer" },
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => (
@@ -71,7 +72,7 @@ export function SupplementPage() {
       availabilityColumn<SelectedRow>(),
       {
         accessorKey: "status",
-        meta: { label: "选课状态" },
+        meta: { label: "选课状态", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.status),
         header: ({ column }) => (
           <SortableHeader
@@ -83,7 +84,7 @@ export function SupplementPage() {
       },
       {
         id: "actions",
-        meta: { label: "退选" },
+        meta: { label: "退选", mobileSlot: "footer" },
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => (
@@ -154,7 +155,7 @@ export function SupplementPage() {
 
       <Surface
         title="验证码"
-        meta={snapshot.supplement_captcha_verified ? "已验证" : "补选/退选前需要先验证"}
+        meta={snapshot.supplement_captcha_verified ? "已验证" : "未验证"}
       >
         <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
@@ -224,6 +225,26 @@ export function SupplementPage() {
               grade: false,
               pnp_status: false,
             }}
+            mobileCardTitle={(course) => course.name}
+            mobileCardDescription={(course) =>
+              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+            }
+            mobileCardBadges={(course) => (
+              <>
+                <Badge variant="secondary">{course.category}</Badge>
+                <Badge variant="outline">{course.credits} 学分</Badge>
+                <Badge
+                  className={
+                    course.remaining > 0
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                      : "border-stone-200 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                  }
+                  variant="outline"
+                >
+                  {course.volume_cnt} / {course.elected_cnt}
+                </Badge>
+              </>
+            )}
           />
         )}
       </Surface>
@@ -246,6 +267,20 @@ export function SupplementPage() {
               grade: false,
               pnp_status: false,
             }}
+            mobileCardTitle={(course) => course.name}
+            mobileCardDescription={(course) =>
+              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+            }
+            mobileCardBadges={(course) => (
+              <>
+                <Badge variant="secondary">{course.category}</Badge>
+                <Badge variant="outline">{course.credits} 学分</Badge>
+                <Badge variant="outline">{course.status || "已选上"}</Badge>
+                <Badge variant="outline">
+                  {course.volume_cnt} / {course.elected_cnt}
+                </Badge>
+              </>
+            )}
           />
         )}
       </Surface>
@@ -255,19 +290,19 @@ export function SupplementPage() {
 
 function baseColumns<T extends AvailableRow | SelectedRow>(): ColumnDef<T>[] {
   return [
-    sortableTextColumn("course_id", "课程号"),
-    sortableTextColumn("name", "课程名"),
-    sortableTextColumn("category", "课程类别"),
-    sortableTextColumn("credits", "学分"),
+    sortableTextColumn("course_id", "课程号", undefined, { mobileHidden: true }),
+    sortableTextColumn("name", "课程名", undefined, { mobileHidden: true }),
+    sortableTextColumn("category", "课程类别", undefined, { mobileHidden: true }),
+    sortableTextColumn("credits", "学分", undefined, { mobileHidden: true }),
     sortableTextColumn("weekly_hours", "周学时"),
-    sortableTextColumn("teacher", "教师"),
-    sortableTextColumn("class_id", "班号"),
+    sortableTextColumn("teacher", "教师", undefined, { mobileHidden: true }),
+    sortableTextColumn("class_id", "班号", undefined, { mobileHidden: true }),
     sortableTextColumn("department", "开课单位", (value) => tableCellMuted(value)),
     sortableTextColumn("grade", "年级"),
     {
       accessorKey: "schedule",
       meta: { label: "上课/考试信息" },
-      cell: ({ row }) => <div className={tableCellWrap("min-w-72")}>{tableCellMuted(row.original.schedule)}</div>,
+      cell: ({ row }) => <LineBreakText text={row.original.schedule} />,
       header: ({ column }) => (
         <SortableHeader
           label="上课/考试信息"
@@ -284,10 +319,11 @@ function sortableTextColumn<T extends AvailableRow | SelectedRow>(
   key: keyof T & string,
   label: string,
   render?: (value: string) => ReactNode,
+  meta?: { mobileHidden?: boolean; mobileSlot?: "content" | "footer" },
 ): ColumnDef<T> {
   return {
     accessorKey: key,
-    meta: { label },
+    meta: { label, ...meta },
     cell: ({ row }) => render?.(String(row.original[key] ?? "")) ?? String(row.original[key] ?? ""),
     header: ({ column }) => (
       <SortableHeader
@@ -303,7 +339,7 @@ function availabilityColumn<T extends AvailableRow | SelectedRow>(): ColumnDef<T
   return {
     id: "availability",
     accessorFn: (row) => row.remaining,
-    meta: { label: "限数/已选" },
+    meta: { label: "限数/已选", mobileHidden: true },
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {row.original.volume_cnt} / {row.original.elected_cnt}

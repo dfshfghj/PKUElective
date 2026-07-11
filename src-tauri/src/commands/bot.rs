@@ -152,9 +152,12 @@ pub async fn refresh_preselect_courses(
 
     let preselect_courses =
         handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
+    let preselected_courses =
+        handle_session_result(session.refresh_preselected_courses().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_preselect_courses(preselect_courses);
+        orchestrator.set_latest_preselected_courses(preselected_courses);
     }
     emit_message(&app, "success", "预选列表已更新。")?;
 

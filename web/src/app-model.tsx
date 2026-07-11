@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   addBot,
   addCourseToPlan,
+  cancelPreselectCourse,
   addWishlist,
   getSnapshot,
   login,
@@ -60,6 +61,7 @@ const emptySnapshot: SnapshotView = {
   bots: [],
   courses: [],
   preselect_courses: [],
+  preselected_courses: [],
   plan_courses: [],
   query_courses: [],
   supplement: {
@@ -131,6 +133,7 @@ type AppModel = {
   handleAddCourseToPlan: (addUrl: string) => Promise<void>;
   handleRemovePlanCourse: (deleteUrl: string) => Promise<void>;
   handlePreselectCourse: (selectUrl: string, preference?: number | null) => Promise<void>;
+  handleCancelPreselectCourse: (cancelUrl: string) => Promise<void>;
   handleSupplementSelectCourse: (selectUrl: string) => Promise<void>;
   handleSupplementCancelCourse: (cancelUrl: string) => Promise<void>;
 };
@@ -278,7 +281,8 @@ export function AppProvider(props: { children: ReactNode }) {
     setError(null);
     setMessage(`${label}中…`);
     try {
-      await action();
+      const nextSnapshot = await action();
+      setSnapshot(nextSnapshot);
     } catch (err) {
       const message = toErrorMessage(err);
       setError(message);
@@ -433,6 +437,10 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("提交预选", () => preselectCourse(selectUrl, preference));
   }
 
+  async function handleCancelPreselectCourse(cancelUrl: string) {
+    await runAction("取消预选", () => cancelPreselectCourse(cancelUrl));
+  }
+
   async function handleSupplementSelectCourse(selectUrl: string) {
     await runAction("提交补选", () => supplementSelectCourse(selectUrl));
   }
@@ -520,6 +528,7 @@ export function AppProvider(props: { children: ReactNode }) {
     handleAddCourseToPlan,
     handleRemovePlanCourse,
     handlePreselectCourse,
+    handleCancelPreselectCourse,
     handleSupplementSelectCourse,
     handleSupplementCancelCourse,
   };

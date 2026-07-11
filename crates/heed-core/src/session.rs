@@ -1,9 +1,11 @@
-use reqwest::Url;
+use std::sync::{Arc, Mutex};
+
+use reqwest::{Url, header::REFERER};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
-    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse, SupplementPage},
+    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage},
     error::{HeedError, Result},
     parser::{
         parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
@@ -19,6 +21,7 @@ const COURSE_QUERY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku
 const COURSE_QUERY_FORM_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/getCurriculmByForm.do";
 const PRESELECT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/ElectiveWorkController.jpf";
 const RESULTS_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/showResults.do";
+const INITIAL_REFERER: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/help/HelpController.jpf";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectResult {
@@ -40,21 +43,43 @@ pub struct CourseQueryFilters {
 #[derive(Clone)]
 pub struct ElectiveSession {
     auth: AuthSession,
+    last_page_url: Arc<Mutex<String>>,
 }
 
 impl ElectiveSession {
     pub async fn login(credentials: &Credentials) -> Result<Self> {
         Ok(Self {
             auth: authenticate(credentials).await?,
+            last_page_url: Arc::new(Mutex::new(INITIAL_REFERER.to_string())),
         })
     }
 
     pub fn new(auth: AuthSession) -> Self {
-        Self { auth }
+        Self {
+            auth,
+            last_page_url: Arc::new(Mutex::new(INITIAL_REFERER.to_string())),
+        }
     }
 
     pub fn auth_session(&self) -> &AuthSession {
         &self.auth
+    }
+
+    fn current_referer(&self) -> String {
+        self.last_page_url
+            .lock()
+            .map(|url| url.clone())
+            .unwrap_or_else(|_| INITIAL_REFERER.to_string())
+    }
+
+    fn set_current_page(&self, url: String) {
+        if let Ok(mut current) = self.last_page_url.lock() {
+            *current = url;
+        }
+    }
+
+    pub fn reset_to_preselect_page(&self) {
+        self.set_current_page(PRESELECT_URL.to_string());
     }
 
     pub async fn refresh_courses(&self) -> Result<Vec<Course>> {
@@ -170,6 +195,18 @@ impl ElectiveSession {
         }
 
         Ok(courses)
+    }
+
+    pub async fn refresh_preselected_courses(&self) -> Result<Vec<PreselectedCourse>> {
+        let body = self.fetch_html(PRESELECT_URL).await?;
+        let page = parse_preselect_page(&body)?;
+        if let Some(error) = page.fatal_error {
+            return Err(HeedError::Fatal(error));
+        }
+        if page.title.as_deref() != Some("选课") {
+            return Err(HeedError::SessionExpired);
+        }
+        Ok(page.selected_courses)
     }
 
     pub async fn refresh_plan_courses(&self) -> Result<Vec<PlanCourse>> {
@@ -339,7 +376,9 @@ impl ElectiveSession {
         preference: Option<u32>,
     ) -> Result<SelectResult> {
         let final_url = with_optional_query(select_url, "random", preference)?;
-        let body = self.fetch_html(&final_url).await?;
+        let body = self
+            .fetch_html_with_referer(&final_url, &self.current_referer())
+            .await?;
         let page = parse_preselect_page(&body)?;
 
         if let Some(error) = page.fatal_error {
@@ -348,10 +387,32 @@ impl ElectiveSession {
                 message: error,
             });
         }
+        if page.title.as_deref() != Some("选课") {
+            return Err(HeedError::SessionExpired);
+        }
 
         Ok(SelectResult {
             ok: true,
             message: "预选请求已提交。".to_string(),
+        })
+    }
+
+    pub async fn cancel_preselect_course(&self, cancel_url: &str) -> Result<SelectResult> {
+        let body = self
+            .fetch_html_with_referer(cancel_url, &self.current_referer())
+            .await?;
+        let page = parse_preselect_page(&body)?;
+
+        if let Some(error) = page.fatal_error {
+            return Ok(SelectResult { ok: false, message: error });
+        }
+        if page.title.as_deref() != Some("选课") {
+            return Err(HeedError::SessionExpired);
+        }
+
+        Ok(SelectResult {
+            ok: true,
+            message: "预选取消请求已提交。".to_string(),
         })
     }
 
@@ -422,16 +483,40 @@ impl ElectiveSession {
     }
 
     async fn fetch_html(&self, url: &str) -> Result<String> {
-        Ok(self
+        let referer = self.current_referer();
+        let response = self
             .auth
             .client()
             .get(url)
-            .query(&[("xh", self.auth.username())])
+            .header(REFERER, &referer)
             .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?)
+            .await?;
+        let status = response.status();
+        let final_url = response.url().to_string();
+        let body = response.text().await?;
+        self.set_current_page(final_url.clone());
+        if !status.is_success() {
+            return Err(HeedError::Fatal(format!("http status {status}")));
+        }
+        Ok(body)
+    }
+
+    async fn fetch_html_with_referer(&self, url: &str, referer: &str) -> Result<String> {
+        let response = self
+            .auth
+            .client()
+            .get(url)
+            .header(REFERER, referer)
+            .send()
+            .await?;
+        let status = response.status();
+        let final_url = response.url().to_string();
+        let body = response.text().await?;
+        self.set_current_page(final_url.clone());
+        if !status.is_success() {
+            return Err(HeedError::Fatal(format!("http status {status}")));
+        }
+        Ok(body)
     }
 
     async fn visit_action(&self, url: &str) -> Result<()> {

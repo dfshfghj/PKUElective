@@ -1,5 +1,5 @@
 use heed_core::{
-    AppConfig, BotStatus, Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse,
+    AppConfig, BotStatus, Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
     SupplementPage, WishlistItem,
 };
 use serde::Serialize;
@@ -36,6 +36,7 @@ pub struct SnapshotView {
     pub bots: Vec<BotView>,
     pub courses: Vec<Course>,
     pub preselect_courses: Vec<PreselectCourse>,
+    pub preselected_courses: Vec<PreselectedCourse>,
     pub plan_courses: Vec<PlanCourse>,
     pub query_courses: Vec<QueryCourse>,
     pub supplement: SupplementPage,
@@ -92,6 +93,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         bots,
         courses: orchestrator.latest_courses().to_vec(),
         preselect_courses: orchestrator.latest_preselect_courses().to_vec(),
+        preselected_courses: orchestrator.latest_preselected_courses().to_vec(),
         plan_courses: orchestrator.latest_plan_courses().to_vec(),
         query_courses: orchestrator.latest_query_courses().to_vec(),
         supplement: orchestrator.latest_supplement_page().clone(),

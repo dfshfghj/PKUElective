@@ -92,6 +92,25 @@ impl PreselectCourse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreselectedCourse {
+    pub course_id: String,
+    pub name: String,
+    pub category: String,
+    pub credits: String,
+    pub weekly_hours: String,
+    pub teacher: String,
+    pub class_id: String,
+    pub department: String,
+    pub grade: String,
+    pub schedule: String,
+    pub pnp_status: String,
+    pub volume_cnt: u32,
+    pub elected_cnt: u32,
+    pub preference_value: String,
+    pub cancel_url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlanCourse {
     pub course_id: String,
     pub name: String,

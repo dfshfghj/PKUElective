@@ -314,7 +314,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <Surface title="运行参数" meta="即时写回后端">
+      <Surface title="运行参数">
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="grid gap-3 sm:grid-cols-2">
             <ToggleTile
@@ -329,7 +329,7 @@ export function SettingsPage() {
             />
           </div>
 
-          <form className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleConfigNumberSubmit}>
+          <form className="grid content-center gap-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleConfigNumberSubmit}>
             <InputField
               label="刷新间隔 ms"
               name="interval_ms"

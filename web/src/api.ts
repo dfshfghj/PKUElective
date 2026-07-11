@@ -112,6 +112,10 @@ export async function preselectCourse(
   });
 }
 
+export async function cancelPreselectCourse(cancelUrl: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("cancel_preselect_course", { cancelUrl });
+}
+
 export async function supplementSelectCourse(selectUrl: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("supplement_select_course", { selectUrl });
 }

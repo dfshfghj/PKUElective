@@ -168,6 +168,23 @@ export function EmptyState(props: { text: string }) {
   );
 }
 
+export function LineBreakText({ text }: { text: string | null | undefined }) {
+  if (!text || text.trim() === "") {
+    return <span className="text-stone-400 dark:text-stone-500">—</span>;
+  }
+
+  return (
+    <span>
+      {text.split(/\r?\n/).map((line, index) => (
+        <span key={index}>
+          {index > 0 ? <br /> : null}
+          {line}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function formatTimestamp(unixMs: number) {
   return new Date(unixMs).toLocaleString("zh-CN", {
     hour12: false,

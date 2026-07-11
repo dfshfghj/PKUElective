@@ -27,7 +27,7 @@ export function DashboardPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Surface title="当前会话" meta="认证状态">
+        <Surface title="当前会话">
           <div className="grid gap-4">
             <div className="rounded-2xl bg-stone-100 p-5 dark:bg-stone-900">
               <p className="text-sm text-stone-500 dark:text-stone-400">当前账号</p>
@@ -38,7 +38,7 @@ export function DashboardPage() {
           </div>
         </Surface>
 
-        <Surface title="快速控制" meta="常用命令">
+        <Surface title="快速控制">
           <div className="grid gap-4">
             <div className="grid gap-3 sm:grid-cols-1">
               <SecondaryButton

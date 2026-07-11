@@ -5,7 +5,7 @@ use crate::{
     bot::{BotStatus, ElectiveBot},
     config::AppConfig,
     course::{
-        Course, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse, SupplementPage,
+        Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage,
         WishlistItem,
     },
     error::{HeedError, Result},
@@ -25,6 +25,7 @@ pub struct Orchestrator {
     bots: HashMap<BotId, ElectiveBot>,
     latest_courses: Vec<Course>,
     latest_preselect_courses: Vec<PreselectCourse>,
+    latest_preselected_courses: Vec<PreselectedCourse>,
     latest_plan_courses: Vec<PlanCourse>,
     latest_query_courses: Vec<QueryCourse>,
     latest_supplement_page: SupplementPage,
@@ -40,6 +41,7 @@ impl Orchestrator {
             bots: HashMap::new(),
             latest_courses: Vec::new(),
             latest_preselect_courses: Vec::new(),
+            latest_preselected_courses: Vec::new(),
             latest_plan_courses: Vec::new(),
             latest_query_courses: Vec::new(),
             latest_supplement_page: SupplementPage::default(),
@@ -61,6 +63,7 @@ impl Orchestrator {
         self.bots.clear();
         self.latest_courses.clear();
         self.latest_preselect_courses.clear();
+        self.latest_preselected_courses.clear();
         self.latest_plan_courses.clear();
         self.latest_query_courses.clear();
         self.latest_supplement_page = SupplementPage::default();
@@ -82,6 +85,10 @@ impl Orchestrator {
 
     pub fn latest_preselect_courses(&self) -> &[PreselectCourse] {
         &self.latest_preselect_courses
+    }
+
+    pub fn latest_preselected_courses(&self) -> &[PreselectedCourse] {
+        &self.latest_preselected_courses
     }
 
     pub fn latest_plan_courses(&self) -> &[PlanCourse] {
@@ -106,6 +113,10 @@ impl Orchestrator {
 
     pub fn set_latest_preselect_courses(&mut self, courses: Vec<PreselectCourse>) {
         self.latest_preselect_courses = courses;
+    }
+
+    pub fn set_latest_preselected_courses(&mut self, courses: Vec<PreselectedCourse>) {
+        self.latest_preselected_courses = courses;
     }
 
     pub fn set_latest_plan_courses(&mut self, courses: Vec<PlanCourse>) {

@@ -3,12 +3,14 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import {
   EmptyState,
+  LineBreakText,
   PageHeader,
   SecondaryButton,
   Surface,
 } from "../components";
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import type { PlanCourse } from "@/types";
 
 export function WishlistPage() {
@@ -19,7 +21,7 @@ export function WishlistPage() {
     () => [
       {
         accessorKey: "course_id",
-        meta: { label: "课程号" },
+        meta: { label: "课程号", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程号"
@@ -30,7 +32,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "name",
-        meta: { label: "课程名称" },
+        meta: { label: "课程名称", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程名称"
@@ -41,7 +43,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "class_id",
-        meta: { label: "课程班号" },
+        meta: { label: "课程班号", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程班号"
@@ -52,7 +54,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "category",
-        meta: { label: "课程类别" },
+        meta: { label: "课程类别", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程类别"
@@ -63,7 +65,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "credits",
-        meta: { label: "学分" },
+        meta: { label: "学分", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="学分"
@@ -74,7 +76,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "total_hours",
-        meta: { label: "总学时" },
+        meta: { label: "总学时", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="总学时"
@@ -109,7 +111,7 @@ export function WishlistPage() {
       {
         accessorKey: "schedule",
         meta: { label: "上课时间" },
-        cell: ({ row }) => <div className={tableCellWrap("min-w-72")}>{tableCellMuted(row.original.schedule)}</div>,
+        cell: ({ row }) => <div className={tableCellWrap("min-w-72")}><LineBreakText text={row.original.schedule} /></div>,
         header: ({ column }) => (
           <SortableHeader
             label="上课时间"
@@ -144,7 +146,7 @@ export function WishlistPage() {
       },
       {
         id: "actions",
-        meta: { label: "删除" },
+        meta: { label: "删除", mobileSlot: "footer" },
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => (
@@ -182,7 +184,7 @@ export function WishlistPage() {
         title="选课计划"
       />
 
-      <Surface title="维护选课计划" meta="真实后端数据">
+      <Surface title="维护选课计划">
         <div className="grid gap-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
           <div className="rounded-2xl bg-orange-50/80 p-4 text-orange-900 dark:bg-orange-950/30 dark:text-orange-100">
             课程加入选课计划后，并不表示已经完成选择；后续仍需要进入“预选”或补选流程继续操作。
@@ -193,7 +195,7 @@ export function WishlistPage() {
         </div>
       </Surface>
 
-      <Surface title="选课计划列表" meta={`${planRows.length} 项`}>
+      <Surface title="选课计划列表">
         {planRows.length === 0 ? (
           <EmptyState text="选课计划还是空的，先去课程查询页加入几门课试试。" />
         ) : (
@@ -207,6 +209,15 @@ export function WishlistPage() {
               pnp_status: false,
               selection_mark: false,
             }}
+            mobileCardTitle={(course) => course.name}
+            mobileCardDescription={(course) => `${course.course_id} · 班号 ${course.class_id}`}
+            mobileCardBadges={(course) => (
+              <>
+                <Badge variant="secondary">{course.category}</Badge>
+                <Badge variant="outline">{course.credits} 学分</Badge>
+                <Badge variant="outline">{course.total_hours} 总学时</Badge>
+              </>
+            )}
           />
         )}
       </Surface>

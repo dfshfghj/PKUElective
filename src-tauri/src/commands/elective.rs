@@ -133,11 +133,14 @@ pub async fn add_course_to_plan(
         handle_session_result(session.refresh_query_courses().await, &app, &state).await?;
     let preselect_courses =
         handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
+    let preselected_courses =
+        handle_session_result(session.refresh_preselected_courses().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_plan_courses(plan_courses);
         orchestrator.set_latest_query_courses(query_courses);
         orchestrator.set_latest_preselect_courses(preselect_courses);
+        orchestrator.set_latest_preselected_courses(preselected_courses);
     }
     emit_message(&app, "success", "课程已加入选课计划。")?;
     emit_snapshot_events(&app, &state).await
@@ -184,21 +187,37 @@ pub async fn preselect_course(
     };
 
     emit_message(&app, "info", "正在提交预选…")?;
+    logger::info(format!(
+        "preselect stage=action preference_present={}",
+        preference.is_some()
+    ));
+    let action = session.preselect_course(&select_url, preference).await;
     let result = handle_session_result(
-        session.preselect_course(&select_url, preference).await,
+        action,
         &app,
         &state,
     )
     .await?;
-    let preselect_courses =
-        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
-    let plan_courses =
-        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
+    logger::info(format!("preselect stage=action complete ok={}", result.ok));
+    if result.ok {
+        logger::info("preselect stage=reset_navigation_to_standard_preselect_page");
+        session.reset_to_preselect_page();
+    }
+    logger::info("preselect stage=refresh_preselect");
+    let refreshed_preselect = session.refresh_preselect_courses().await;
+    let preselect_courses = handle_session_result(refreshed_preselect, &app, &state).await?;
+    let refreshed_selected = session.refresh_preselected_courses().await;
+    let preselected_courses = handle_session_result(refreshed_selected, &app, &state).await?;
+    logger::info(format!(
+        "preselect stage=refresh_preselect complete course_count={}",
+        preselect_courses.len()
+    ));
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_preselect_courses(preselect_courses);
-        orchestrator.set_latest_plan_courses(plan_courses);
+        orchestrator.set_latest_preselected_courses(preselected_courses);
     }
+    session.reset_to_preselect_page();
     emit_message(
         &app,
         if result.ok { "success" } else { "error" },
@@ -208,6 +227,38 @@ pub async fn preselect_course(
             result.message
         },
     )?;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn cancel_preselect_course(
+    cancel_url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    emit_message(&app, "info", "正在取消预选…")?;
+    let action = session.cancel_preselect_course(&cancel_url).await;
+    let result = handle_session_result(action, &app, &state).await?;
+    if result.ok {
+        logger::info("cancel_preselect stage=reset_navigation_to_standard_preselect_page");
+        session.reset_to_preselect_page();
+    }
+    let refreshed_preselect = session.refresh_preselect_courses().await;
+    let preselect_courses = handle_session_result(refreshed_preselect, &app, &state).await?;
+    let refreshed_selected = session.refresh_preselected_courses().await;
+    let preselected_courses = handle_session_result(refreshed_selected, &app, &state).await?;
+    {
+        let mut orchestrator = state.orchestrator.lock().await;
+        orchestrator.set_latest_preselect_courses(preselect_courses);
+        orchestrator.set_latest_preselected_courses(preselected_courses);
+    }
+    session.reset_to_preselect_page();
+    emit_message(&app, if result.ok { "success" } else { "error" }, result.message)?;
     emit_snapshot_events(&app, &state).await
 }
 

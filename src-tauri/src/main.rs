@@ -67,6 +67,7 @@ fn main() {
             commands::elective::add_course_to_plan,
             commands::elective::remove_plan_course,
             commands::elective::preselect_course,
+            commands::elective::cancel_preselect_course,
             commands::elective::supplement_select_course,
             commands::elective::supplement_cancel_course,
             commands::elective::verify_supplement_captcha,

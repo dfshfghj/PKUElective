@@ -5,6 +5,7 @@ import type { CheckedState } from "@radix-ui/react-checkbox";
 import {
   EmptyState,
   InputField,
+  LineBreakText,
   PageHeader,
   PrimaryButton,
   SecondaryButton,
@@ -14,6 +15,7 @@ import {
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import type { QueryCourse } from "@/types";
 
 const categoryOptions = [
@@ -143,7 +145,7 @@ export function CourseQueryPage() {
     () => [
       {
         accessorKey: "course_id",
-        meta: { label: "课程号" },
+        meta: { label: "课程号", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程号"
@@ -154,7 +156,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "name",
-        meta: { label: "课程名" },
+        meta: { label: "课程名", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程名"
@@ -165,7 +167,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "category",
-        meta: { label: "课程类别" },
+        meta: { label: "课程类别", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="课程类别"
@@ -176,7 +178,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "credits",
-        meta: { label: "学分" },
+        meta: { label: "学分", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="学分"
@@ -187,7 +189,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "teacher",
-        meta: { label: "教师" },
+        meta: { label: "教师", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="教师"
@@ -198,7 +200,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "class_id",
-        meta: { label: "班号" },
+        meta: { label: "班号", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="班号"
@@ -233,8 +235,8 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "schedule",
-        meta: { label: "上课时间及教室" },
-        cell: ({ row }) => <div className={tableCellWrap("min-w-72 xl:min-w-96")}>{tableCellMuted(row.original.schedule)}</div>,
+        meta: { label: "上课时间及教室", mobileHidden: true },
+        cell: ({ row }) => <div className={tableCellWrap("min-w-72 xl:min-w-96")}><LineBreakText text={row.original.schedule} /></div>,
         header: ({ column }) => (
           <SortableHeader
             label="上课时间及教室"
@@ -246,7 +248,7 @@ export function CourseQueryPage() {
       {
         id: "availability",
         accessorFn: (row) => row.volume_cnt - row.elected_cnt,
-        meta: { label: "限数/已选" },
+        meta: { label: "限数/已选", mobileHidden: true },
         cell: ({ row }) => (
           <div className="space-y-1">
             <div>
@@ -288,7 +290,7 @@ export function CourseQueryPage() {
       },
       {
         id: "actions",
-        meta: { label: "加入选课计划" },
+        meta: { label: "加入选课计划", mobileSlot: "footer" },
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => (
@@ -315,7 +317,7 @@ export function CourseQueryPage() {
         title="课程查询"
       />
 
-      <Surface title="查询条件" meta="后端查询">
+      <Surface title="查询条件">
         <form
           className="grid gap-4"
           onSubmit={(event) => {
@@ -419,7 +421,7 @@ export function CourseQueryPage() {
         </form>
       </Surface>
 
-      <Surface title="查询结果" meta={`${snapshot.query_courses.length} 门`}>
+      <Surface title="查询结果">
         {snapshot.query_courses.length === 0 ? (
           <EmptyState text="暂无更多结果。" />
         ) : (
@@ -433,6 +435,19 @@ export function CourseQueryPage() {
               pnp_status: false,
               note: false,
             }}
+            mobileCardTitle={(course) => course.name}
+            mobileCardDescription={(course) =>
+              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+            }
+            mobileCardBadges={(course) => (
+              <>
+                <Badge variant="secondary">{course.category}</Badge>
+                <Badge variant="outline">{course.credits} 学分</Badge>
+                <Badge variant="outline">
+                  {course.volume_cnt} / {course.elected_cnt}
+                </Badge>
+              </>
+            )}
           />
         )}
       </Surface>

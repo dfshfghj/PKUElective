@@ -1,8 +1,8 @@
-use scraper::{Html, Selector};
+use scraper::{Html, Selector, node::Node};
 
 use crate::{
     course::{
-        Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, QueryCourse,
+        Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
         SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable,
         TimetableCell, TimetableRow,
     },
@@ -33,6 +33,7 @@ pub struct ParsedPreselectPage {
     pub title: Option<String>,
     pub fatal_error: Option<String>,
     pub courses: Vec<PreselectCourse>,
+    pub selected_courses: Vec<PreselectedCourse>,
     pub next_page_url: Option<String>,
 }
 
@@ -93,6 +94,7 @@ pub fn parse_preselect_page(html: &str) -> Result<ParsedPreselectPage> {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
         courses: parse_preselect_courses(&document)?,
+        selected_courses: parse_preselected_courses(&document)?,
         next_page_url: find_next_page_url(&document)?,
     })
 }
@@ -287,7 +289,7 @@ fn parse_supplement_available_row(
         class_id: cell_text(cells[6]),
         department: cell_text(cells[7]),
         grade: cell_text(cells[8]),
-        schedule: cell_text(cells[9]),
+        schedule: cell_text_with_breaks(cells[9]),
         pnp_status: parse_pnp_status(cells[10]),
         volume_cnt,
         elected_cnt,
@@ -323,7 +325,7 @@ fn parse_supplement_selected_row(
         class_id: cell_text(cells[6]),
         department: cell_text(cells[7]),
         grade: cell_text(cells[8]),
-        schedule: cell_text(cells[9]),
+        schedule: cell_text_with_breaks(cells[9]),
         pnp_status: parse_pnp_status(cells[10]),
         volume_cnt,
         elected_cnt,
@@ -359,8 +361,8 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
             .select(&input_selector)
             .next()
             .and_then(|input| input.value().attr("value"))
-            .unwrap_or_default()
-            .to_string();
+            .map(str::to_string)
+            .unwrap_or_else(|| cell_text(cells[12]));
 
         courses.push(PreselectCourse {
             course_id: cell_text(cells[0]),
@@ -372,7 +374,7 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
             class_id: cell_text(cells[6]),
             department: cell_text(cells[7]),
             grade: cell_text(cells[8]),
-            schedule: cell_text(cells[9]),
+            schedule: cell_text_with_breaks(cells[9]),
             pnp_status: cell_text(cells[10]),
             volume_cnt,
             elected_cnt,
@@ -386,6 +388,36 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
         });
     }
 
+    Ok(courses)
+}
+
+fn parse_preselected_courses(document: &Html) -> Result<Vec<PreselectedCourse>> {
+    let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
+    let cell_selector = selector("td")?;
+    let input_selector = selector(r#"input[type="text"]"#)?;
+    let link_selector = selector(r#"a[href*="/electiveWork/cancelCourse.do"]"#)?;
+    let mut courses = Vec::new();
+
+    for row in document.select(&row_selector) {
+        let cells = row.select(&cell_selector).collect::<Vec<_>>();
+        if cells.len() < 14 { continue; }
+        let Some(cancel_link) = row.select(&link_selector).next() else { continue; };
+        let (volume_cnt, elected_cnt) = parse_count_pair(&cell_text(cells[11]))?;
+        let cancel_url = cancel_link.value().attr("href").ok_or_else(|| HeedError::Parse("missing preselect cancel url".into()))?;
+        courses.push(PreselectedCourse {
+            course_id: cell_text(cells[0]), name: cell_text(cells[1]), category: cell_text(cells[2]),
+            credits: cell_text(cells[3]), weekly_hours: cell_text(cells[4]), teacher: cell_text(cells[5]),
+            class_id: cell_text(cells[6]), department: cell_text(cells[7]), grade: cell_text(cells[8]),
+            schedule: cell_text_with_breaks(cells[9]), pnp_status: cell_text(cells[10]), volume_cnt, elected_cnt,
+            preference_value: cells[12]
+                .select(&input_selector)
+                .next()
+                .and_then(|input| input.value().attr("value"))
+                .map(str::to_string)
+                .unwrap_or_else(|| cell_text(cells[12])),
+            cancel_url: absolute_url(cancel_url),
+        });
+    }
     Ok(courses)
 }
 
@@ -416,7 +448,7 @@ fn parse_plan_courses(document: &Html) -> Result<Vec<PlanCourse>> {
             credits: cell_text(cells[5]),
             weekly_hours: cell_text(cells[6]),
             total_hours: cell_text(cells[7]),
-            schedule: cell_text(cells[8]),
+            schedule: cell_text_with_breaks(cells[8]),
             pnp_status: cell_text(cells[9]),
             selection_mark: cell_text(cells[10]),
             delete_url,
@@ -456,7 +488,7 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
             department: cell_text(cells[6]),
             major: cell_text(cells[7]),
             grade: cell_text(cells[8]),
-            schedule: cell_text(cells[9]),
+            schedule: cell_text_with_breaks(cells[9]),
             volume_cnt,
             elected_cnt,
             pnp_status: cell_text(cells[11]),
@@ -513,7 +545,7 @@ fn parse_results(document: &Html) -> Result<ElectiveResults> {
                 teacher: cell_text(cells[5]),
                 class_id: cell_text(cells[6]),
                 department: cell_text(cells[7]),
-                classroom_info: cell_text(cells[8]),
+                classroom_info: cell_text_with_breaks(cells[8]),
                 pnp_status: cell_text(cells[9]),
                 result: cell_text(cells[10]),
                 ip_address: cell_text(cells[11]),
@@ -634,6 +666,25 @@ fn cell_text(element: scraper::ElementRef<'_>) -> String {
         .join(" ")
 }
 
+/// Preserve the semantic line breaks used by the elective site while still
+/// normalizing indentation and other incidental HTML whitespace.
+fn cell_text_with_breaks(element: scraper::ElementRef<'_>) -> String {
+    let mut text = String::new();
+    for node in element.descendants() {
+        match node.value() {
+            Node::Text(value) => text.push_str(value),
+            Node::Element(value) if value.name() == "br" => text.push('\n'),
+            _ => {}
+        }
+    }
+
+    text.lines()
+        .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn parse_pnp_status(element: scraper::ElementRef<'_>) -> String {
     let class = element.value().attr("class").unwrap_or_default();
     if class.contains("pku-art-pnp-invalid") {
@@ -670,9 +721,27 @@ fn selector(value: &str) -> Result<Selector> {
 #[cfg(test)]
 mod tests {
     use super::{
-        detect_tips, parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
-        parse_results_page, parse_supplement_page,
+        cell_text_with_breaks, detect_tips, parse_course_page, parse_plan_page,
+        parse_preselect_page, parse_query_page, parse_results_page, parse_supplement_page,
+        selector,
     };
+    use scraper::Html;
+
+    #[test]
+    fn preserves_explicit_cell_line_breaks() {
+        let document = Html::parse_fragment(
+            "<table><tr><td>周一1~2节<br>考试方式：堂考<br/>地点：二教</td></tr></table>",
+        );
+        let cell = document
+            .select(&selector("td").expect("valid selector"))
+            .next()
+            .expect("cell should exist");
+
+        assert_eq!(
+            cell_text_with_breaks(cell),
+            "周一1~2节\n考试方式：堂考\n地点：二教"
+        );
+    }
 
     #[test]
     fn parses_courses_and_next_page() {
