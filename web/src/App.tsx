@@ -1,9 +1,11 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { AppProvider, useAppModel } from "./app-model";
 import { AppSidebar } from "./AppSidebar";
+import { AppTitlebar } from "./components";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
+import { ScrollArea } from "./components/ui/scroll-area";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { CoursesPage } from "./pages/CoursesPage";
 import { CourseQueryPage } from "./pages/CourseQueryPage";
@@ -22,7 +24,7 @@ export function App() {
     <AppProvider>
       <TooltipProvider>
         <AppRoutes />
-        <Toaster closeButton richColors position="top-right" theme={themeMode} />
+        <Toaster closeButton richColors position="bottom-right" theme={themeMode} />
       </TooltipProvider>
     </AppProvider>
   );
@@ -70,6 +72,7 @@ function GuestRoute() {
 
 function ProtectedLayout() {
   const { snapshot, loading, message } = useAppModel();
+  const { pathname } = useLocation();
 
   if (loading) {
     return <LoadingScreen message={message} />;
@@ -80,22 +83,39 @@ function ProtectedLayout() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex w-full min-h-screen bg-transparent">
+    <SidebarProvider className="h-dvh overflow-hidden">
+      <div className="flex h-dvh w-full overflow-hidden bg-transparent">
         <AppSidebar />
-        <SidebarInset className="min-w-0">
+        <SidebarInset className="min-w-0 overflow-hidden">
+          <AppTitlebar breadcrumb={breadcrumbForPath(pathname)} />
           <div className="border-b border-stone-200/80 bg-white/70 px-4 py-3 backdrop-blur dark:border-stone-800 dark:bg-stone-950/70 md:hidden">
             <SidebarTrigger />
           </div>
-          <main className="min-w-0 flex min-h-screen w-full flex-1 px-4 md:px-8">
-            <div className="w-full space-y-6">
+          <main className="min-h-0 min-w-0 flex w-full flex-1 overflow-hidden">
+            <ScrollArea className="h-full w-full" viewportClassName="overscroll-contain">
+              <div className="min-h-full w-full space-y-6 px-4 pb-8 md:px-8">
               <Outlet />
-            </div>
+              </div>
+            </ScrollArea>
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
+}
+
+function breadcrumbForPath(pathname: string) {
+  const labels: Record<string, string> = {
+    "/": "概览",
+    "/preselect": "预选",
+    "/plan": "选课计划",
+    "/supplement": "补选退选",
+    "/results": "选课结果",
+    "/query": "课程查询",
+    "/automation": "自动化",
+  };
+
+  return labels[pathname] ?? "HEED";
 }
 
 function LoadingScreen(props: { message: string }) {

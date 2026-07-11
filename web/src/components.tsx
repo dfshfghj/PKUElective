@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { cn } from "./lib/utils";
+import { WindowControls } from "./components/window-controls";
 
 export function PageHeader(props: {
   breadcrumb: string;
@@ -22,26 +23,46 @@ export function PageHeader(props: {
   actions?: ReactNode;
 }) {
   return (
-    <>
-      <div data-tauri-drag-region="deep" className="sticky top-0 z-10 flex items-center gap-1 border-b border-sidebar-border bg-white/80 px-4 py-4 backdrop-blur md:-mx-8 md:px-8 dark:border-stone-800/60 dark:bg-stone-950/80">
-        <ChevronRight className="h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
-        <span className="text-sm text-stone-500 dark:text-stone-400">{props.breadcrumb}</span>
+    <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h2 className="text-2xl font-semibold leading-tight text-stone-950 dark:text-stone-100">
+          {props.title}
+        </h2>
+        {props.description ? (
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-500 dark:text-stone-400">
+            {props.description}
+          </p>
+        ) : null}
       </div>
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold leading-tight text-stone-950 dark:text-stone-100">
-            {props.title}
-          </h2>
-          {props.description ? (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-500 dark:text-stone-400">
-              {props.description}
-            </p>
-          ) : null}
-        </div>
-        {props.actions ? <div className="flex flex-wrap gap-3">{props.actions}</div> : null}
-      </header>
-    </>
+      {props.actions ? <div className="flex flex-wrap gap-3">{props.actions}</div> : null}
+    </header>
   );
+}
+
+export function AppTitlebar({ breadcrumb }: { breadcrumb: string }) {
+  return (
+    <div className="flex h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80">
+      <div
+        className="flex flex-1 items-center gap-1 self-stretch"
+        data-tauri-drag-region
+        onDoubleClick={() => {
+          void toggleCurrentWindowMaximize();
+        }}
+      >
+        <ChevronRight className="pointer-events-none h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
+        <span className="pointer-events-none text-sm text-stone-500 dark:text-stone-400">{breadcrumb}</span>
+      </div>
+      <WindowControls />
+    </div>
+  );
+}
+
+async function toggleCurrentWindowMaximize() {
+  const { isTauri } = await import("@tauri-apps/api/core");
+  if (!isTauri()) return;
+
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().toggleMaximize();
 }
 
 export function Surface(props: {

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { EmptyState, LineBreakText, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { useIsMobile } from "../hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { TimetableCell } from "../types";
 
 const fallbackHeaders = ["节数", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
@@ -66,8 +67,8 @@ export function ResultsPage() {
           <EmptyState text="还没有拿到选课结果，先刷新一次看看。" />
         ) : (
           <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
-            <div className="overflow-auto">
-              <table className="min-w-full divide-y divide-stone-900/6 bg-white/80 text-left text-sm dark:divide-stone-800 dark:bg-stone-950/80">
+            <ScrollArea className="max-w-full">
+              <table className="min-w-[1100px] divide-y divide-stone-900/6 bg-white/80 text-left text-sm dark:divide-stone-800 dark:bg-stone-950/80">
                 <thead className="bg-stone-100/90 text-stone-700 dark:bg-stone-900 dark:text-stone-300">
                   <tr>
                     {["课程号", "课程名", "课程类别", "学分", "教师", "班号", "开课单位", "教室信息", "P/NP", "结果", "IP", "操作时间"].map((label) => (
@@ -102,7 +103,7 @@ export function ResultsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollArea>
           </div>
         )}
       </Surface>
@@ -112,8 +113,8 @@ export function ResultsPage() {
           <EmptyState text="当前没有可展示的课表数据。" />
         ) : (
           <div className="overflow-hidden rounded-3xl border border-stone-900/8 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-950">
-            <div className="overflow-auto">
-              <table className="min-w-full border-separate border-spacing-0 bg-white text-left text-sm dark:bg-stone-950">
+            <ScrollArea className="max-w-full">
+              <table className="min-w-[900px] border-separate border-spacing-0 bg-white text-left text-sm dark:bg-stone-950">
                 <thead className="text-stone-700 dark:text-stone-300">
                   <tr>
                     {(timetable.headers.length > 0 ? timetable.headers : fallbackHeaders).map((header) => (
@@ -183,7 +184,7 @@ export function ResultsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollArea>
           </div>
         )}
       </Surface>

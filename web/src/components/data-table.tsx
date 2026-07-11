@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -199,8 +200,8 @@ export function DataTable<TData>({
           </div>
         )
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
-          <Table className="bg-white/80 dark:bg-stone-950/80">
+        <ScrollArea className="rounded-3xl border border-stone-900/8 dark:border-stone-800">
+          <Table className="min-w-max bg-white/80 dark:bg-stone-950/80">
             <TableHeader className="bg-stone-100/90 dark:bg-stone-900">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent">
@@ -243,7 +244,7 @@ export function DataTable<TData>({
               )}
             </TableBody>
           </Table>
-        </div>
+        </ScrollArea>
       )}
     </div>
   );
