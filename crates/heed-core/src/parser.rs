@@ -297,6 +297,7 @@ fn parse_supplement_available_row(
         select_url: action_link
             .and_then(|link| link.value().attr("href"))
             .map(absolute_url),
+        detail_url: course_detail_url(row),
     }))
 }
 
@@ -335,6 +336,7 @@ fn parse_supplement_selected_row(
             .next()
             .and_then(|link| link.value().attr("href"))
             .map(absolute_url),
+        detail_url: course_detail_url(row),
     }))
 }
 
@@ -385,6 +387,7 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
                     .attr("href")
                     .ok_or_else(|| HeedError::Parse("missing preselect url".into()))?,
             ),
+            detail_url: course_detail_url(row),
         });
     }
 
@@ -416,6 +419,7 @@ fn parse_preselected_courses(document: &Html) -> Result<Vec<PreselectedCourse>> 
                 .map(str::to_string)
                 .unwrap_or_else(|| cell_text(cells[12])),
             cancel_url: absolute_url(cancel_url),
+            detail_url: course_detail_url(row),
         });
     }
     Ok(courses)
@@ -452,6 +456,7 @@ fn parse_plan_courses(document: &Html) -> Result<Vec<PlanCourse>> {
             pnp_status: cell_text(cells[9]),
             selection_mark: cell_text(cells[10]),
             delete_url,
+            detail_url: course_detail_url(row),
         });
     }
 
@@ -494,10 +499,19 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
             pnp_status: cell_text(cells[11]),
             note: cell_text(cells[12]),
             add_to_plan_url,
+            detail_url: course_detail_url(row),
         });
     }
 
     Ok(courses)
+}
+
+fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
+    let detail_selector = selector(r#"a[href*="/electiveWork/goNested.do"]"#).ok()?;
+    row.select(&detail_selector)
+        .next()
+        .and_then(|link| link.value().attr("href"))
+        .map(absolute_url)
 }
 
 fn parse_results(document: &Html) -> Result<ElectiveResults> {

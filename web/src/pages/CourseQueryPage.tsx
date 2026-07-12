@@ -16,6 +16,7 @@ import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted, tableCellWrap } from "@/components/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { CourseDetailLink } from "@/components/course-detail-link";
 import type { QueryCourse } from "@/types";
 
 const categoryOptions = [
@@ -157,6 +158,7 @@ export function CourseQueryPage() {
       {
         accessorKey: "name",
         meta: { label: "课程名", mobileHidden: true },
+        cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />,
         header: ({ column }) => (
           <SortableHeader
             label="课程名"

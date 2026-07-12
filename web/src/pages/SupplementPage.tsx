@@ -7,6 +7,7 @@ import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, 
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { CourseDetailLink } from "@/components/course-detail-link";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
 
 type AvailableRow = SupplementAvailableCourse & { key: string; remaining: number };
@@ -291,7 +292,7 @@ export function SupplementPage() {
 function baseColumns<T extends AvailableRow | SelectedRow>(): ColumnDef<T>[] {
   return [
     sortableTextColumn("course_id", "课程号", undefined, { mobileHidden: true }),
-    sortableTextColumn("name", "课程名", undefined, { mobileHidden: true }),
+    sortableTextColumn("name", "课程名", (_value, row) => <CourseDetailLink detailUrl={row.detail_url} name={row.name} />, { mobileHidden: true }),
     sortableTextColumn("category", "课程类别", undefined, { mobileHidden: true }),
     sortableTextColumn("credits", "学分", undefined, { mobileHidden: true }),
     sortableTextColumn("weekly_hours", "周学时"),
@@ -318,13 +319,13 @@ function baseColumns<T extends AvailableRow | SelectedRow>(): ColumnDef<T>[] {
 function sortableTextColumn<T extends AvailableRow | SelectedRow>(
   key: keyof T & string,
   label: string,
-  render?: (value: string) => ReactNode,
+  render?: (value: string, row: T) => ReactNode,
   meta?: { mobileHidden?: boolean; mobileSlot?: "content" | "footer" },
 ): ColumnDef<T> {
   return {
     accessorKey: key,
     meta: { label, ...meta },
-    cell: ({ row }) => render?.(String(row.original[key] ?? "")) ?? String(row.original[key] ?? ""),
+    cell: ({ row }) => render?.(String(row.original[key] ?? ""), row.original) ?? String(row.original[key] ?? ""),
     header: ({ column }) => (
       <SortableHeader
         label={label}

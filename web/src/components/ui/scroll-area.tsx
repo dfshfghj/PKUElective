@@ -5,18 +5,22 @@ import { cn } from "@/lib/utils";
 
 type ScrollAreaProps = React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
   viewportClassName?: string;
+  viewportId?: string;
 };
 
 export function ScrollArea({
   children,
   className,
   viewportClassName,
+  viewportId,
   ...props
 }: ScrollAreaProps) {
   return (
     <ScrollAreaPrimitive.Root className={cn("relative overflow-hidden", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
         className={cn("h-full w-full rounded-[inherit]", viewportClassName)}
+        data-app-scroll-viewport
+        id={viewportId}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

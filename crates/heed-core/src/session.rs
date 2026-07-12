@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
-    course::{Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage},
+    course::{Course, CourseDetail, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage},
     error::{HeedError, Result},
     parser::{
         parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
@@ -277,6 +277,21 @@ impl ElectiveSession {
         }
 
         Ok(page.results)
+    }
+
+    pub async fn fetch_course_detail(&self, detail_url: &str) -> Result<CourseDetail> {
+        let url = Url::parse(detail_url)
+            .map_err(|_| HeedError::Fatal("invalid course detail url".into()))?;
+        if url.scheme() != "https"
+            || url.host_str() != Some("elective.pku.edu.cn")
+            || !url.path().ends_with("/electiveWork/goNested.do")
+            || !url.query_pairs().any(|(key, _)| key == "course_seq_no")
+        {
+            return Err(HeedError::Fatal("invalid course detail url".into()));
+        }
+
+        let body = self.fetch_html(detail_url).await?;
+        Ok(CourseDetail { html: body })
     }
 
     pub async fn search_query_courses(

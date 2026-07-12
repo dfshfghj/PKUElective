@@ -62,6 +62,7 @@ fn main() {
             commands::bot::refresh_results,
             commands::bot::verify_bot_captcha,
             commands::elective::search_query_courses,
+            commands::elective::fetch_course_detail,
             commands::elective::refresh_supplement_page,
             commands::elective::refresh_supplement_captcha,
             commands::elective::add_course_to_plan,

@@ -35,6 +35,7 @@ pub struct SupplementAvailableCourse {
     pub elected_cnt: u32,
     pub action_label: String,
     pub select_url: Option<String>,
+    pub detail_url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +55,7 @@ pub struct SupplementSelectedCourse {
     pub elected_cnt: u32,
     pub status: String,
     pub cancel_url: Option<String>,
+    pub detail_url: Option<String>,
 }
 
 impl Course {
@@ -83,6 +85,7 @@ pub struct PreselectCourse {
     pub elected_cnt: u32,
     pub preference_value: String,
     pub select_url: String,
+    pub detail_url: Option<String>,
 }
 
 impl PreselectCourse {
@@ -108,6 +111,7 @@ pub struct PreselectedCourse {
     pub elected_cnt: u32,
     pub preference_value: String,
     pub cancel_url: String,
+    pub detail_url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,6 +128,7 @@ pub struct PlanCourse {
     pub pnp_status: String,
     pub selection_mark: String,
     pub delete_url: Option<String>,
+    pub detail_url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,6 +148,12 @@ pub struct QueryCourse {
     pub pnp_status: String,
     pub note: String,
     pub add_to_plan_url: Option<String>,
+    pub detail_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CourseDetail {
+    pub html: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

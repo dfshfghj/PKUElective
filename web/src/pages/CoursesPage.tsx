@@ -5,6 +5,7 @@ import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, 
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { CourseDetailLink } from "@/components/course-detail-link";
 import type { PreselectCourse, PreselectedCourse } from "@/types";
 
 export function CoursesPage() {
@@ -40,6 +41,7 @@ export function CoursesPage() {
       {
         accessorKey: "name",
         meta: { label: "课程名", mobileHidden: true },
+        cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />,
         header: ({ column }) => (
           <SortableHeader
             label="课程名"
@@ -198,7 +200,7 @@ export function CoursesPage() {
   const selectedColumns = useMemo<ColumnDef<PreselectedCourse & { key: string }>[]>(
     () => [
       { accessorKey: "course_id", meta: { label: "课程号", mobileHidden: true }, header: () => "课程号" },
-      { accessorKey: "name", meta: { label: "课程名" }, header: () => "课程名" },
+      { accessorKey: "name", meta: { label: "课程名" }, cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />, header: () => "课程名" },
       { accessorKey: "teacher", meta: { label: "教师", mobileHidden: true }, header: () => "教师" },
       { accessorKey: "class_id", meta: { label: "班号", mobileHidden: true }, header: () => "班号" },
       { accessorKey: "schedule", meta: { label: "上课/考试信息" }, cell: ({ row }) => <LineBreakText text={row.original.schedule} />, header: () => "上课/考试信息" },

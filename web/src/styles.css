@@ -155,3 +155,34 @@ select {
     @apply font-sans;
   }
 }
+
+@layer components {
+  .course-detail-content {
+    line-height: 1.65;
+  }
+
+  .course-detail-content > table {
+    width: 100%;
+  }
+
+  .course-detail-content table {
+    margin: 0 0 1rem;
+    max-width: 100%;
+    border-collapse: collapse;
+  }
+
+  .course-detail-content td,
+  .course-detail-content th {
+    padding: 0.625rem 0;
+    vertical-align: top;
+  }
+
+  .course-detail-content tr:has(> td + td) > td {
+    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+
+  .course-detail-content img {
+    max-width: 100%;
+    height: auto;
+  }
+}

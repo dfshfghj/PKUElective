@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 
 import { Badge } from "./components/ui/badge";
@@ -39,9 +40,19 @@ export function PageHeader(props: {
   );
 }
 
-export function AppTitlebar({ breadcrumb }: { breadcrumb: string }) {
+export type BreadcrumbItem = { label: string; to?: string };
+
+export function AppTitlebar({
+  breadcrumbs,
+  breadcrumb,
+}: {
+  breadcrumbs?: BreadcrumbItem[];
+  breadcrumb?: string;
+}) {
+  const items = breadcrumbs ?? [{ label: breadcrumb ?? "HEED" }];
+
   return (
-    <div className="flex h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80">
+    <div className="flex h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 mb-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80">
       <div
         className="flex flex-1 items-center gap-1 self-stretch"
         data-tauri-drag-region
@@ -49,8 +60,22 @@ export function AppTitlebar({ breadcrumb }: { breadcrumb: string }) {
           void toggleCurrentWindowMaximize();
         }}
       >
-        <ChevronRight className="pointer-events-none h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
-        <span className="pointer-events-none text-sm text-stone-500 dark:text-stone-400">{breadcrumb}</span>
+        {items.map((item, index) => (
+          <span className="flex items-center gap-1" key={`${item.label}-${index}`}>
+            <ChevronRight className="pointer-events-none h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
+            {item.to ? (
+              <Link
+                className="text-sm text-stone-500 transition-colors hover:text-stone-950 dark:text-stone-400 dark:hover:text-stone-100"
+                data-tauri-drag-region="false"
+                to={item.to}
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <span className="pointer-events-none text-sm text-stone-500 dark:text-stone-400">{item.label}</span>
+            )}
+          </span>
+        ))}
       </div>
       <WindowControls />
     </div>

@@ -1,4 +1,6 @@
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { AppProvider, useAppModel } from "./app-model";
@@ -9,6 +11,7 @@ import { ScrollArea } from "./components/ui/scroll-area";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { CoursesPage } from "./pages/CoursesPage";
 import { CourseQueryPage } from "./pages/CourseQueryPage";
+import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ResultsPage } from "./pages/ResultsPage";
@@ -40,11 +43,14 @@ function AppRoutes() {
       </Route>
       <Route element={<ProtectedLayout />}>
         <Route element={<DashboardPage />} path="/" />
-        <Route element={<CoursesPage />} path="/preselect" />
+        <Route element={<PreselectRoute />} path="/preselect">
+          <Route element={<CourseDetailPage />} path="course-detail" />
+        </Route>
         <Route element={<WishlistPage />} path="/plan" />
         <Route element={<SupplementPage />} path="/supplement" />
         <Route element={<ResultsPage />} path="/results" />
         <Route element={<CourseQueryPage />} path="/query" />
+        <Route element={<Navigate replace to="/preselect" />} path="/course-detail" />
         <Route element={<SettingsPage />} path="/automation" />
         <Route element={<Navigate replace to="/automation" />} path="/settings" />
       </Route>
@@ -73,6 +79,7 @@ function GuestRoute() {
 function ProtectedLayout() {
   const { snapshot, loading, message } = useAppModel();
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
 
   if (loading) {
     return <LoadingScreen message={message} />;
@@ -87,12 +94,19 @@ function ProtectedLayout() {
       <div className="flex h-dvh w-full overflow-hidden bg-transparent">
         <AppSidebar />
         <SidebarInset className="min-w-0 overflow-hidden">
-          <AppTitlebar breadcrumb={breadcrumbForPath(pathname)} />
+          <AppTitlebar breadcrumbs={breadcrumbsForLocation(pathname, searchParams)} />
           <div className="border-b border-stone-200/80 bg-white/70 px-4 py-3 backdrop-blur dark:border-stone-800 dark:bg-stone-950/70 md:hidden">
             <SidebarTrigger />
           </div>
-          <main className="min-h-0 min-w-0 flex w-full flex-1 overflow-hidden">
-            <ScrollArea className="h-full w-full" viewportClassName="overscroll-contain">
+          <main
+            className="relative min-h-0 min-w-0 flex w-full flex-1 overflow-hidden"
+            id="app-main-content"
+          >
+            <ScrollArea
+              className="h-full w-full"
+              viewportClassName="overscroll-contain"
+              viewportId="app-main-scroll-viewport"
+            >
               <div className="min-h-full w-full space-y-6 px-4 pb-8 md:px-8">
               <Outlet />
               </div>
@@ -104,7 +118,14 @@ function ProtectedLayout() {
   );
 }
 
-function breadcrumbForPath(pathname: string) {
+function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams) {
+  if (pathname === "/preselect/course-detail") {
+    return [
+      { label: "预选", to: "/preselect" },
+      { label: searchParams.get("name") || "课程详情" },
+    ];
+  }
+
   const labels: Record<string, string> = {
     "/": "概览",
     "/preselect": "预选",
@@ -115,7 +136,33 @@ function breadcrumbForPath(pathname: string) {
     "/automation": "自动化",
   };
 
-  return labels[pathname] ?? "HEED";
+  return [{ label: labels[pathname] ?? "HEED" }];
+}
+
+function PreselectRoute() {
+  const { pathname } = useLocation();
+  const showingDetail = pathname === "/preselect/course-detail";
+  const [mainContent, setMainContent] = useState<HTMLElement | null>(() =>
+    document.getElementById("app-main-content"),
+  );
+
+  useEffect(() => {
+    if (!mainContent) setMainContent(document.getElementById("app-main-content"));
+  }, [mainContent]);
+
+  return (
+    <>
+      <CoursesPage />
+      {showingDetail && mainContent
+        ? createPortal(
+            <div className="absolute inset-0 z-10 overflow-auto overscroll-contain bg-stone-50/95 px-4 pb-8 backdrop-blur-sm dark:bg-stone-950/95 md:px-8">
+              <Outlet />
+            </div>,
+            mainContent,
+          )
+        : null}
+    </>
+  );
 }
 
 function LoadingScreen(props: { message: string }) {

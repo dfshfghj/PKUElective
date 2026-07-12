@@ -11,6 +11,7 @@ import {
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { CourseDetailLink } from "@/components/course-detail-link";
 import type { PlanCourse } from "@/types";
 
 export function WishlistPage() {
@@ -33,6 +34,7 @@ export function WishlistPage() {
       {
         accessorKey: "name",
         meta: { label: "课程名称", mobileHidden: true },
+        cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />,
         header: ({ column }) => (
           <SortableHeader
             label="课程名称"

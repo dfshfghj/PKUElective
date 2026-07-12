@@ -67,6 +67,7 @@ export type SupplementAvailableCourse = {
   elected_cnt: number;
   action_label: string;
   select_url: string | null;
+  detail_url: string | null;
 };
 
 export type SupplementSelectedCourse = {
@@ -85,6 +86,7 @@ export type SupplementSelectedCourse = {
   elected_cnt: number;
   status: string;
   cancel_url: string | null;
+  detail_url: string | null;
 };
 
 export type PreselectCourse = {
@@ -103,6 +105,7 @@ export type PreselectCourse = {
   elected_cnt: number;
   preference_value: string;
   select_url: string;
+  detail_url: string | null;
 };
 
 export type PreselectedCourse = Omit<PreselectCourse, "select_url"> & {
@@ -122,6 +125,7 @@ export type PlanCourse = {
   pnp_status: string;
   selection_mark: string;
   delete_url: string | null;
+  detail_url: string | null;
 };
 
 export type QueryCourse = {
@@ -140,6 +144,11 @@ export type QueryCourse = {
   pnp_status: string;
   note: string;
   add_to_plan_url: string | null;
+  detail_url: string | null;
+};
+
+export type CourseDetail = {
+  html: string;
 };
 
 export type CourseResult = {

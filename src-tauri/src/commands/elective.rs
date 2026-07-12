@@ -1,4 +1,4 @@
-use heed_core::CourseQueryFilters;
+use heed_core::{CourseDetail, CourseQueryFilters};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
@@ -32,6 +32,21 @@ pub async fn search_query_courses(
     }
     emit_message(&app, "success", "课程查询已更新。")?;
     emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn fetch_course_detail(
+    detail_url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<CourseDetail, String> {
+    logger::info("command: fetch_course_detail");
+    let session = {
+        let guard = state.manual_session.lock().await;
+        guard.clone().ok_or_else(|| "not logged in".to_string())?
+    };
+
+    handle_session_result(session.fetch_course_detail(&detail_url).await, &app, &state).await
 }
 
 #[tauri::command]

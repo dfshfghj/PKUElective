@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { AuthStateView, ConfigPatch, CourseQueryFilters, SnapshotView } from "./types";
+import type { AuthStateView, ConfigPatch, CourseDetail, CourseQueryFilters, SnapshotView } from "./types";
 
 type Channel = "bzx" | "bfx" | "";
 
@@ -80,6 +80,10 @@ export async function updateConfig(patch: ConfigPatch): Promise<SnapshotView> {
 
 export async function searchQueryCourses(filters: CourseQueryFilters): Promise<SnapshotView> {
   return invoke<SnapshotView>("search_query_courses", { filters });
+}
+
+export async function fetchCourseDetail(detailUrl: string): Promise<CourseDetail> {
+  return invoke<CourseDetail>("fetch_course_detail", { detailUrl });
 }
 
 export async function refreshSupplementPage(): Promise<SnapshotView> {
