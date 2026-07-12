@@ -4,6 +4,18 @@ import type { AuthStateView, ConfigPatch, CourseDetail, CourseQueryFilters, Snap
 
 type Channel = "bzx" | "bfx" | "";
 
+export type CourseReviewMatch = {
+  courseId: number;
+  url: string;
+};
+
+export type WebviewBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export async function getSnapshot(): Promise<SnapshotView> {
   return invoke<SnapshotView>("get_snapshot");
 }
@@ -84,6 +96,30 @@ export async function searchQueryCourses(filters: CourseQueryFilters): Promise<S
 
 export async function fetchCourseDetail(detailUrl: string): Promise<CourseDetail> {
   return invoke<CourseDetail>("fetch_course_detail", { detailUrl });
+}
+
+export async function findCourseReview(courseName: string): Promise<CourseReviewMatch | null> {
+  return invoke<CourseReviewMatch | null>("find_course_review", { courseName });
+}
+
+export async function openCourseReviewWebview(courseId: number, bounds: WebviewBounds): Promise<void> {
+  return invoke("open_course_review_webview", { courseId, bounds });
+}
+
+export async function resizeCourseReviewWebview(bounds: WebviewBounds): Promise<void> {
+  return invoke("resize_course_review_webview", { bounds });
+}
+
+export async function showCourseReviewWebview(): Promise<void> {
+  return invoke("show_course_review_webview");
+}
+
+export async function hideCourseReviewWebview(): Promise<void> {
+  return invoke("hide_course_review_webview");
+}
+
+export async function closeCourseReviewWebview(): Promise<void> {
+  return invoke("close_course_review_webview");
 }
 
 export async function refreshSupplementPage(): Promise<SnapshotView> {

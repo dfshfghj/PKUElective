@@ -155,7 +155,7 @@ function PreselectRoute() {
       <CoursesPage />
       {showingDetail && mainContent
         ? createPortal(
-            <div className="absolute inset-0 z-10 overflow-auto overscroll-contain bg-stone-50/95 px-4 pb-8 backdrop-blur-sm dark:bg-stone-950/95 md:px-8">
+            <div className="absolute inset-0 z-10 overflow-hidden bg-stone-50/95 px-4 pb-4 backdrop-blur-sm dark:bg-stone-950/95 md:px-8 md:pb-8">
               <Outlet />
             </div>,
             mainContent,

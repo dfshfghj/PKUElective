@@ -3,7 +3,9 @@
 mod app_state;
 mod auth_persistence;
 mod commands;
+mod course_reviews;
 mod emit;
+mod inject;
 mod logger;
 mod session_persistence;
 
@@ -27,7 +29,13 @@ fn main() {
             ));
 
             app.manage(AppState::default());
+            app.manage(course_reviews::CourseReviewState::new());
             let handle = app.handle().clone();
+            let review_handle = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                let state = review_handle.state::<course_reviews::CourseReviewState>();
+                course_reviews::initialize(review_handle.clone(), state.inner()).await;
+            });
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
                 match auth_persistence::restore_auth_on_startup(&handle, state.inner()).await {
@@ -75,6 +83,12 @@ fn main() {
             commands::wishlist::add_wishlist,
             commands::wishlist::remove_wishlist,
             commands::config::update_config,
+            course_reviews::find_course_review,
+            course_reviews::open_course_review_webview,
+            course_reviews::resize_course_review_webview,
+            course_reviews::show_course_review_webview,
+            course_reviews::hide_course_review_webview,
+            course_reviews::close_course_review_webview,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {
