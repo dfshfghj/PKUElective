@@ -207,7 +207,10 @@ async fn refresh_course_list() -> Result<String, String> {
     let response = reqwest::Client::new()
         .post(COURSE_LIST_URL)
         .timeout(std::time::Duration::from_secs(30))
-        .json(&serde_json::json!({}))
+        .json(&serde_json::json!({
+            "sSessionId": "null",
+            "fv": 2,
+        }))
         .send()
         .await
         .map_err(|err| err.to_string())?
