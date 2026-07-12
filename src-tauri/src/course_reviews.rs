@@ -10,7 +10,6 @@ use crate::{inject, logger};
 const COURSE_LIST_URL: &str = "https://api.pinzhixiaoyuan.com/api/courses/list";
 const COURSE_VIEW_ORIGIN: &str = "https://courses.pinzhixiaoyuan.com";
 const CACHE_FILE_NAME: &str = "pinzhi-courses.json";
-const EMBEDDED_COURSE_LIST: &str = include_str!("../../example/courses.json");
 const WEBVIEW_LABEL: &str = "course-review";
 
 pub struct CourseReviewState {
@@ -19,9 +18,8 @@ pub struct CourseReviewState {
 
 impl CourseReviewState {
     pub fn new() -> Self {
-        let courses = parse_course_index(EMBEDDED_COURSE_LIST).unwrap_or_default();
         Self {
-            courses: RwLock::new(courses),
+            courses: RwLock::new(HashMap::new()),
         }
     }
 }
