@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,13 +13,13 @@ const CACHE_FILE_NAME: &str = "pinzhi-courses.json";
 const WEBVIEW_LABEL: &str = "course-review";
 
 pub struct CourseReviewState {
-    courses: RwLock<HashMap<String, CourseMatch>>,
+    courses: RwLock<Vec<CourseMatch>>,
 }
 
 impl CourseReviewState {
     pub fn new() -> Self {
         Self {
-            courses: RwLock::new(HashMap::new()),
+            courses: RwLock::new(Vec::new()),
         }
     }
 }
@@ -27,6 +27,7 @@ impl CourseReviewState {
 #[derive(Clone)]
 struct CourseMatch {
     id: u64,
+    name: String,
     review_count: u64,
 }
 
@@ -34,7 +35,16 @@ struct CourseMatch {
 #[serde(rename_all = "camelCase")]
 pub struct CourseReviewMatch {
     pub course_id: u64,
+    pub course_name: String,
+    pub review_count: u64,
     pub url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CourseReviewLookup {
+    pub exact: bool,
+    pub matches: Vec<CourseReviewMatch>,
 }
 
 #[derive(Deserialize)]
@@ -89,12 +99,47 @@ pub async fn initialize(app: AppHandle, state: &CourseReviewState) {
 pub async fn find_course_review(
     course_name: String,
     state: tauri::State<'_, CourseReviewState>,
-) -> Result<Option<CourseReviewMatch>, String> {
+) -> Result<CourseReviewLookup, String> {
     let courses = state.courses.read().await;
-    Ok(courses.get(course_name.trim()).map(|course| CourseReviewMatch {
-        course_id: course.id,
-        url: format!("{COURSE_VIEW_ORIGIN}/courses/view/{}", course.id),
-    }))
+    let query = course_name.trim();
+    let mut exact: Vec<&CourseMatch> = courses.iter().filter(|course| course.name == query).collect();
+    exact.sort_by_key(|course| std::cmp::Reverse(course.review_count));
+    if !exact.is_empty() {
+        return Ok(CourseReviewLookup {
+            exact: true,
+            matches: exact.into_iter().map(review_match_view).collect(),
+        });
+    }
+
+    let normalized_query = normalize_course_name(query);
+    let mut fuzzy: Vec<(u8, &CourseMatch)> = courses
+        .iter()
+        .filter_map(|course| {
+            let normalized_name = normalize_course_name(&course.name);
+            let base_name = normalized_name
+                .split(['(', '（'])
+                .next()
+                .unwrap_or(&normalized_name);
+            let score = if base_name == normalized_query {
+                0
+            } else if normalized_name.starts_with(&normalized_query) {
+                1
+            } else if normalized_name.contains(&normalized_query)
+                || normalized_query.contains(&normalized_name)
+            {
+                2
+            } else {
+                return None;
+            };
+            Some((score, course))
+        })
+        .collect();
+    fuzzy.sort_by_key(|(score, course)| (*score, std::cmp::Reverse(course.review_count)));
+    fuzzy.truncate(20);
+    Ok(CourseReviewLookup {
+        exact: false,
+        matches: fuzzy.into_iter().map(|(_, course)| review_match_view(course)).collect(),
+    })
 }
 
 #[tauri::command]
@@ -172,13 +217,13 @@ fn close_existing_webview(window: &Window) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_course_index(json: &str) -> Result<HashMap<String, CourseMatch>, String> {
+fn parse_course_index(json: &str) -> Result<Vec<CourseMatch>, String> {
     let value: Value = serde_json::from_str(json).map_err(|err| err.to_string())?;
     let rows = value
         .pointer("/cDatas/rows")
         .and_then(Value::as_array)
         .ok_or_else(|| "missing cDatas.rows".to_owned())?;
-    let mut courses = HashMap::new();
+    let mut courses = Vec::new();
     for row in rows {
         let Some(columns) = row.as_array() else { continue };
         let (Some(id), Some(name)) = (
@@ -188,17 +233,29 @@ fn parse_course_index(json: &str) -> Result<HashMap<String, CourseMatch>, String
             continue;
         };
         let review_count = columns.get(8).and_then(Value::as_u64).unwrap_or(0);
-        let candidate = CourseMatch { id, review_count };
-        courses
-            .entry(name.trim().to_owned())
-            .and_modify(|current: &mut CourseMatch| {
-                if candidate.review_count > current.review_count {
-                    *current = candidate.clone();
-                }
-            })
-            .or_insert(candidate);
+        courses.push(CourseMatch {
+            id,
+            name: name.trim().to_owned(),
+            review_count,
+        });
     }
     Ok(courses)
+}
+
+fn review_match_view(course: &CourseMatch) -> CourseReviewMatch {
+    CourseReviewMatch {
+        course_id: course.id,
+        course_name: course.name.clone(),
+        review_count: course.review_count,
+        url: format!("{COURSE_VIEW_ORIGIN}/courses/view/{}", course.id),
+    }
+}
+
+fn normalize_course_name(name: &str) -> String {
+    name.chars()
+        .filter(|character| !character.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect()
 }
 
 async fn refresh_course_list() -> Result<String, String> {

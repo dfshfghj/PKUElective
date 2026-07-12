@@ -6,7 +6,14 @@ type Channel = "bzx" | "bfx" | "";
 
 export type CourseReviewMatch = {
   courseId: number;
+  courseName: string;
+  reviewCount: number;
   url: string;
+};
+
+export type CourseReviewLookup = {
+  exact: boolean;
+  matches: CourseReviewMatch[];
 };
 
 export type WebviewBounds = {
@@ -98,8 +105,8 @@ export async function fetchCourseDetail(detailUrl: string): Promise<CourseDetail
   return invoke<CourseDetail>("fetch_course_detail", { detailUrl });
 }
 
-export async function findCourseReview(courseName: string): Promise<CourseReviewMatch | null> {
-  return invoke<CourseReviewMatch | null>("find_course_review", { courseName });
+export async function findCourseReview(courseName: string): Promise<CourseReviewLookup> {
+  return invoke<CourseReviewLookup>("find_course_review", { courseName });
 }
 
 export async function openCourseReviewWebview(courseId: number, bounds: WebviewBounds): Promise<void> {

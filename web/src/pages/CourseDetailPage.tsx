@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { isTauri } from "@tauri-apps/api/core";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
   closeCourseReviewWebview,
@@ -94,6 +95,9 @@ export function CourseDetailPage() {
 function CourseReviewPanel({ active, courseName }: { active: boolean; courseName: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const openedRef = useRef(false);
+  const openedCourseIdRef = useRef<number | null>(null);
+  const [candidates, setCandidates] = useState<CourseReviewMatch[]>([]);
+  const [exactMatch, setExactMatch] = useState(false);
   const [match, setMatch] = useState<CourseReviewMatch | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing" | "browser" | "error">("loading");
 
@@ -107,8 +111,10 @@ function CourseReviewPanel({ active, courseName }: { active: boolean; courseName
     void findCourseReview(courseName)
       .then((result) => {
         if (cancelled) return;
-        setMatch(result);
-        setStatus(result ? "ready" : "missing");
+        setCandidates(result.matches);
+        setExactMatch(result.exact);
+        setMatch(result.matches[0] ?? null);
+        setStatus(result.matches.length ? "ready" : "missing");
       })
       .catch(() => {
         if (!cancelled) setStatus(isTauri() ? "error" : "browser");
@@ -130,7 +136,7 @@ function CourseReviewPanel({ active, courseName }: { active: boolean; courseName
       void resizeCourseReviewWebview(boundsForElement(container));
     };
     const bounds = boundsForElement(container);
-    if (openedRef.current) {
+    if (openedRef.current && openedCourseIdRef.current === match.courseId) {
       void resizeCourseReviewWebview(bounds).then(showCourseReviewWebview).catch(() => {
         if (!cancelled) setStatus("error");
       });
@@ -138,6 +144,7 @@ function CourseReviewPanel({ active, courseName }: { active: boolean; courseName
       void openCourseReviewWebview(match.courseId, bounds)
         .then(() => {
           openedRef.current = true;
+          openedCourseIdRef.current = match.courseId;
           if (cancelled) {
             void hideCourseReviewWebview();
           }
@@ -159,20 +166,48 @@ function CourseReviewPanel({ active, courseName }: { active: boolean; courseName
 
   useEffect(() => () => {
     openedRef.current = false;
+    openedCourseIdRef.current = null;
     void closeCourseReviewWebview();
   }, []);
 
   return (
-    <div
-      className="relative h-full min-h-[320px] overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900"
-      ref={containerRef}
-    >
+    <div className="flex h-full min-h-[320px] flex-col gap-3">
+      {!exactMatch && candidates.length > 0 ? (
+        <div className="flex h-11 shrink-0 items-center rounded-xl border gap-2">
+          <span className="hidden shrink-0 text-xs sm:inline">相近课程</span>
+          <Button aria-label="上一个相近课程" className="h-7 w-7 shrink-0" onClick={() => selectRelativeCandidate(-1)} size="icon" variant="ghost">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1 truncate text-center text-sm text-stone-800 dark:text-stone-200">
+            {match?.courseName}
+          </div>
+          <span className="shrink-0 text-xs tabular-nums text-stone-500 dark:text-stone-400">
+            {match ? candidates.findIndex((candidate) => candidate.courseId === match.courseId) + 1 : 0}/{candidates.length}
+          </span>
+          <Button aria-label="下一个相近课程" className="h-7 w-7 shrink-0" onClick={() => selectRelativeCandidate(1)} size="icon" variant="ghost">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
+      <div
+        className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900"
+        ref={containerRef}
+      >
         {status === "loading" ? <ReviewMessage>正在匹配并加载课程测评…</ReviewMessage> : null}
         {status === "missing" ? <ReviewMessage>暂未找到“{courseName}”的课程测评。</ReviewMessage> : null}
         {status === "browser" ? <ReviewMessage>课程测评仅在桌面应用中嵌入显示。</ReviewMessage> : null}
         {status === "error" ? <ReviewMessage>课程测评加载失败，请稍后重试。</ReviewMessage> : null}
+      </div>
     </div>
   );
+
+  function selectRelativeCandidate(offset: number) {
+    if (!match || candidates.length === 0) return;
+    const currentIndex = candidates.findIndex((candidate) => candidate.courseId === match.courseId);
+    const nextIndex = (Math.max(currentIndex, 0) + offset + candidates.length) % candidates.length;
+    setStatus("ready");
+    setMatch(candidates[nextIndex]);
+  }
 }
 
 function ReviewMessage({ children }: { children: React.ReactNode }) {
