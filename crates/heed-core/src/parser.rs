@@ -456,7 +456,7 @@ fn parse_plan_courses(document: &Html) -> Result<Vec<PlanCourse>> {
             pnp_status: cell_text(cells[9]),
             selection_mark: cell_text(cells[10]),
             delete_url,
-            detail_url: course_detail_url(row),
+            detail_url: course_detail_url_in_cell(cells[0], "/electivePlan/goNested.do"),
         });
     }
 
@@ -499,7 +499,7 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
             pnp_status: cell_text(cells[11]),
             note: cell_text(cells[12]),
             add_to_plan_url,
-            detail_url: course_detail_url(row),
+            detail_url: course_detail_url_in_cell(cells[0], "/courseQuery/goNested.do"),
         });
     }
 
@@ -509,6 +509,14 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
 fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
     let detail_selector = selector(r#"a[href*="/electiveWork/goNested.do"]"#).ok()?;
     row.select(&detail_selector)
+        .next()
+        .and_then(|link| link.value().attr("href"))
+        .map(absolute_url)
+}
+
+fn course_detail_url_in_cell(cell: scraper::ElementRef<'_>, controller_path: &str) -> Option<String> {
+    let detail_selector = selector(&format!(r#"a[href*="{controller_path}"]"#)).ok()?;
+    cell.select(&detail_selector)
         .next()
         .and_then(|link| link.value().attr("href"))
         .map(absolute_url)
@@ -820,6 +828,10 @@ mod tests {
         assert!(!parsed.courses.is_empty());
         assert_eq!(parsed.courses[0].course_id, "00437151");
         assert!(parsed.courses[0].delete_url.is_some());
+        assert!(parsed.courses[0]
+            .detail_url
+            .as_deref()
+            .is_some_and(|url| url.contains("/electivePlan/goNested.do")));
     }
 
     #[test]
@@ -830,6 +842,10 @@ mod tests {
         assert!(!parsed.courses.is_empty());
         assert_eq!(parsed.courses[0].course_id, "01235260");
         assert!(parsed.courses[0].add_to_plan_url.is_some());
+        assert!(parsed.courses[0]
+            .detail_url
+            .as_deref()
+            .is_some_and(|url| url.contains("/courseQuery/goNested.do")));
     }
 
     #[test]

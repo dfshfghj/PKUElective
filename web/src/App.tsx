@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { Toaster } from "sonner";
 
@@ -43,13 +43,17 @@ function AppRoutes() {
       </Route>
       <Route element={<ProtectedLayout />}>
         <Route element={<DashboardPage />} path="/" />
-        <Route element={<PreselectRoute />} path="/preselect">
+        <Route element={<DetailParentRoute page={<CoursesPage />} />} path="/preselect">
           <Route element={<CourseDetailPage />} path="course-detail" />
         </Route>
-        <Route element={<WishlistPage />} path="/plan" />
+        <Route element={<DetailParentRoute page={<WishlistPage />} />} path="/plan">
+          <Route element={<CourseDetailPage />} path="course-detail" />
+        </Route>
         <Route element={<SupplementPage />} path="/supplement" />
         <Route element={<ResultsPage />} path="/results" />
-        <Route element={<CourseQueryPage />} path="/query" />
+        <Route element={<DetailParentRoute page={<CourseQueryPage />} />} path="/query">
+          <Route element={<CourseDetailPage />} path="course-detail" />
+        </Route>
         <Route element={<Navigate replace to="/preselect" />} path="/course-detail" />
         <Route element={<SettingsPage />} path="/automation" />
         <Route element={<Navigate replace to="/automation" />} path="/settings" />
@@ -119,9 +123,15 @@ function ProtectedLayout() {
 }
 
 function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams) {
-  if (pathname === "/preselect/course-detail") {
+  if (pathname.endsWith("/course-detail")) {
+    const parentPath = pathname.slice(0, -"/course-detail".length);
+    const parentLabels: Record<string, string> = {
+      "/preselect": "预选",
+      "/plan": "选课计划",
+      "/query": "课程查询",
+    };
     return [
-      { label: "预选", to: "/preselect" },
+      { label: parentLabels[parentPath] ?? "课程列表", to: parentPath },
       { label: searchParams.get("name") || "课程详情" },
     ];
   }
@@ -139,9 +149,9 @@ function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams)
   return [{ label: labels[pathname] ?? "HEED" }];
 }
 
-function PreselectRoute() {
+function DetailParentRoute({ page }: { page: ReactNode }) {
   const { pathname } = useLocation();
-  const showingDetail = pathname === "/preselect/course-detail";
+  const showingDetail = pathname.endsWith("/course-detail");
   const [mainContent, setMainContent] = useState<HTMLElement | null>(() =>
     document.getElementById("app-main-content"),
   );
@@ -152,7 +162,7 @@ function PreselectRoute() {
 
   return (
     <>
-      <CoursesPage />
+      {page}
       {showingDetail && mainContent
         ? createPortal(
             <div className="absolute inset-0 z-10 overflow-hidden bg-stone-50/95 px-4 pb-4 backdrop-blur-sm dark:bg-stone-950/95 md:px-8 md:pb-8">

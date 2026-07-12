@@ -284,7 +284,7 @@ impl ElectiveSession {
             .map_err(|_| HeedError::Fatal("invalid course detail url".into()))?;
         if url.scheme() != "https"
             || url.host_str() != Some("elective.pku.edu.cn")
-            || !url.path().ends_with("/electiveWork/goNested.do")
+            || !url.path().ends_with("/goNested.do")
             || !url.query_pairs().any(|(key, _)| key == "course_seq_no")
         {
             return Err(HeedError::Fatal("invalid course detail url".into()));
