@@ -2,7 +2,7 @@ use scraper::{Html, Selector, node::Node};
 
 use crate::{
     course::{
-        Course, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
+        Course, CourseResult, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
         SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable,
         TimetableCell, TimetableRow,
     },
@@ -506,6 +506,36 @@ fn parse_query_courses(document: &Html) -> Result<Vec<QueryCourse>> {
     Ok(courses)
 }
 
+pub fn parse_elective_schedule(html: &str) -> Result<Vec<ElectiveScheduleRow>> {
+    let document = Html::parse_document(html);
+    let table_selector = selector("table.datagrid")?;
+    let header_selector = selector("tr.datagrid-header th")?;
+    let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
+    let cell_selector = selector("td")?;
+
+    for table in document.select(&table_selector) {
+        let headers = table.select(&header_selector).map(cell_text).collect::<Vec<_>>();
+        if headers != ["选课阶段", "开始时间", "结束时间", "备注"] {
+            continue;
+        }
+
+        return Ok(table
+            .select(&row_selector)
+            .filter_map(|row| {
+                let cells = row.select(&cell_selector).collect::<Vec<_>>();
+                (cells.len() >= 4).then(|| ElectiveScheduleRow {
+                    stage: cell_text(cells[0]),
+                    start_time: cell_text(cells[1]),
+                    end_time: cell_text(cells[2]),
+                    note: cell_text(cells[3]),
+                })
+            })
+            .collect());
+    }
+
+    Err(HeedError::Parse("missing elective schedule table".into()))
+}
+
 fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
     let detail_selector = selector(r#"a[href*="/electiveWork/goNested.do"]"#).ok()?;
     row.select(&detail_selector)
@@ -743,7 +773,7 @@ fn selector(value: &str) -> Result<Selector> {
 #[cfg(test)]
 mod tests {
     use super::{
-        cell_text_with_breaks, detect_tips, parse_course_page, parse_plan_page,
+        cell_text_with_breaks, detect_tips, parse_course_page, parse_elective_schedule, parse_plan_page,
         parse_preselect_page, parse_query_page, parse_results_page, parse_supplement_page,
         selector,
     };
@@ -832,6 +862,15 @@ mod tests {
             .detail_url
             .as_deref()
             .is_some_and(|url| url.contains("/electivePlan/goNested.do")));
+    }
+
+    #[test]
+    fn parses_example_elective_schedule() {
+        let html = include_str!("../../../example/帮助-总体流程.html");
+        let schedule = parse_elective_schedule(html).expect("elective schedule should parse");
+        assert!(!schedule.is_empty());
+        assert_eq!(schedule[0].stage, "维护选课计划");
+        assert!(schedule.iter().any(|row| row.stage == "预选"));
     }
 
     #[test]

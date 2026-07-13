@@ -151,6 +151,13 @@ export type CourseDetail = {
   html: string;
 };
 
+export type ElectiveScheduleRow = {
+  stage: string;
+  start_time: string;
+  end_time: string;
+  note: string;
+};
+
 export type CourseResult = {
   course_id: string;
   name: string;

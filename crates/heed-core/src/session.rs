@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
-    course::{Course, CourseDetail, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage},
+    course::{Course, CourseDetail, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage},
     error::{HeedError, Result},
     parser::{
-        parse_course_page, parse_plan_page, parse_preselect_page, parse_query_page,
+        parse_course_page, parse_elective_schedule, parse_plan_page, parse_preselect_page, parse_query_page,
         parse_results_page, parse_supplement_page,
     },
 };
@@ -277,6 +277,14 @@ impl ElectiveSession {
         }
 
         Ok(page.results)
+    }
+
+    pub async fn fetch_elective_schedule(&self) -> Result<Vec<ElectiveScheduleRow>> {
+        let body = self.fetch_html(INITIAL_REFERER).await?;
+        if !body.contains("<title>帮助-总体流程</title>") {
+            return Err(HeedError::SessionExpired);
+        }
+        parse_elective_schedule(&body)
     }
 
     pub async fn fetch_course_detail(&self, detail_url: &str) -> Result<CourseDetail> {

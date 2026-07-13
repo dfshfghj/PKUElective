@@ -157,6 +157,14 @@ pub struct CourseDetail {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ElectiveScheduleRow {
+    pub stage: String,
+    pub start_time: String,
+    pub end_time: String,
+    pub note: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CourseResult {
     pub course_id: String,
     pub name: String,

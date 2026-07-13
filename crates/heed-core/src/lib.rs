@@ -15,7 +15,7 @@ pub use auth::{AuthSession, Credentials};
 pub use bot::{BotStatus, ElectiveBot};
 pub use config::AppConfig;
 pub use course::{
-    Course, CourseDetail, CourseResult, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
+    Course, CourseDetail, CourseResult, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
     SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable, TimetableCell,
     TimetableRow, WishlistItem,
 };
