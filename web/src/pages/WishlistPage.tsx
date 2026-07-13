@@ -171,13 +171,17 @@ export function WishlistPage() {
     if (hasTriggeredAutoRefresh.current) {
       return;
     }
-    if (!snapshot.auth.logged_in || pending !== null) {
+    if (!snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
+      return;
+    }
+    if (snapshot.plan_courses.length > 0) {
+      hasTriggeredAutoRefresh.current = true;
       return;
     }
 
     hasTriggeredAutoRefresh.current = true;
     void handleRefreshPlan();
-  }, [handleRefreshPlan, pending, snapshot.auth.logged_in]);
+  }, [handleRefreshPlan, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.plan_courses.length]);
 
   return (
     <div className="space-y-6">

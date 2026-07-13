@@ -109,12 +109,21 @@ export function SupplementPage() {
   );
 
   useEffect(() => {
-    if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || pending !== null) {
+    if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
+      return;
+    }
+    if (
+      snapshot.supplement.notices.length > 0
+      || snapshot.supplement.available_courses.length > 0
+      || snapshot.supplement.selected_courses.length > 0
+      || snapshot.supplement.selected_credits !== null
+    ) {
+      hasAutoLoadedRef.current = true;
       return;
     }
     hasAutoLoadedRef.current = true;
     void handleRefreshSupplement();
-  }, [handleRefreshSupplement, pending, snapshot.auth.logged_in]);
+  }, [handleRefreshSupplement, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.supplement]);
 
   return (
     <div className="space-y-6">

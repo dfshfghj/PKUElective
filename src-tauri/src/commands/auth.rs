@@ -45,6 +45,7 @@ pub async fn login(
             credentials.username.clone(),
         )
         .await;
+    crate::elective_preload::spawn(app.clone());
     let _ = emit_snapshot_events(&app, &state).await?;
     if remember_password && !effective_prefs.remember_password {
         emit_message(

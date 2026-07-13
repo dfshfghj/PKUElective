@@ -216,12 +216,21 @@ export function CoursesPage() {
   );
 
   useEffect(() => {
-    if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || pending !== null) {
+    if (
+      hasAutoLoadedRef.current
+      || !snapshot.auth.logged_in
+      || snapshot.elective_data_preloading
+      || pending !== null
+    ) {
+      return;
+    }
+    if (snapshot.preselect_courses.length > 0 || snapshot.preselected_courses.length > 0) {
+      hasAutoLoadedRef.current = true;
       return;
     }
     hasAutoLoadedRef.current = true;
     void handleRefreshPreselect();
-  }, [handleRefreshPreselect, pending, snapshot.auth.logged_in]);
+  }, [handleRefreshPreselect, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.preselect_courses.length, snapshot.preselected_courses.length]);
 
   return (
     <div className="space-y-6">

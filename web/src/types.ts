@@ -218,6 +218,7 @@ export type SnapshotView = {
   auth: AuthStateView;
   config: AppConfig;
   automation_running: boolean;
+  elective_data_preloading: boolean;
   bots: BotView[];
   courses: Course[];
   preselect_courses: PreselectCourse[];

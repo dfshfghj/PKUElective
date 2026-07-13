@@ -58,6 +58,7 @@ const emptySnapshot: SnapshotView = {
     timeout_ms: 30000,
   },
   automation_running: false,
+  elective_data_preloading: false,
   bots: [],
   courses: [],
   preselect_courses: [],

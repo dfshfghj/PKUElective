@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use heed_core::{AppConfig, Credentials, ElectiveSession, Orchestrator};
 use tokio::sync::Mutex;
 
@@ -11,6 +13,8 @@ pub struct AppState {
     pub auth_preferences: Mutex<AuthPreferences>,
     pub auth_restoring: Mutex<bool>,
     pub automation_running: Mutex<bool>,
+    pub elective_data_preloading: AtomicBool,
+    pub auth_generation: AtomicU64,
     pub manual_captcha_image_b64: Mutex<Option<String>>,
     pub manual_captcha_verified: Mutex<bool>,
 }
@@ -26,6 +30,8 @@ impl Default for AppState {
             auth_preferences: Mutex::new(AuthPreferences::default()),
             auth_restoring: Mutex::new(true),
             automation_running: Mutex::new(false),
+            elective_data_preloading: AtomicBool::new(false),
+            auth_generation: AtomicU64::new(0),
             manual_captcha_image_b64: Mutex::new(None),
             manual_captcha_verified: Mutex::new(false),
         }
@@ -39,6 +45,7 @@ impl AppState {
         session: ElectiveSession,
         username: String,
     ) {
+        self.auth_generation.fetch_add(1, Ordering::AcqRel);
         {
             let mut guard = self.credentials.lock().await;
             *guard = credentials;
@@ -62,6 +69,8 @@ impl AppState {
     }
 
     pub async fn clear_auth_state(&self) {
+        self.auth_generation.fetch_add(1, Ordering::AcqRel);
+        self.elective_data_preloading.store(false, Ordering::Release);
         {
             let mut credentials = self.credentials.lock().await;
             *credentials = None;

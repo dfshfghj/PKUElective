@@ -3,6 +3,7 @@ use heed_core::{
     SupplementPage, WishlistItem,
 };
 use serde::Serialize;
+use std::sync::atomic::Ordering;
 use tauri::State;
 
 use crate::{app_state::AppState, auth_persistence};
@@ -33,6 +34,7 @@ pub struct SnapshotView {
     pub auth: AuthStateView,
     pub config: AppConfig,
     pub automation_running: bool,
+    pub elective_data_preloading: bool,
     pub bots: Vec<BotView>,
     pub courses: Vec<Course>,
     pub preselect_courses: Vec<PreselectCourse>,
@@ -90,6 +92,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         auth,
         config: orchestrator.config().clone(),
         automation_running,
+        elective_data_preloading: state.elective_data_preloading.load(Ordering::Relaxed),
         bots,
         courses: orchestrator.latest_courses().to_vec(),
         preselect_courses: orchestrator.latest_preselect_courses().to_vec(),

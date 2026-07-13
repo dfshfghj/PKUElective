@@ -29,13 +29,17 @@ export function ResultsPage() {
     if (hasTriggeredAutoRefresh.current) {
       return;
     }
-    if (!snapshot.auth.logged_in || pending !== null) {
+    if (!snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
+      return;
+    }
+    if (results.courses.length > 0 || results.summary !== null || results.timetable !== null) {
+      hasTriggeredAutoRefresh.current = true;
       return;
     }
 
     hasTriggeredAutoRefresh.current = true;
     void handleRefreshResults();
-  }, [handleRefreshResults, pending, snapshot.auth.logged_in]);
+  }, [handleRefreshResults, pending, results.courses.length, results.summary, results.timetable, snapshot.auth.logged_in, snapshot.elective_data_preloading]);
 
   return (
     <div className="space-y-6">

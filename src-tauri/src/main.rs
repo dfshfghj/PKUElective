@@ -5,6 +5,7 @@ mod auth_persistence;
 mod commands;
 mod course_reviews;
 mod emit;
+mod elective_preload;
 mod inject;
 mod logger;
 mod session_persistence;
@@ -42,6 +43,7 @@ fn main() {
                     Ok(restored) => {
                         if restored {
                             logger::info("auth restored on startup");
+                            elective_preload::spawn(handle.clone());
                         } else {
                             logger::info("no persisted auth restored on startup");
                         }
