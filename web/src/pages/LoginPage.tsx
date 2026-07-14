@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
+import { WindowControls } from "../components/window-controls";
 import {
   Select,
   SelectContent,
@@ -26,7 +27,13 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-100 px-4 py-10 dark:bg-stone-950">
-      <div className="absolute inset-0" />
+      <div data-tauri-drag-region className="absolute inset-0" />
+      <div
+        className="absolute inset-x-0 top-0 z-20 flex h-12 items-center justify-end"
+        data-tauri-drag-region
+      >
+        <WindowControls className="m-0 flex h-full" />
+      </div>
       <Card className="relative grid w-full max-w-6xl border-white/70 bg-white/92 p-0 shadow-[0_30px_120px_rgba(28,25,23,0.14)] backdrop-blur dark:border-white/10 dark:bg-stone-950/92 lg:grid-cols-[1fr_1.05fr]">
         <div className="flex flex-col justify-center px-6 py-8 sm:px-8 sm:py-10 lg:px-10">
           <CardHeader className="px-0">

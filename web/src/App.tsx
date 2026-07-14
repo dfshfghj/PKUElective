@@ -165,7 +165,7 @@ function DetailParentRoute({ page }: { page: ReactNode }) {
       {page}
       {showingDetail && mainContent
         ? createPortal(
-            <div className="absolute inset-0 z-10 overflow-hidden bg-stone-50/95 px-4 pb-4 backdrop-blur-sm dark:bg-stone-950/95 md:px-8 md:pb-8">
+            <div className="absolute inset-0 z-10 overflow-hidden bg-background px-4 pb-4 backdrop-blur-sm md:px-8 md:pb-8">
               <Outlet />
             </div>,
             mainContent,
@@ -180,12 +180,10 @@ function LoadingScreen(props: { message: string }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-transparent px-4">
-      <div className="w-full max-w-sm rounded-[2rem] border border-orange-200/70 bg-white/88 p-8 shadow-xl shadow-orange-100/60 backdrop-blur dark:border-stone-800 dark:bg-stone-950/88 dark:shadow-black/20">
+      <div className="w-full max-w-sm rounded-[2rem] bg-white/88 p-8 backdrop-blur dark:bg-stone-950/88">
         <div className="flex items-center justify-center">
           <div className="relative flex h-16 w-16 items-center justify-center">
-            <div className="absolute h-16 w-16 rounded-full border border-orange-200 dark:border-stone-700" />
-            <div className="absolute h-16 w-16 animate-ping rounded-full bg-orange-200/40 dark:bg-stone-700/40" />
-            <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-stone-300 border-t-orange-500 dark:border-stone-700 dark:border-t-orange-400" />
+            <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-stone-300 border-t-stone-700 dark:border-stone-700 dark:border-t-stone-300" />
           </div>
         </div>
         <div className="mt-5 space-y-2 text-center">

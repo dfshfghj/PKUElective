@@ -3,8 +3,9 @@ import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function WindowControls() {
+export function WindowControls({ className }: { className?: string }) {
   const [isMaximized, setIsMaximized] = useState(false);
   const desktop = isTauri();
   const isMacOS = navigator.userAgent.includes("Macintosh");
@@ -41,7 +42,7 @@ export function WindowControls() {
   const appWindow = getCurrentWindow();
 
   return (
-    <div className="-my-4 -mr-4 flex h-full" aria-label="窗口控制">
+    <div className={cn("-my-4 -mr-4 flex h-full", className)} aria-label="窗口控制">
       <WindowControl aria-label="最小化" onClick={() => void appWindow.minimize()}>
         <i aria-hidden="true" className="codicon codicon-chrome-minimize text-base" />
       </WindowControl>
