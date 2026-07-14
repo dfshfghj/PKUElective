@@ -92,6 +92,9 @@ fn main() {
             course_reviews::show_course_review_webview,
             course_reviews::hide_course_review_webview,
             course_reviews::close_course_review_webview,
+            commands::settings::get_app_info,
+            commands::settings::export_app_log,
+            commands::settings::clear_app_log,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

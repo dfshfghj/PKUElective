@@ -23,6 +23,16 @@ export type WebviewBounds = {
   height: number;
 };
 
+export type AppInfo = {
+  version: string;
+  buildChannel: string;
+  projectUrl: string;
+  platform: string;
+  architecture: string;
+  logPath: string;
+  logSizeBytes: number;
+};
+
 export async function getSnapshot(): Promise<SnapshotView> {
   return invoke<SnapshotView>("get_snapshot");
 }
@@ -99,6 +109,18 @@ export async function updateConfig(patch: ConfigPatch): Promise<SnapshotView> {
 
 export async function searchQueryCourses(filters: CourseQueryFilters): Promise<SnapshotView> {
   return invoke<SnapshotView>("search_query_courses", { filters });
+}
+
+export async function getAppInfo(): Promise<AppInfo> {
+  return invoke<AppInfo>("get_app_info");
+}
+
+export async function exportAppLog(): Promise<string> {
+  return invoke<string>("export_app_log");
+}
+
+export async function clearAppLog(): Promise<void> {
+  return invoke("clear_app_log");
 }
 
 export async function fetchCourseDetail(detailUrl: string): Promise<CourseDetail> {

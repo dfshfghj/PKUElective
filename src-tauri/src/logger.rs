@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::Write,
+    io::{Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
     time::{SystemTime, UNIX_EPOCH},
@@ -56,6 +56,30 @@ pub fn install_panic_hook() {
     std::panic::set_hook(Box::new(|panic_info| {
         error(format!("panic: {panic_info}"));
     }));
+}
+
+pub fn size_bytes() -> Result<u64, String> {
+    let logger = LOGGER.get().ok_or_else(|| "logger is not initialized".to_string())?;
+    fs::metadata(&logger.path)
+        .map(|metadata| metadata.len())
+        .map_err(|err| err.to_string())
+}
+
+pub fn export_to(destination: &Path) -> Result<(), String> {
+    let logger = LOGGER.get().ok_or_else(|| "logger is not initialized".to_string())?;
+    let mut file = logger.file.lock().map_err(|_| "logger lock poisoned".to_string())?;
+    file.flush().map_err(|err| err.to_string())?;
+    fs::copy(&logger.path, destination)
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
+pub fn clear() -> Result<(), String> {
+    let logger = LOGGER.get().ok_or_else(|| "logger is not initialized".to_string())?;
+    let mut file = logger.file.lock().map_err(|_| "logger lock poisoned".to_string())?;
+    file.set_len(0).map_err(|err| err.to_string())?;
+    file.seek(SeekFrom::Start(0)).map_err(|err| err.to_string())?;
+    file.flush().map_err(|err| err.to_string())
 }
 
 pub fn info(message: impl AsRef<str>) {

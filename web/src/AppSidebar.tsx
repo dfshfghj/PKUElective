@@ -5,6 +5,7 @@ import {
   LogOut,
   Repeat2,
   Search,
+  Settings,
   SidebarClose,
   SidebarOpen,
   Sparkles,
@@ -35,6 +36,7 @@ const navigation = [
   { to: "/results", label: "选课结果", icon: CalendarRange },
   { to: "/query", label: "课程查询", icon: Search },
   { to: "/automation", label: "自动化", icon: Bot },
+  { to: "/settings", label: "设置", icon: Settings },
 ];
 
 export function AppSidebar() {

@@ -16,6 +16,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ResultsPage } from "./pages/ResultsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { AppSettingsPage } from "./pages/AppSettingsPage";
 import { SupplementPage } from "./pages/SupplementPage";
 import { WishlistPage } from "./pages/WishlistPage";
 import { useThemeMode } from "./theme";
@@ -56,7 +57,7 @@ function AppRoutes() {
         </Route>
         <Route element={<Navigate replace to="/preselect" />} path="/course-detail" />
         <Route element={<SettingsPage />} path="/automation" />
-        <Route element={<Navigate replace to="/automation" />} path="/settings" />
+        <Route element={<AppSettingsPage />} path="/settings" />
       </Route>
       <Route
         element={<Navigate replace to={snapshot.auth.logged_in ? "/" : "/login"} />}
@@ -144,6 +145,7 @@ function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams)
     "/results": "选课结果",
     "/query": "课程查询",
     "/automation": "自动化",
+    "/settings": "设置",
   };
 
   return [{ label: labels[pathname] ?? "HEED" }];

@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (for example 0.2.0)"
+        required: true
+        default: "0.1.0"
   push:
     tags:
       - "v*"
@@ -34,6 +39,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve build version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid semantic version: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -65,9 +86,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEED_BUILD_CHANNEL: Release
+          TAURI_CONFIG: '{"version":"${{ steps.version.outputs.version }}"}'
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', github.sha) }}
-          releaseName: ${{ github.ref_type == 'tag' && format('HEED {0}', github.ref_name) || format('HEED build {0}', github.sha) }}
+          tagName: v${{ steps.version.outputs.version }}
+          releaseName: HEED v${{ steps.version.outputs.version }}
           releaseBody: |
             Automated build for HEED.
           releaseDraft: ${{ github.ref_type != 'tag' }}
