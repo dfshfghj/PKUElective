@@ -30,15 +30,23 @@ jobs:
           - name: Windows x64
             platform: windows-latest
             args: --bundles msi
+            rust_targets: ""
+            cache_key: windows-x64
           - name: Linux x64
             platform: ubuntu-22.04
             args: --bundles appimage,deb
+            rust_targets: ""
+            cache_key: linux-x64
           - name: macOS Intel
             platform: macos-latest
             args: --target x86_64-apple-darwin --bundles app,dmg
+            rust_targets: x86_64-apple-darwin
+            cache_key: macos-x86_64
           - name: macOS Apple Silicon
             platform: macos-latest
             args: --target aarch64-apple-darwin --bundles app,dmg
+            rust_targets: aarch64-apple-darwin
+            cache_key: macos-aarch64
 
     steps:
       - name: Checkout
@@ -70,8 +78,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+
+      - name: Resolve npm cache directory
+        id: npm-cache
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore npm cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: npm-${{ matrix.cache_key }}-${{ hashFiles('web/package-lock.json') }}
 
       - name: Install frontend dependencies
         run: npm ci
@@ -80,12 +97,14 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_targets }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: . -> target
+          key: ${{ matrix.cache_key }}
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build and upload release assets
         id: tauri_build
@@ -93,7 +112,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEED_BUILD_CHANNEL: Release
-          VITE_HIDE_AUTOMATION: ${{ github.event_name == 'workflow_dispatch' && inputs.hide_automation || false }}
+          VITE_HIDE_AUTOMATION: ${{ github.event_name != 'workflow_dispatch' || inputs.hide_automation }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
