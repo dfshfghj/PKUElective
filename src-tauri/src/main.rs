@@ -18,6 +18,8 @@ fn main() {
     logger::install_panic_hook();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let log_path = logger::init(&app.handle())?;
             logger::info(format!(

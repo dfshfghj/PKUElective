@@ -22,6 +22,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -29,5 +30,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5MTA5Qjk0NjBFNzJGMUUKUldRZUwrZGdsSnNRR2I3YmV0NkVod1I3ZXMyWExPdjFERUNoODB0YTZCOW9Oa1lXMzRTQWdsUXUK",
+      "endpoints": [
+        "https://github.com/dfshfghj/PKUElective/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

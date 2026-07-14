@@ -20,16 +20,19 @@ import { AppSettingsPage } from "./pages/AppSettingsPage";
 import { SupplementPage } from "./pages/SupplementPage";
 import { WishlistPage } from "./pages/WishlistPage";
 import { useThemeMode } from "./theme";
+import { UpdateProvider } from "./update-context";
 
 export function App() {
   const themeMode = useThemeMode();
 
   return (
     <AppProvider>
-      <TooltipProvider>
-        <AppRoutes />
-        <Toaster closeButton richColors position="bottom-right" theme={themeMode} />
-      </TooltipProvider>
+      <UpdateProvider>
+        <TooltipProvider>
+          <AppRoutes />
+          <Toaster closeButton richColors position="bottom-right" theme={themeMode} />
+        </TooltipProvider>
+      </UpdateProvider>
     </AppProvider>
   );
 }

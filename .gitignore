@@ -16,3 +16,4 @@ main.exe
 /web/node_modules/
 /web/dist
 /example
+/src-tauri/heed-updater.key

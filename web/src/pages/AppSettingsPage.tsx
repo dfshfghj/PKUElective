@@ -6,9 +6,11 @@ import { EmptyState, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { useUpdater } from "../update-context";
 
 export function AppSettingsPage() {
   const { snapshot } = useAppModel();
+  const updater = useUpdater();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"export" | "clear" | null>(null);
@@ -66,6 +68,43 @@ export function AppSettingsPage() {
           </dl>
         </Surface>
       </div>
+
+      <Surface title="应用更新" meta={updater.availableVersion ? `v${updater.availableVersion}` : undefined}>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-stone-900 dark:text-stone-100">
+                {updater.message ?? "Release 构建会在启动后自动检查更新。"}
+              </p>
+              {updater.notes ? <p className="mt-1 whitespace-pre-wrap text-sm text-stone-500 dark:text-stone-400">{updater.notes}</p> : null}
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button disabled={updater.phase === "checking" || updater.phase === "downloading"} onClick={() => void updater.checkForUpdates()} variant="outline">
+                <RefreshCw className={`size-4 ${updater.phase === "checking" ? "animate-spin" : ""}`} />
+                检查更新
+              </Button>
+              {updater.phase === "available" ? (
+                <Button onClick={() => void updater.installUpdate()}>
+                  <Download className="size-4" /> 安装并重启
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {updater.phase === "downloading" ? (
+            <div className="space-y-2">
+              <div className="h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800">
+                <div
+                  className="h-full rounded-full bg-orange-500 transition-[width]"
+                  style={{ width: updater.totalBytes ? `${Math.min(100, updater.downloadedBytes / updater.totalBytes * 100)}%` : "12%" }}
+                />
+              </div>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                已下载 {formatBytes(updater.downloadedBytes)}{updater.totalBytes ? ` / ${formatBytes(updater.totalBytes)}` : ""}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </Surface>
 
       <Surface title="诊断日志" meta={info ? formatBytes(info.logSizeBytes) : undefined}>
         <div className="space-y-5">
