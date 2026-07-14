@@ -88,6 +88,7 @@ jobs:
           workspaces: . -> target
 
       - name: Build and upload release assets
+        id: tauri_build
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,7 +96,6 @@ jobs:
           VITE_HIDE_AUTOMATION: ${{ github.event_name == 'workflow_dispatch' && inputs.hide_automation || false }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          TAURI_CONFIG: '{"version":"${{ steps.version.outputs.version }}"}'
         with:
           tagName: v${{ steps.version.outputs.version }}
           releaseName: HEED v${{ steps.version.outputs.version }}
@@ -103,4 +103,15 @@ jobs:
             Automated build for HEED.
           releaseDraft: ${{ github.ref_type != 'tag' }}
           prerelease: ${{ github.ref_type != 'tag' }}
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --config '{"version":"${{ steps.version.outputs.version }}"}'
+
+      - name: Verify packaged application version
+        shell: bash
+        env:
+          ACTUAL_VERSION: ${{ steps.tauri_build.outputs.appVersion }}
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [[ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]]; then
+            echo "Packaged version $ACTUAL_VERSION does not match release version $EXPECTED_VERSION" >&2
+            exit 1
+          fi
