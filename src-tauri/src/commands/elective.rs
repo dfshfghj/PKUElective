@@ -1,4 +1,4 @@
-use heed_core::{CourseDetail, CourseQueryFilters, ElectiveScheduleRow};
+use heed_core::{CourseDetail, CourseQueryFilters};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
@@ -47,19 +47,6 @@ pub async fn fetch_course_detail(
     };
 
     handle_session_result(session.fetch_course_detail(&detail_url).await, &app, &state).await
-}
-
-#[tauri::command]
-pub async fn fetch_elective_schedule(
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<Vec<ElectiveScheduleRow>, String> {
-    logger::info("command: fetch_elective_schedule");
-    let session = {
-        let guard = state.manual_session.lock().await;
-        guard.clone().ok_or_else(|| "not logged in".to_string())?
-    };
-    handle_session_result(session.fetch_elective_schedule().await, &app, &state).await
 }
 
 #[tauri::command]

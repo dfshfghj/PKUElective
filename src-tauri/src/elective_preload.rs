@@ -42,6 +42,15 @@ async fn preload(app: AppHandle, generation: u64) {
 
     logger::info("starting background elective data preload");
 
+    match session.fetch_elective_schedule().await {
+        Ok(schedule) if is_current_user(&state, &username, generation).await => {
+            *state.elective_schedule.lock().await = schedule;
+            emit_progress(&app, &state, "schedule").await;
+        }
+        Ok(_) => return,
+        Err(err) => logger::warn(format!("failed to preload schedule data: {err}")),
+    }
+
     let preselect_courses = session.refresh_preselect_courses().await;
     let preselected_courses = session.refresh_preselected_courses().await;
     match (preselect_courses, preselected_courses) {

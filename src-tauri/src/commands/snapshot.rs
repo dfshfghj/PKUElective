@@ -1,6 +1,6 @@
 use heed_core::{
-    AppConfig, BotStatus, Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
-    SupplementPage, WishlistItem,
+    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse,
+    PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
 };
 use serde::Serialize;
 use std::sync::atomic::Ordering;
@@ -35,6 +35,7 @@ pub struct SnapshotView {
     pub config: AppConfig,
     pub automation_running: bool,
     pub elective_data_preloading: bool,
+    pub elective_schedule: Vec<ElectiveScheduleRow>,
     pub bots: Vec<BotView>,
     pub courses: Vec<Course>,
     pub preselect_courses: Vec<PreselectCourse>,
@@ -67,6 +68,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         }
     };
 
+    let elective_schedule = state.elective_schedule.lock().await.clone();
     let orchestrator = state.orchestrator.lock().await;
     let automation_running = *state.automation_running.lock().await;
     let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
@@ -93,6 +95,7 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         config: orchestrator.config().clone(),
         automation_running,
         elective_data_preloading: state.elective_data_preloading.load(Ordering::Relaxed),
+        elective_schedule,
         bots,
         courses: orchestrator.latest_courses().to_vec(),
         preselect_courses: orchestrator.latest_preselect_courses().to_vec(),

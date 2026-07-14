@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use heed_core::{AppConfig, Credentials, ElectiveSession, Orchestrator};
+use heed_core::{AppConfig, Credentials, ElectiveScheduleRow, ElectiveSession, Orchestrator};
 use tokio::sync::Mutex;
 
 use crate::auth_persistence::AuthPreferences;
@@ -14,6 +14,7 @@ pub struct AppState {
     pub auth_restoring: Mutex<bool>,
     pub automation_running: Mutex<bool>,
     pub elective_data_preloading: AtomicBool,
+    pub elective_schedule: Mutex<Vec<ElectiveScheduleRow>>,
     pub auth_generation: AtomicU64,
     pub manual_captcha_image_b64: Mutex<Option<String>>,
     pub manual_captcha_verified: Mutex<bool>,
@@ -31,6 +32,7 @@ impl Default for AppState {
             auth_restoring: Mutex::new(true),
             automation_running: Mutex::new(false),
             elective_data_preloading: AtomicBool::new(false),
+            elective_schedule: Mutex::new(Vec::new()),
             auth_generation: AtomicU64::new(0),
             manual_captcha_image_b64: Mutex::new(None),
             manual_captcha_verified: Mutex::new(false),
@@ -86,6 +88,10 @@ impl AppState {
         {
             let mut orchestrator = self.orchestrator.lock().await;
             orchestrator.clear_runtime_state();
+        }
+        {
+            let mut schedule = self.elective_schedule.lock().await;
+            schedule.clear();
         }
         {
             let mut captcha = self.manual_captcha_image_b64.lock().await;

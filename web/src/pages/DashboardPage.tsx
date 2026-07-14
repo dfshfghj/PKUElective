@@ -1,30 +1,9 @@
-import { useEffect, useState } from "react";
-
-import { fetchElectiveSchedule } from "../api";
 import { EmptyState, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
-import type { ElectiveScheduleRow } from "../types";
 
 export function DashboardPage() {
   const { snapshot } = useAppModel();
-  const [schedule, setSchedule] = useState<ElectiveScheduleRow[]>([]);
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchElectiveSchedule()
-      .then((rows) => {
-        if (!cancelled) setSchedule(rows);
-      })
-      .catch((reason: unknown) => {
-        if (!cancelled) {
-          setScheduleError(reason instanceof Error ? reason.message : "选课时间表加载失败。");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const schedule = snapshot.elective_schedule;
 
   return (
     <div className="space-y-6">
@@ -51,10 +30,10 @@ export function DashboardPage() {
       </div>
 
       <Surface title="选课时间表" meta="帮助 · 总体流程">
-        {scheduleError ? (
-          <EmptyState text={scheduleError} />
-        ) : schedule.length === 0 ? (
+        {schedule.length === 0 && snapshot.elective_data_preloading ? (
           <div className="py-10 text-center text-sm text-stone-500 dark:text-stone-400">正在加载选课时间表…</div>
+        ) : schedule.length === 0 ? (
+          <EmptyState text="当前没有可显示的选课时间表。" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">

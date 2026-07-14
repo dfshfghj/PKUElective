@@ -59,6 +59,7 @@ const emptySnapshot: SnapshotView = {
   },
   automation_running: false,
   elective_data_preloading: false,
+  elective_schedule: [],
   bots: [],
   courses: [],
   preselect_courses: [],

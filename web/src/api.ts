@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { AuthStateView, ConfigPatch, CourseDetail, CourseQueryFilters, ElectiveScheduleRow, SnapshotView } from "./types";
+import type { AuthStateView, ConfigPatch, CourseDetail, CourseQueryFilters, SnapshotView } from "./types";
 
 type Channel = "bzx" | "bfx" | "";
 
@@ -125,10 +125,6 @@ export async function clearAppLog(): Promise<void> {
 
 export async function fetchCourseDetail(detailUrl: string): Promise<CourseDetail> {
   return invoke<CourseDetail>("fetch_course_detail", { detailUrl });
-}
-
-export async function fetchElectiveSchedule(): Promise<ElectiveScheduleRow[]> {
-  return invoke<ElectiveScheduleRow[]>("fetch_elective_schedule");
 }
 
 export async function findCourseReview(courseName: string): Promise<CourseReviewLookup> {
