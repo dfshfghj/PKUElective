@@ -14,6 +14,7 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 
 import { useAppModel } from "./app-model";
+import { HIDE_AUTOMATION } from "./build-flags";
 import { Button } from "./components/ui/button";
 import {
   Sidebar,
@@ -37,7 +38,7 @@ const navigation = [
   { to: "/query", label: "课程查询", icon: Search },
   { to: "/automation", label: "自动化", icon: Bot },
   { to: "/settings", label: "设置", icon: Settings },
-];
+].filter((item) => !HIDE_AUTOMATION || item.to !== "/automation");
 
 export function AppSidebar() {
   const { snapshot, pending, handleLogout } = useAppModel();

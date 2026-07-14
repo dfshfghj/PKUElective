@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 
 import { AppProvider, useAppModel } from "./app-model";
 import { AppSidebar } from "./AppSidebar";
+import { HIDE_AUTOMATION } from "./build-flags";
 import { AppTitlebar } from "./components";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
 import { ScrollArea } from "./components/ui/scroll-area";
@@ -59,7 +60,7 @@ function AppRoutes() {
           <Route element={<CourseDetailPage />} path="course-detail" />
         </Route>
         <Route element={<Navigate replace to="/preselect" />} path="/course-detail" />
-        <Route element={<SettingsPage />} path="/automation" />
+        {!HIDE_AUTOMATION && <Route element={<SettingsPage />} path="/automation" />}
         <Route element={<AppSettingsPage />} path="/settings" />
       </Route>
       <Route

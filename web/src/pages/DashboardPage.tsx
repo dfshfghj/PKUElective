@@ -1,5 +1,6 @@
 import { EmptyState, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
+import { HIDE_AUTOMATION } from "../build-flags";
 
 export function DashboardPage() {
   const { snapshot } = useAppModel();
@@ -21,7 +22,7 @@ export function DashboardPage() {
 
         <Surface title="数据概览">
           <dl className="grid gap-3 rounded-3xl bg-stone-100/80 p-5 text-sm text-stone-700 dark:bg-stone-900/80 dark:text-stone-300">
-            <Stat label="Bot 数量" value={snapshot.bots.length} />
+            {!HIDE_AUTOMATION && <Stat label="Bot 数量" value={snapshot.bots.length} />}
             <Stat label="课程快照" value={snapshot.courses.length} />
             <Stat label="Wishlist" value={snapshot.wishlist.length} />
             <Stat label="选课结果" value={snapshot.results.courses.length} />

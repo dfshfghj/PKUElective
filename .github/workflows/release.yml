@@ -7,6 +7,11 @@ on:
         description: "Release version (for example 0.2.0)"
         required: true
         default: "0.1.0"
+      hide_automation:
+        description: "Hide the automation UI"
+        required: false
+        type: boolean
+        default: true
   push:
     tags:
       - "v*"
@@ -87,6 +92,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEED_BUILD_CHANNEL: Release
+          VITE_HIDE_AUTOMATION: ${{ github.event_name == 'workflow_dispatch' && inputs.hide_automation || false }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TAURI_CONFIG: '{"version":"${{ steps.version.outputs.version }}"}'
