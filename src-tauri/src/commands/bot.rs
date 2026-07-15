@@ -150,10 +150,8 @@ pub async fn refresh_preselect_courses(
         guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
-    let preselect_courses =
-        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
-    let preselected_courses =
-        handle_session_result(session.refresh_preselected_courses().await, &app, &state).await?;
+    let (preselect_courses, preselected_courses) =
+        handle_session_result(session.refresh_preselect_data().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.set_latest_preselect_courses(preselect_courses);

@@ -6,6 +6,7 @@ import { EmptyState, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import { useUpdater } from "../update-context";
 
 export function AppSettingsPage() {
@@ -15,6 +16,7 @@ export function AppSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"export" | "clear" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   const refreshInfo = useCallback(async () => {
     setError(null);
@@ -122,7 +124,7 @@ export function AppSettingsPage() {
             <Button disabled={busy !== null || !info} onClick={() => void handleExport()}>
               <Download className="size-4" /> {busy === "export" ? "正在导出…" : "导出到下载目录"}
             </Button>
-            <Button disabled={busy !== null || !info} onClick={() => void handleClear()} variant="destructive">
+            <Button disabled={busy !== null || !info} onClick={() => setClearDialogOpen(true)} variant="destructive">
               <Trash2 className="size-4" /> {busy === "clear" ? "正在清除…" : "清除日志"}
             </Button>
             <Button disabled={busy !== null} onClick={() => void refreshInfo()} variant="outline">
@@ -132,6 +134,16 @@ export function AppSettingsPage() {
           {message ? <p className="text-sm text-stone-600 dark:text-stone-300">{message}</p> : null}
         </div>
       </Surface>
+
+      <ConfirmDialog
+        confirmLabel="清除日志"
+        description="当前应用日志会被永久清除，此操作无法撤销。后续产生的新日志仍会继续记录。"
+        onConfirm={() => void handleClear()}
+        onOpenChange={setClearDialogOpen}
+        open={clearDialogOpen}
+        pending={busy === "clear"}
+        title="确认清除日志？"
+      />
     </div>
   );
 
@@ -150,7 +162,6 @@ export function AppSettingsPage() {
   }
 
   async function handleClear() {
-    if (!window.confirm("确认清除当前应用日志？此操作无法撤销。")) return;
     setBusy("clear");
     setMessage(null);
     try {

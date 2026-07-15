@@ -188,7 +188,12 @@ impl ElectiveBot {
         preference: Option<u32>,
     ) -> Result<SelectResult> {
         self.status = BotStatus::Selecting;
-        self.finish_select_result(self.session.preselect_course(select_url, preference).await)
+        self.finish_select_result(
+            self.session
+                .preselect_course(select_url, preference)
+                .await
+                .map(|operation| operation.result),
+        )
     }
 
     pub async fn select_course(&mut self, select_url: &str) -> Result<SelectResult> {

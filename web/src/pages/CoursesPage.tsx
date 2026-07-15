@@ -6,11 +6,13 @@ import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { PreselectCourse, PreselectedCourse } from "@/types";
 
 export function CoursesPage() {
   const { pending, snapshot, handleCancelPreselectCourse, handlePreselectCourse, handleRefreshPreselect } = useAppModel();
   const [preferenceDrafts, setPreferenceDrafts] = useState<Record<string, string>>({});
+  const [cancelCandidate, setCancelCandidate] = useState<Pick<PreselectedCourse, "name" | "class_id" | "cancel_url"> | null>(null);
   const hasAutoLoadedRef = useRef(false);
   const rows = useMemo(
     () =>
@@ -206,13 +208,11 @@ export function CoursesPage() {
       { accessorKey: "schedule", meta: { label: "上课/考试信息" }, cell: ({ row }) => <LineBreakText text={row.original.schedule} />, header: () => "上课/考试信息" },
       {
         id: "actions", meta: { label: "取消", mobileSlot: "footer" }, enableHiding: false, enableSorting: false,
-        cell: ({ row }) => <SecondaryButton disabled={pending !== null} onClick={() => {
-          if (window.confirm(`确认取消预选 ${row.original.name} ${row.original.class_id} 班？`)) void handleCancelPreselectCourse(row.original.cancel_url);
-        }}>取消预选</SecondaryButton>,
+        cell: ({ row }) => <SecondaryButton disabled={pending !== null} onClick={() => setCancelCandidate(row.original)}>取消预选</SecondaryButton>,
         header: () => <span className="px-2">取消</span>,
       },
     ],
-    [handleCancelPreselectCourse, pending],
+    [pending],
   );
 
   useEffect(() => {
@@ -296,6 +296,23 @@ export function CoursesPage() {
           />
         )}
       </Surface>
+
+      <ConfirmDialog
+        confirmLabel="取消预选"
+        description={cancelCandidate ? `将取消“${cancelCandidate.name}”${cancelCandidate.class_id} 班的预选。` : ""}
+        onConfirm={() => {
+          if (!cancelCandidate) return;
+          const cancelUrl = cancelCandidate.cancel_url;
+          setCancelCandidate(null);
+          void handleCancelPreselectCourse(cancelUrl);
+        }}
+        onOpenChange={(open) => {
+          if (!open) setCancelCandidate(null);
+        }}
+        open={cancelCandidate !== null}
+        pending={pending !== null}
+        title="确认取消预选？"
+      />
     </div>
   );
 }

@@ -51,20 +51,16 @@ async fn preload(app: AppHandle, generation: u64) {
         Err(err) => logger::warn(format!("failed to preload schedule data: {err}")),
     }
 
-    let preselect_courses = session.refresh_preselect_courses().await;
-    let preselected_courses = session.refresh_preselected_courses().await;
-    match (preselect_courses, preselected_courses) {
-        (Ok(courses), Ok(selected_courses)) if is_current_user(&state, &username, generation).await => {
+    match session.refresh_preselect_data().await {
+        Ok((courses, selected_courses)) if is_current_user(&state, &username, generation).await => {
             let mut orchestrator = state.orchestrator.lock().await;
             orchestrator.set_latest_preselect_courses(courses);
             orchestrator.set_latest_preselected_courses(selected_courses);
             drop(orchestrator);
             emit_progress(&app, &state, "preselect").await;
         }
-        (Ok(_), Ok(_)) => return,
-        (Err(err), _) | (_, Err(err)) => {
-            logger::warn(format!("failed to preload preselect data: {err}"))
-        }
+        Ok(_) => return,
+        Err(err) => logger::warn(format!("failed to preload preselect data: {err}")),
     }
 
     match session.refresh_plan_courses().await {
