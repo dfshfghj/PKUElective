@@ -223,7 +223,7 @@ jobs:
           HEED_BUILD_CHANNEL: Release
           VITE_HIDE_AUTOMATION: ${{ github.event_name != 'workflow_dispatch' || inputs.hide_automation }}
         run: >-
-          npm --prefix web exec -- tauri android build --
+          ./web/node_modules/.bin/tauri android build
           --ci --apk --aab --split-per-abi
           --config '{"version":"${{ steps.version.outputs.version }}"}'
 
