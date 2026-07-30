@@ -134,3 +134,141 @@ jobs:
             echo "Packaged version $ACTUAL_VERSION does not match release version $EXPECTED_VERSION" >&2
             exit 1
           fi
+
+  android:
+    name: Build Android release
+    needs: build
+    runs-on: ubuntu-latest
+    environment: android-signing
+    env:
+      NDK_VERSION: 29.0.14206865
+      BUILD_TOOLS_VERSION: 36.0.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve build version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid semantic version: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build dependencies
+        shell: bash
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;${BUILD_TOOLS_VERSION}" "ndk;${NDK_VERSION}"
+          echo "NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+          key: android-release
+
+      - name: Restore Android signing key
+        shell: bash
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_BASE64"
+          test -n "$ANDROID_KEY_PASSWORD"
+          printf '%s' "$ANDROID_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/android-upload-keystore.jks"
+          {
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "password=$ANDROID_KEY_PASSWORD"
+            echo "storeFile=$RUNNER_TEMP/android-upload-keystore.jks"
+          } > src-tauri/gen/android/keystore.properties
+
+      - name: Build signed Android packages
+        env:
+          HEED_BUILD_CHANNEL: Release
+          VITE_HIDE_AUTOMATION: ${{ github.event_name != 'workflow_dispatch' || inputs.hide_automation }}
+        run: >-
+          npm --prefix web exec -- tauri android build --
+          --ci --apk --aab --split-per-abi
+          --config '{"version":"${{ steps.version.outputs.version }}"}'
+
+      - name: Verify split APK signatures
+        shell: bash
+        run: |
+          APKS=(
+            src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/arm/release/app-arm-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86/release/app-x86-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
+          )
+          for APK in "${APKS[@]}"; do
+            test -f "$APK"
+            "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" verify --verbose --print-certs "$APK"
+          done
+
+      - name: Upload Android workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HEED-Android-${{ steps.version.outputs.version }}
+          if-no-files-found: error
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/arm/release/app-arm-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86/release/app-x86-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
+            src-tauri/gen/android/app/build/outputs/bundle/arm64Release/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/armRelease/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/x86Release/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/x86_64Release/*.aab
+
+      - name: Upload Android release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          draft: ${{ github.ref_type != 'tag' }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          fail_on_unmatched_files: true
+          files: |
+            src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/arm/release/app-arm-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86/release/app-x86-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
+            src-tauri/gen/android/app/build/outputs/bundle/arm64Release/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/armRelease/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/x86Release/*.aab
+            src-tauri/gen/android/app/build/outputs/bundle/x86_64Release/*.aab
