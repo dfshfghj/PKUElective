@@ -49,7 +49,10 @@ pub fn export_app_log(app: AppHandle) -> Result<String, String> {
         .map_err(|err| err.to_string())?
         .join(format!("HEED-log-{timestamp}.log"));
     logger::export_to(&destination)?;
-    logger::info(format!("exported application log to {}", destination.display()));
+    logger::info(format!(
+        "exported application log to {}",
+        destination.display()
+    ));
     Ok(destination.display().to_string())
 }
 

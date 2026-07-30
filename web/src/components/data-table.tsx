@@ -84,13 +84,13 @@ export function DataTable<TData>({
     }));
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-stone-500 dark:text-stone-400">
+    <div className="min-w-0 space-y-2 sm:space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="text-xs text-stone-500 sm:text-sm dark:text-stone-400">
           {table.getRowModel().rows.length} 条结果
         </div>
         {hideableColumns.length > 0 ? (
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <Button
               aria-expanded={showColumnMenu}
               aria-haspopup="menu"
@@ -129,7 +129,7 @@ export function DataTable<TData>({
 
       {isMobile ? (
         table.getRowModel().rows.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid min-w-0 gap-2">
             {table.getRowModel().rows.map((row) => {
               const visibleCells = row.getVisibleCells();
               const contentCells = visibleCells.filter((cell) => {
@@ -144,37 +144,37 @@ export function DataTable<TData>({
               return (
                 <Card
                   key={row.id}
-                  className="overflow-hidden rounded-3xl border border-stone-900/8 bg-white/90 shadow-sm dark:border-stone-800 dark:bg-stone-950/80"
+                  className="min-w-0 gap-2 overflow-hidden rounded-xl border border-stone-900/8 bg-white/90 py-3 shadow-none dark:border-stone-800 dark:bg-stone-950/80"
                 >
-                  <CardHeader className="gap-3 border-b border-stone-200/70 pb-4 dark:border-stone-800">
-                    <div className="space-y-1">
+                  <CardHeader className="min-w-0 gap-2 px-3 pb-1">
+                    <div className="min-w-0 space-y-0.5">
                       {mobileCardTitle ? (
-                        <CardTitle className="text-lg text-stone-950 dark:text-stone-100">
+                        <CardTitle className="break-words text-sm font-semibold text-stone-950 dark:text-stone-100">
                           {mobileCardTitle(row.original)}
                         </CardTitle>
                       ) : null}
                       {mobileCardDescription ? (
-                        <CardDescription className="text-sm leading-6 text-stone-500 dark:text-stone-400">
+                        <CardDescription className="break-words text-xs leading-5 text-stone-500 dark:text-stone-400">
                           {mobileCardDescription(row.original)}
                         </CardDescription>
                       ) : null}
                     </div>
                     {mobileCardBadges ? (
-                      <div className="flex flex-wrap gap-2">{mobileCardBadges(row.original)}</div>
+                      <div className="flex flex-wrap gap-1 [&>*]:px-2 [&>*]:py-0.5 [&>*]:text-[11px]">{mobileCardBadges(row.original)}</div>
                     ) : null}
                   </CardHeader>
-                  <CardContent className="grid gap-3 pt-4">
+                  <CardContent className="grid min-w-0 gap-0 px-3">
                     {contentCells.map((cell) => {
                       const label = getColumnLabel(cell.column.columnDef, cell.column.id);
                       return (
                         <div
                           key={cell.id}
-                          className="grid gap-2 rounded-2xl bg-stone-50/80 px-4 py-3 dark:bg-stone-900/80"
+                          className="flex min-w-0 items-start justify-between gap-3 border-t border-stone-200/60 py-2 first:border-t-0 dark:border-stone-800/70"
                         >
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                          <div className="shrink-0 text-xs text-stone-500 dark:text-stone-400">
                             {label}
                           </div>
-                          <div className="text-sm leading-6 text-stone-800 dark:text-stone-200">
+                          <div className="min-w-0 break-words text-right text-xs leading-5 text-stone-800 dark:text-stone-200">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>
                         </div>
@@ -182,7 +182,7 @@ export function DataTable<TData>({
                     })}
                   </CardContent>
                   {footerCells.length > 0 ? (
-                    <CardFooter className="flex-col items-stretch gap-3 border-t border-stone-200/70 bg-stone-50/80 dark:border-stone-800 dark:bg-stone-900/80">
+                    <CardFooter className="flex-col items-stretch gap-2 border-t border-stone-200/70 bg-stone-50/60 px-3 py-2 dark:border-stone-800 dark:bg-stone-900/60 [&_button]:w-full">
                       {footerCells.map((cell) => (
                         <div key={cell.id} className="w-full">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -195,7 +195,7 @@ export function DataTable<TData>({
             })}
           </div>
         ) : (
-          <div className="rounded-3xl border border-stone-900/8 bg-white/80 px-4 py-10 text-center text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-950/80 dark:text-stone-400">
+          <div className="rounded-xl border border-stone-900/8 bg-white/80 px-4 py-8 text-center text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-950/80 dark:text-stone-400">
             {emptyText}
           </div>
         )

@@ -2,14 +2,19 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewBuilder, WebviewUrl, Window};
+use tauri::{AppHandle, Manager, Window};
+#[cfg(desktop)]
+use tauri::{LogicalPosition, LogicalSize, WebviewBuilder, WebviewUrl};
 use tokio::sync::RwLock;
 
-use crate::{inject, logger};
+#[cfg(desktop)]
+use crate::inject;
+use crate::logger;
 
 const COURSE_LIST_URL: &str = "https://api.pinzhixiaoyuan.com/api/courses/list";
 const COURSE_VIEW_ORIGIN: &str = "https://courses.pinzhixiaoyuan.com";
 const CACHE_FILE_NAME: &str = "pinzhi-courses.json";
+#[cfg(desktop)]
 const WEBVIEW_LABEL: &str = "course-review";
 
 pub struct CourseReviewState {
@@ -68,7 +73,10 @@ pub async fn initialize(app: AppHandle, state: &CourseReviewState) {
     if let Ok(cached_json) = std::fs::read_to_string(&cache_path) {
         match parse_course_index(&cached_json) {
             Ok(index) => {
-                logger::info(format!("loaded {} cached course review entries", index.len()));
+                logger::info(format!(
+                    "loaded {} cached course review entries",
+                    index.len()
+                ));
                 *state.courses.write().await = index;
             }
             Err(err) => logger::error(format!("failed to load cached course review index: {err}")),
@@ -80,7 +88,9 @@ pub async fn initialize(app: AppHandle, state: &CourseReviewState) {
             Ok(index) => {
                 if let Some(parent) = cache_path.parent() {
                     if let Err(err) = std::fs::create_dir_all(parent) {
-                        logger::error(format!("failed to create course review cache directory: {err}"));
+                        logger::error(format!(
+                            "failed to create course review cache directory: {err}"
+                        ));
                     }
                 }
                 if let Err(err) = std::fs::write(&cache_path, json.as_bytes()) {
@@ -102,7 +112,10 @@ pub async fn find_course_review(
 ) -> Result<CourseReviewLookup, String> {
     let courses = state.courses.read().await;
     let query = course_name.trim();
-    let mut exact: Vec<&CourseMatch> = courses.iter().filter(|course| course.name == query).collect();
+    let mut exact: Vec<&CourseMatch> = courses
+        .iter()
+        .filter(|course| course.name == query)
+        .collect();
     exact.sort_by_key(|course| std::cmp::Reverse(course.review_count));
     if !exact.is_empty() {
         return Ok(CourseReviewLookup {
@@ -138,10 +151,14 @@ pub async fn find_course_review(
     fuzzy.truncate(20);
     Ok(CourseReviewLookup {
         exact: false,
-        matches: fuzzy.into_iter().map(|(_, course)| review_match_view(course)).collect(),
+        matches: fuzzy
+            .into_iter()
+            .map(|(_, course)| review_match_view(course))
+            .collect(),
     })
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn open_course_review_webview(
     window: Window,
@@ -170,11 +187,19 @@ pub async fn open_course_review_webview(
     Ok(())
 }
 
+#[cfg(mobile)]
 #[tauri::command]
-pub fn resize_course_review_webview(
-    app: AppHandle,
-    bounds: WebviewBounds,
+pub async fn open_course_review_webview(
+    _window: Window,
+    _course_id: u64,
+    _bounds: WebviewBounds,
 ) -> Result<(), String> {
+    Err("当前移动端暂不支持内嵌课程测评页面。".to_owned())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn resize_course_review_webview(app: AppHandle, bounds: WebviewBounds) -> Result<(), String> {
     let Some(webview) = app.get_webview(WEBVIEW_LABEL) else {
         return Ok(());
     };
@@ -182,10 +207,20 @@ pub fn resize_course_review_webview(
         .set_position(LogicalPosition::new(bounds.x, bounds.y))
         .map_err(|err| err.to_string())?;
     webview
-        .set_size(LogicalSize::new(bounds.width.max(1.0), bounds.height.max(1.0)))
+        .set_size(LogicalSize::new(
+            bounds.width.max(1.0),
+            bounds.height.max(1.0),
+        ))
         .map_err(|err| err.to_string())
 }
 
+#[cfg(mobile)]
+#[tauri::command]
+pub fn resize_course_review_webview(_app: AppHandle, _bounds: WebviewBounds) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn show_course_review_webview(app: AppHandle) -> Result<(), String> {
     if let Some(webview) = app.get_webview(WEBVIEW_LABEL) {
@@ -194,6 +229,13 @@ pub fn show_course_review_webview(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(mobile)]
+#[tauri::command]
+pub fn show_course_review_webview(_app: AppHandle) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn hide_course_review_webview(app: AppHandle) -> Result<(), String> {
     if let Some(webview) = app.get_webview(WEBVIEW_LABEL) {
@@ -202,6 +244,13 @@ pub fn hide_course_review_webview(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(mobile)]
+#[tauri::command]
+pub fn hide_course_review_webview(_app: AppHandle) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn close_course_review_webview(app: AppHandle) -> Result<(), String> {
     if let Some(webview) = app.get_webview(WEBVIEW_LABEL) {
@@ -210,6 +259,13 @@ pub fn close_course_review_webview(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(mobile)]
+#[tauri::command]
+pub fn close_course_review_webview(_app: AppHandle) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(desktop)]
 fn close_existing_webview(window: &Window) -> Result<(), String> {
     if let Some(webview) = window.app_handle().get_webview(WEBVIEW_LABEL) {
         webview.close().map_err(|err| err.to_string())?;
@@ -225,7 +281,9 @@ fn parse_course_index(json: &str) -> Result<Vec<CourseMatch>, String> {
         .ok_or_else(|| "missing cDatas.rows".to_owned())?;
     let mut courses = Vec::new();
     for row in rows {
-        let Some(columns) = row.as_array() else { continue };
+        let Some(columns) = row.as_array() else {
+            continue;
+        };
         let (Some(id), Some(name)) = (
             columns.first().and_then(Value::as_u64),
             columns.get(5).and_then(Value::as_str),

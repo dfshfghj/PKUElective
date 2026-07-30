@@ -113,7 +113,7 @@ export function SettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         breadcrumb="自动化"
         title="自动化"
@@ -156,7 +156,7 @@ export function SettingsPage() {
           title="可抢课程"
           meta={courseRows.length > 0 ? `${courseRows.length} 门` : undefined}
         >
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
             <Button
               className="gap-2"
               disabled={pending !== null}

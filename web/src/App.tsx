@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { type ReactNode, useEffect, useState } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import { Link, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { Toaster } from "sonner";
 
 import { AppProvider, useAppModel } from "./app-model";
@@ -89,6 +90,8 @@ function ProtectedLayout() {
   const { snapshot, loading, message } = useAppModel();
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
+  const locationBreadcrumbs = breadcrumbsForLocation(pathname, searchParams);
+  const mobileTitle = locationBreadcrumbs[locationBreadcrumbs.length - 1]?.label ?? "HEED";
 
   if (loading) {
     return <LoadingScreen message={message} />;
@@ -103,8 +106,20 @@ function ProtectedLayout() {
       <div className="flex h-dvh w-full overflow-hidden bg-transparent">
         <AppSidebar />
         <SidebarInset className="min-w-0 overflow-hidden">
-          <AppTitlebar breadcrumbs={breadcrumbsForLocation(pathname, searchParams)} />
-          <div className="border-b border-stone-200/80 bg-white/70 px-4 py-3 backdrop-blur dark:border-stone-800 dark:bg-stone-950/70 md:hidden">
+          <AppTitlebar breadcrumbs={locationBreadcrumbs} />
+          <div className="mobile-app-bar flex items-end gap-2 border-b border-stone-200/80 bg-white/80 px-4 pb-2 backdrop-blur dark:border-stone-800 dark:bg-stone-950/80 md:hidden">
+            {pathname.endsWith("/course-detail") ? (
+              <Link
+                aria-label="返回课程列表"
+                className="inline-flex size-8 items-center justify-center rounded-md text-stone-600 transition hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+                to={pathname.slice(0, -"/course-detail".length)}
+              >
+                <ChevronLeft className="size-4" />
+              </Link>
+            ) : null}
+            <h2 className="min-w-0 flex-1 truncate pb-1 text-lg font-semibold leading-none text-stone-950 dark:text-stone-100">
+              {mobileTitle}
+            </h2>
             <SidebarTrigger />
           </div>
           <main
@@ -116,8 +131,8 @@ function ProtectedLayout() {
               viewportClassName="overscroll-contain"
               viewportId="app-main-scroll-viewport"
             >
-              <div className="min-h-full w-full space-y-6 px-4 pb-8 md:px-8">
-              <Outlet />
+              <div className="app-content-safe min-h-full w-full space-y-4 px-4 md:space-y-6 md:px-8 md:pb-8">
+                <Outlet />
               </div>
             </ScrollArea>
           </main>
@@ -171,7 +186,7 @@ function DetailParentRoute({ page }: { page: ReactNode }) {
       {page}
       {showingDetail && mainContent
         ? createPortal(
-            <div className="absolute inset-0 z-10 overflow-hidden bg-background px-4 pb-4 backdrop-blur-sm md:px-8 md:pb-8">
+            <div className="detail-content-safe absolute inset-0 z-10 overflow-hidden bg-background px-4 backdrop-blur-sm md:px-8 md:pb-8">
               <Outlet />
             </div>,
             mainContent,
@@ -185,7 +200,7 @@ function LoadingScreen(props: { message: string }) {
   const title = props.message.includes("自动登录") ? "正在自动登录" : "正在连接后端";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-transparent px-4">
+    <div className="full-screen-safe flex min-h-dvh items-center justify-center bg-transparent px-4">
       <div className="w-full max-w-sm rounded-[2rem] bg-white/88 p-8 backdrop-blur dark:bg-stone-950/88">
         <div className="flex items-center justify-center">
           <div className="relative flex h-16 w-16 items-center justify-center">

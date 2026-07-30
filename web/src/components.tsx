@@ -24,18 +24,22 @@ export function PageHeader(props: {
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <header className="flex flex-col gap-2 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h2 className="text-2xl font-semibold leading-tight text-stone-950 dark:text-stone-100">
+        <h2 className="hidden text-xl font-semibold leading-tight text-stone-950 md:block md:text-2xl dark:text-stone-100">
           {props.title}
         </h2>
         {props.description ? (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-500 dark:text-stone-400">
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-stone-500 sm:mt-2 sm:text-sm sm:leading-6 dark:text-stone-400">
             {props.description}
           </p>
         ) : null}
       </div>
-      {props.actions ? <div className="flex flex-wrap gap-3">{props.actions}</div> : null}
+      {props.actions ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>*]:w-full sm:[&>*]:w-auto">
+          {props.actions}
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -52,7 +56,7 @@ export function AppTitlebar({
   const items = breadcrumbs ?? [{ label: breadcrumb ?? "HEED" }];
 
   return (
-    <div className="flex h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 mb-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80">
+    <div className="mb-4 hidden h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80 md:flex">
       <div
         className="flex flex-1 items-center gap-1 self-stretch"
         data-tauri-drag-region
@@ -97,9 +101,9 @@ export function Surface(props: {
   className?: string;
 }) {
   return (
-    <Card className={cn("overflow-hidden", props.className)}>
+    <Card className={cn("app-surface min-w-0 max-w-full overflow-hidden", props.className)}>
       {props.title ? (
-        <CardHeader className="pb-4">
+        <CardHeader className="min-w-0 pb-4">
           <div className="flex items-center justify-between gap-4">
             <CardTitle>{props.title}</CardTitle>
             {props.meta ? (
@@ -110,7 +114,7 @@ export function Surface(props: {
           </div>
         </CardHeader>
       ) : null}
-      <CardContent className={props.title ? undefined : "p-6"}>{props.children}</CardContent>
+      <CardContent className={props.title ? "min-w-0" : "min-w-0 p-4 sm:p-6"}>{props.children}</CardContent>
     </Card>
   );
 }

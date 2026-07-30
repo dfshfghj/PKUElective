@@ -7,21 +7,21 @@ export function DashboardPage() {
   const schedule = snapshot.elective_schedule;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-4 sm:space-y-6">
       <PageHeader breadcrumb="概览" title="概览" />
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Surface title="当前会话">
-          <div className="rounded-2xl bg-stone-100 p-5 dark:bg-stone-900">
-            <p className="text-sm text-stone-500 dark:text-stone-400">当前账号</p>
-            <p className="mt-2 text-2xl font-semibold text-stone-950 dark:text-stone-100">
+          <div className="rounded-2xl bg-stone-100 p-4 sm:p-5 dark:bg-stone-900">
+            <p className="hidden text-sm text-stone-500 sm:block dark:text-stone-400">当前账号</p>
+            <p className="text-xl font-semibold text-stone-950 sm:mt-2 sm:text-2xl dark:text-stone-100">
               {snapshot.auth.username ?? "未登录"}
             </p>
           </div>
         </Surface>
 
         <Surface title="数据概览">
-          <dl className="grid gap-3 rounded-3xl bg-stone-100/80 p-5 text-sm text-stone-700 dark:bg-stone-900/80 dark:text-stone-300">
+          <dl className="grid gap-3 rounded-2xl bg-stone-100/80 p-4 text-sm text-stone-700 sm:rounded-3xl sm:p-5 dark:bg-stone-900/80 dark:text-stone-300">
             {!HIDE_AUTOMATION && <Stat label="Bot 数量" value={snapshot.bots.length} />}
             <Stat label="课程快照" value={snapshot.courses.length} />
             <Stat label="Wishlist" value={snapshot.wishlist.length} />
@@ -30,29 +30,29 @@ export function DashboardPage() {
         </Surface>
       </div>
 
-      <Surface title="选课时间表" meta="帮助 · 总体流程">
+      <Surface title="选课时间表">
         {schedule.length === 0 && snapshot.elective_data_preloading ? (
           <div className="py-10 text-center text-sm text-stone-500 dark:text-stone-400">正在加载选课时间表…</div>
         ) : schedule.length === 0 ? (
           <EmptyState text="当前没有可显示的选课时间表。" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-sm">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full table-fixed text-left text-xs sm:min-w-[680px] sm:table-auto sm:text-sm">
               <thead className="border-b border-stone-200 text-stone-500 dark:border-stone-800 dark:text-stone-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">选课阶段</th>
-                  <th className="px-4 py-3 font-medium">开始时间</th>
-                  <th className="px-4 py-3 font-medium">结束时间</th>
-                  <th className="px-4 py-3 font-medium">备注</th>
+                  <th className="w-[30%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">阶段</th>
+                  <th className="w-[35%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">开始</th>
+                  <th className="w-[35%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">结束</th>
+                  <th className="hidden px-4 py-3 font-medium sm:table-cell">备注</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 dark:divide-stone-800/80">
                 {schedule.map((row, index) => (
                   <tr className="hover:bg-orange-50/60 dark:hover:bg-stone-900" key={`${row.stage}-${index}`}>
-                    <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-100">{row.stage}</td>
-                    <td className="px-4 py-3 text-stone-600 dark:text-stone-300">{row.start_time || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600 dark:text-stone-300">{row.end_time || "—"}</td>
-                    <td className="px-4 py-3 text-stone-500 dark:text-stone-400">{row.note || "—"}</td>
+                    <td className="break-words px-2 py-2 font-medium text-stone-900 sm:px-4 sm:py-3 dark:text-stone-100">{row.stage}</td>
+                    <td className="break-words px-2 py-2 text-stone-600 sm:px-4 sm:py-3 dark:text-stone-300">{row.start_time || "—"}</td>
+                    <td className="break-words px-2 py-2 text-stone-600 sm:px-4 sm:py-3 dark:text-stone-300">{row.end_time || "—"}</td>
+                    <td className="hidden px-4 py-3 text-stone-500 sm:table-cell dark:text-stone-400">{row.note || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -65,23 +65,23 @@ export function DashboardPage() {
         {snapshot.results.courses.length === 0 ? (
           <EmptyState text="当前还没有选课结果。" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
+          <div className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full table-fixed text-left text-xs sm:min-w-[560px] sm:table-auto sm:text-sm">
               <thead className="border-b border-stone-200 text-stone-500 dark:border-stone-800 dark:text-stone-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">课程名</th>
-                  <th className="px-4 py-3 font-medium">教师</th>
-                  <th className="px-4 py-3 font-medium">P/NP</th>
-                  <th className="px-4 py-3 font-medium">结果</th>
+                  <th className="w-[45%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">课程</th>
+                  <th className="w-[30%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">教师</th>
+                  <th className="hidden px-4 py-3 font-medium sm:table-cell">P/NP</th>
+                  <th className="w-[25%] px-2 py-2 font-medium sm:w-auto sm:px-4 sm:py-3">结果</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 dark:divide-stone-800/80">
                 {snapshot.results.courses.map((course) => (
                   <tr className="hover:bg-orange-50/60 dark:hover:bg-stone-900" key={`${course.course_id}-${course.class_id}`}>
-                    <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-100">{course.name}</td>
-                    <td className="px-4 py-3 text-stone-600 dark:text-stone-300">{course.teacher || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600 dark:text-stone-300">{course.pnp_status || "—"}</td>
-                    <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-100">{course.result || "—"}</td>
+                    <td className="break-words px-2 py-2 font-medium text-stone-900 sm:px-4 sm:py-3 dark:text-stone-100">{course.name}</td>
+                    <td className="break-words px-2 py-2 text-stone-600 sm:px-4 sm:py-3 dark:text-stone-300">{course.teacher || "—"}</td>
+                    <td className="hidden px-4 py-3 text-stone-600 sm:table-cell dark:text-stone-300">{course.pnp_status || "—"}</td>
+                    <td className="break-words px-2 py-2 font-medium text-stone-900 sm:px-4 sm:py-3 dark:text-stone-100">{course.result || "—"}</td>
                   </tr>
                 ))}
               </tbody>

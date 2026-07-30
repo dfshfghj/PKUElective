@@ -86,6 +86,15 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, phase: "checking", message: "正在检查更新…" }));
     try {
       const info = await getAppInfo();
+      if (info.platform === "android" || info.platform === "ios") {
+        setState((current) => ({
+          ...current,
+          phase: "disabled",
+          currentVersion: info.version,
+          message: "移动端不支持应用内自动更新。",
+        }));
+        return;
+      }
       if (info.buildChannel !== "Release") {
         setState((current) => ({
           ...current,

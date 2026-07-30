@@ -26,16 +26,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-100 px-4 py-10 dark:bg-stone-950">
+    <div className="full-screen-safe relative flex min-h-dvh items-center justify-center overflow-hidden bg-stone-100 px-4 py-10 dark:bg-stone-950">
       <div data-tauri-drag-region className="absolute inset-0" />
       <div
-        className="absolute inset-x-0 top-0 z-20 flex h-12 items-center justify-end"
+        className="absolute inset-x-0 top-0 z-20 hidden h-12 items-center justify-end md:flex"
         data-tauri-drag-region
       >
         <WindowControls className="m-0 flex h-full" />
       </div>
       <Card className="relative grid w-full max-w-6xl border-white/70 bg-white/92 p-0 shadow-[0_30px_120px_rgba(28,25,23,0.14)] backdrop-blur dark:border-white/10 dark:bg-stone-950/92 lg:grid-cols-[1fr_1.05fr]">
-        <div className="flex flex-col justify-center px-6 py-8 sm:px-8 sm:py-10 lg:px-10">
+        <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
           <CardHeader className="px-0">
             <CardTitle className="text-2xl font-semibold tracking-tight">登录选课网</CardTitle>
           </CardHeader>
@@ -78,7 +78,7 @@ export function LoginPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
                 <label className="flex items-center gap-3 text-sm text-stone-700 dark:text-stone-300">
                   <Checkbox
                     checked={loginForm.rememberPassword}
@@ -120,7 +120,7 @@ export function LoginPage() {
           </CardContent>
         </div>
 
-        <div className="relative min-h-72 overflow-hidden border-t border-stone-200/80 bg-stone-950 lg:min-h-full lg:border-t-0 lg:border-l lg:border-stone-200/80 dark:border-white/10">
+        <div className="relative hidden min-h-full overflow-hidden border-l border-stone-200/80 bg-stone-950 lg:block dark:border-white/10">
           <img
             alt="北京大学校园景观"
             className="h-full w-full object-cover object-center transition-[filter,transform] duration-500 dark:invert dark:hue-rotate-180 dark:contrast-110 dark:brightness-90"

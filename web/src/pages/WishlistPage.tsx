@@ -89,7 +89,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "weekly_hours",
-        meta: { label: "周学时" },
+        meta: { label: "周学时", mobileHidden: true },
         header: ({ column }) => (
           <SortableHeader
             label="周学时"
@@ -100,7 +100,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "grade",
-        meta: { label: "年级" },
+        meta: { label: "年级", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.grade),
         header: ({ column }) => (
           <SortableHeader
@@ -124,7 +124,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "pnp_status",
-        meta: { label: "自选P/NP" },
+        meta: { label: "自选P/NP", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.pnp_status),
         header: ({ column }) => (
           <SortableHeader
@@ -136,7 +136,7 @@ export function WishlistPage() {
       },
       {
         accessorKey: "selection_mark",
-        meta: { label: "选课标志" },
+        meta: { label: "选课标志", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.selection_mark),
         header: ({ column }) => (
           <SortableHeader
@@ -184,7 +184,7 @@ export function WishlistPage() {
   }, [handleRefreshPlan, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.plan_courses.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         breadcrumb="选课计划"
         title="选课计划"
@@ -216,7 +216,7 @@ export function WishlistPage() {
               selection_mark: false,
             }}
             mobileCardTitle={(course) => course.name}
-            mobileCardDescription={(course) => `${course.course_id} · 班号 ${course.class_id}`}
+            mobileCardDescription={(course) => [course.course_id, course.class_id].filter(Boolean).join(" · ")}
             mobileCardBadges={(course) => (
               <>
                 <Badge variant="secondary">{course.category}</Badge>

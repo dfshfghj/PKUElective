@@ -27,7 +27,7 @@ export function ConfirmDialog({
     <AlertDialog.Root onOpenChange={onOpenChange} open={open}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 z-50 bg-stone-950/25 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 dark:bg-black/50" />
-        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-stone-200/80 bg-white p-6 text-stone-950 shadow-2xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100">
+        <AlertDialog.Content className="safe-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200/80 bg-white p-5 text-stone-950 shadow-2xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 sm:rounded-3xl sm:p-6 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100">
           <div className="flex items-start gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-300">
               <TriangleAlert className="size-5" />
@@ -39,7 +39,7 @@ export function ConfirmDialog({
               </AlertDialog.Description>
             </div>
           </div>
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 [&_button]:w-full sm:[&_button]:w-auto">
             <AlertDialog.Cancel asChild>
               <Button disabled={pending} variant="outline">取消</Button>
             </AlertDialog.Cancel>

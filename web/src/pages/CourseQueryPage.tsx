@@ -213,7 +213,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "department",
-        meta: { label: "开课单位" },
+        meta: { label: "开课单位", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.department),
         header: ({ column }) => (
           <SortableHeader
@@ -225,7 +225,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "grade",
-        meta: { label: "年级" },
+        meta: { label: "年级", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.grade),
         header: ({ column }) => (
           <SortableHeader
@@ -268,7 +268,7 @@ export function CourseQueryPage() {
       },
       {
         accessorKey: "pnp_status",
-        meta: { label: "自选P/NP" },
+        meta: { label: "自选P/NP", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.pnp_status),
         header: ({ column }) => (
           <SortableHeader
@@ -313,7 +313,7 @@ export function CourseQueryPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         breadcrumb="课程查询"
         title="课程查询"
@@ -398,7 +398,7 @@ export function CourseQueryPage() {
               <span>时间反查</span>
             </label>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
             <PrimaryButton disabled={pending !== null} type="submit">
               查询
             </PrimaryButton>
@@ -439,7 +439,7 @@ export function CourseQueryPage() {
             }}
             mobileCardTitle={(course) => course.name}
             mobileCardDescription={(course) =>
-              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+              [course.course_id, course.class_id, course.teacher].filter(Boolean).join(" · ")
             }
             mobileCardBadges={(course) => (
               <>

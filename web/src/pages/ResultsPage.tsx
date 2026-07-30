@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
+import { Dialog } from "radix-ui";
 
 import { EmptyState, LineBreakText, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
@@ -21,9 +23,15 @@ export function ResultsPage() {
   const { snapshot, pending, handleRefreshResults } = useAppModel();
   const isMobile = useIsMobile();
   const hasTriggeredAutoRefresh = useRef(false);
+  const [selectedTimetableCell, setSelectedTimetableCell] = useState<{
+    text: string;
+    section: string;
+    weekday: string;
+  } | null>(null);
   const results = snapshot.results;
   const timetable = results.timetable;
   const mergedTimetable = timetable ? mergeTimetableRows(timetable.rows) : [];
+  const timetableHeaders = timetable?.headers.length ? timetable.headers : fallbackHeaders;
 
   useEffect(() => {
     if (hasTriggeredAutoRefresh.current) {
@@ -42,13 +50,24 @@ export function ResultsPage() {
   }, [handleRefreshResults, pending, results.courses.length, results.summary, results.timetable, snapshot.auth.logged_in, snapshot.elective_data_preloading]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-4 sm:space-y-6">
       <PageHeader
         breadcrumb="选课结果"
         title="选课结果"
       />
 
-      <Surface title="结果说明">
+      {results.notice || results.export_url ? (
+        <div className="grid gap-2 text-xs leading-5 text-stone-500 sm:hidden dark:text-stone-400">
+          {results.notice ? <p>{results.notice}</p> : null}
+          {results.export_url ? (
+            <a className="w-fit font-medium text-orange-700 dark:text-orange-300" href={results.export_url} rel="noreferrer" target="_blank">
+              导出 Excel
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
+      <Surface className="hidden sm:flex" title="结果说明">
         <div className="grid gap-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
           <div className="rounded-2xl bg-stone-100/80 p-4 dark:bg-stone-900/80">
             {results.notice ?? "这里会显示选课状态、操作时间，以及课表中的具体排课信息。"}
@@ -66,12 +85,39 @@ export function ResultsPage() {
         </div>
       </Surface>
 
-      <Surface title="选课结果列表" meta={`${results.courses.length} 门`}>
+      <Surface className="mobile-compact-surface" title="选课结果列表" meta={`${results.courses.length} 门`}>
         {results.courses.length === 0 ? (
           <EmptyState text="还没有拿到选课结果，先刷新一次看看。" />
+        ) : isMobile ? (
+          <div className="grid min-w-0 gap-2">
+            {results.courses.map((course) => (
+              <article
+                className="min-w-0 rounded-xl border border-stone-200/80 bg-white/80 p-3 dark:border-stone-800 dark:bg-stone-950/80"
+                key={`${course.course_id}-${course.class_id}-${course.operation_time}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words text-sm font-semibold text-stone-950 dark:text-stone-100">{course.name}</h3>
+                    <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                      {[course.course_id, course.teacher].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-900 dark:bg-orange-950/40 dark:text-orange-100">
+                    {course.result || "—"}
+                  </span>
+                </div>
+                <p className="mt-2 break-words text-xs text-stone-500 dark:text-stone-400">
+                  {[course.category, course.credits ? `${course.credits} 学分` : "", course.class_id ? `${course.class_id} 班` : "", course.pnp_status].filter(Boolean).join(" · ")}
+                </p>
+                {course.operation_time ? (
+                  <p className="mt-1 truncate text-[11px] text-stone-400 dark:text-stone-500">{course.operation_time}</p>
+                ) : null}
+              </article>
+            ))}
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
-            <ScrollArea className="max-w-full">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-stone-900/8 dark:border-stone-800">
+            <ScrollArea className="w-full min-w-0 max-w-full">
               <table className="min-w-[1100px] divide-y divide-stone-900/6 bg-white/80 text-left text-sm dark:divide-stone-800 dark:bg-stone-950/80">
                 <thead className="bg-stone-100/90 text-stone-700 dark:bg-stone-900 dark:text-stone-300">
                   <tr>
@@ -112,21 +158,21 @@ export function ResultsPage() {
         )}
       </Surface>
 
-      <Surface title={timetable?.caption ?? "学期课程表"}>
+      <Surface className="mobile-compact-surface" title={timetable?.caption ?? "学期课程表"}>
         {!timetable || timetable.rows.length === 0 ? (
           <EmptyState text="当前没有可展示的课表数据。" />
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-stone-900/8 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-950">
-            <ScrollArea className="max-w-full">
-              <table className="min-w-[900px] border-separate border-spacing-0 bg-white text-left text-sm dark:bg-stone-950">
+          isMobile ? (
+            <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-stone-900/8 bg-white dark:border-stone-800 dark:bg-stone-950">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-center text-[10px] text-stone-800 dark:text-stone-200">
                 <thead className="text-stone-700 dark:text-stone-300">
                   <tr>
-                    {(timetable.headers.length > 0 ? timetable.headers : fallbackHeaders).map((header) => (
+                    {timetableHeaders.map((header, index) => (
                       <th
                         key={header}
-                        className="text-center border-b border-r border-stone-200/80 bg-stone-100 px-4 py-4 font-semibold last:border-r-0 dark:border-stone-800 dark:bg-stone-900"
+                        className={`border-b border-r border-stone-200/80 bg-stone-100 px-0.5 py-1.5 font-semibold last:border-r-0 dark:border-stone-800 dark:bg-stone-900 ${index === 0 ? "w-[8%]" : ""}`}
                       >
-                        {isMobile ? compactHeaderLabel(header) : header}
+                        {compactHeaderLabel(header)}
                       </th>
                     ))}
                   </tr>
@@ -135,13 +181,9 @@ export function ResultsPage() {
                   {mergedTimetable.map((row) => (
                     <tr key={row.section} className="align-top">
                       <td
-                        className={`whitespace-nowrap border-b border-r border-stone-200/80 bg-stone-50 py-4 font-medium dark:border-stone-800 dark:bg-stone-900 ${
-                          isMobile
-                            ? "w-16 px-2 text-center"
-                            : "w-28 px-4 text-left"
-                        }`}
+                        className="w-[8%] border-b border-r border-stone-200/80 bg-stone-50 px-0.5 py-1 font-medium dark:border-stone-800 dark:bg-stone-900"
                       >
-                        {isMobile ? compactSectionLabel(row.section) : row.section}
+                        {compactSectionLabel(row.section)}
                       </td>
                       {row.cells.map((cell, index) => {
                         if (cell.hidden) {
@@ -152,35 +194,45 @@ export function ResultsPage() {
                           return (
                             <td
                               key={`${row.section}-${index}`}
-                              className="min-w-40 border-b border-r border-stone-200/80 bg-white px-4 py-4 text-xs leading-6 last:border-r-0 dark:border-stone-800 dark:bg-stone-950"
-                            >
-                              {" "}
-                            </td>
+                              className="h-16 border-b border-r border-stone-200/80 bg-white last:border-r-0 dark:border-stone-800 dark:bg-stone-950"
+                            />
                           );
                         }
 
                         const palette = courseCellPalette(cell.background_color);
+                        const compact = compactCourseParts(cell.text);
 
                         return (
                           <td
                             key={`${row.section}-${index}`}
                             rowSpan={cell.rowSpan}
-                            className="min-w-40 border-b border-r border-stone-200/80 align-top last:border-r-0 dark:border-stone-800"
+                            className="relative border-b border-r border-stone-200/80 p-0 align-top last:border-r-0 dark:border-stone-800"
                           >
-                            <div
-                              className="flex h-full min-h-24 rounded-md px-3 py-3 text-xs leading-6 text-stone-900 shadow-sm dark:text-stone-100"
+                            <button
+                              aria-label={`查看${compact.courseName || "课程"}详情`}
+                              className="absolute inset-0 flex h-full w-full items-center justify-center gap-0.5 overflow-hidden px-0.5 py-1 text-stone-900 outline-none transition active:brightness-95 focus-visible:ring-2 focus-visible:ring-orange-500/40 dark:text-stone-100"
+                              onClick={() =>
+                                setSelectedTimetableCell({
+                                  text: cell.text,
+                                  section: row.section,
+                                  weekday: timetableHeaders[index + 1] ?? `第 ${index + 1} 列`,
+                                })
+                              }
                               style={{
                                 backgroundColor: palette.backgroundColor,
                                 borderColor: palette.borderColor,
                               }}
-                              title={cell.text}
+                              type="button"
                             >
-                              <div className="break-words">
-                                <div className="whitespace-pre-line">
-                                  {isMobile ? compactCourseText(cell.text) : cell.text}
-                                </div>
-                              </div>
-                            </div>
+                              <span className="max-h-28 overflow-hidden break-all text-[10px] font-medium leading-3 [writing-mode:vertical-rl]">
+                                {compact.courseName}
+                              </span>
+                              {compact.classroom ? (
+                                <span className="max-h-28 overflow-hidden break-all text-[9px] leading-3 text-stone-600 [writing-mode:vertical-rl] dark:text-stone-300">
+                                  {compact.classroom}
+                                </span>
+                              ) : null}
+                            </button>
                           </td>
                         );
                       })}
@@ -188,10 +240,73 @@ export function ResultsPage() {
                   ))}
                 </tbody>
               </table>
-            </ScrollArea>
-          </div>
+            </div>
+          ) : (
+            <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-stone-900/8 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-950">
+              <ScrollArea className="w-full min-w-0 max-w-full">
+                <table className="min-w-[900px] border-separate border-spacing-0 bg-white text-left text-sm dark:bg-stone-950">
+                  <thead className="text-stone-700 dark:text-stone-300">
+                    <tr>
+                      {timetableHeaders.map((header) => (
+                        <th key={header} className="border-b border-r border-stone-200/80 bg-stone-100 px-4 py-4 text-center font-semibold last:border-r-0 dark:border-stone-800 dark:bg-stone-900">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="text-stone-800 dark:text-stone-200">
+                    {mergedTimetable.map((row) => (
+                      <tr key={row.section} className="align-top">
+                        <td className="w-28 whitespace-nowrap border-b border-r border-stone-200/80 bg-stone-50 px-4 py-4 font-medium dark:border-stone-800 dark:bg-stone-900">
+                          {row.section}
+                        </td>
+                        {row.cells.map((cell, index) => {
+                          if (cell.hidden) return null;
+                          if (!cell.text.trim()) {
+                            return <td key={`${row.section}-${index}`} className="min-w-40 border-b border-r border-stone-200/80 bg-white px-4 py-4 last:border-r-0 dark:border-stone-800 dark:bg-stone-950" />;
+                          }
+                          const palette = courseCellPalette(cell.background_color);
+                          return (
+                            <td key={`${row.section}-${index}`} rowSpan={cell.rowSpan} className="min-w-40 border-b border-r border-stone-200/80 align-top last:border-r-0 dark:border-stone-800">
+                              <div className="flex h-full min-h-24 rounded-md px-3 py-3 text-xs leading-6 text-stone-900 shadow-sm dark:text-stone-100" style={{ backgroundColor: palette.backgroundColor, borderColor: palette.borderColor }} title={cell.text}>
+                                <div className="whitespace-pre-line break-words">{cell.text}</div>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            </div>
+          )
         )}
       </Surface>
+
+      <Dialog.Root open={selectedTimetableCell !== null} onOpenChange={(open) => !open && setSelectedTimetableCell(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-stone-950/30 backdrop-blur-sm" />
+          <Dialog.Content className="safe-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200/80 bg-white p-4 text-stone-950 shadow-2xl outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100">
+            <div className="pr-8">
+              <Dialog.Title className="text-base font-semibold">
+                {selectedTimetableCell ? compactCourseParts(selectedTimetableCell.text).courseName : "课程详情"}
+              </Dialog.Title>
+              {selectedTimetableCell ? (
+                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                  {selectedTimetableCell.weekday} · {selectedTimetableCell.section}
+                </p>
+              ) : null}
+            </div>
+            <Dialog.Description className="mt-4 whitespace-pre-wrap break-words rounded-xl bg-stone-100/80 p-3 text-sm leading-6 text-stone-700 dark:bg-stone-900 dark:text-stone-300">
+              {selectedTimetableCell?.text ?? ""}
+            </Dialog.Description>
+            <Dialog.Close className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-100" aria-label="关闭">
+              <X className="size-4" />
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }
@@ -316,28 +431,42 @@ function compactHeaderLabel(header: string) {
   return compactWeekdayLabels[header] ?? header;
 }
 
-function compactCourseText(text: string) {
+function compactCourseParts(text: string) {
   const normalized = text
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
   if (normalized.length === 0) {
-    return "";
+    return { courseName: "", classroom: "" };
   }
 
   const firstLine = normalized[0] ?? "";
   const inlineMatch = firstLine.match(/^(.*?)\s*\(([^()]+)\)/);
   if (inlineMatch) {
     const [, courseName, room] = inlineMatch;
-    return `${courseName.trim()}\n${room.trim()}`;
+    return {
+      courseName: courseName.trim(),
+      classroom: normalizeClassroom(room),
+    };
   }
 
   const courseName = firstLine.replace(/\([^()]+\)/g, "").trim();
   const standaloneRoomLine = normalized.find((line) => /^\([^()]+\)$/.test(line));
   const room = standaloneRoomLine ? standaloneRoomLine.replace(/[()]/g, "").trim() : "";
 
-  return room ? `${courseName}\n${room}` : courseName;
+  const labeledRoomLine = normalized.find((line) => /(?:上课)?教室[：:]/.test(line));
+  const labeledRoom = labeledRoomLine?.replace(/^.*?(?:上课)?教室[：:]\s*/, "") ?? "";
+
+  return {
+    courseName,
+    classroom: normalizeClassroom(room || labeledRoom),
+  };
+}
+
+function normalizeClassroom(value: string) {
+  const normalized = value.replace(/[()]/g, "").trim();
+  return normalized.includes("暂无上课教室数据") ? "" : normalized;
 }
 
 function compactSectionLabel(section: string) {

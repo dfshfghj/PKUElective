@@ -52,23 +52,23 @@ export function CourseDetailPage() {
   }, [detailUrl]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4">
       <PageHeader
         breadcrumb="课程详情"
         title={searchParams.get("name") || "课程详情"}
       />
-      <div className="flex w-fit shrink-0 items-center rounded-lg border border-stone-200 bg-white/80 p-1 dark:border-stone-800 dark:bg-stone-900/80">
-        <Button onClick={() => setActiveTab("detail")} size="sm" variant={activeTab === "detail" ? "default" : "ghost"}>
+      <div className="flex w-full shrink-0 items-center rounded-lg border border-stone-200 bg-white/80 p-1 sm:w-fit dark:border-stone-800 dark:bg-stone-900/80">
+        <Button className="flex-1 sm:flex-none" onClick={() => setActiveTab("detail")} size="sm" variant={activeTab === "detail" ? "default" : "ghost"}>
           课程详情
         </Button>
-        <Button onClick={() => setActiveTab("review")} size="sm" variant={activeTab === "review" ? "default" : "ghost"}>
+        <Button className="flex-1 sm:flex-none" onClick={() => setActiveTab("review")} size="sm" variant={activeTab === "review" ? "default" : "ghost"}>
           课程测评
         </Button>
       </div>
       <div className="min-h-0 flex-1">
         <div className={activeTab === "detail" ? "h-full" : "hidden"}>
           <ScrollArea className="h-full w-full" viewportClassName="overscroll-contain">
-            <div className="pb-2 pr-3">
+            <div className="pb-2 sm:pr-3">
               <Surface>
                 {error ? (
                   <EmptyState text={error} />

@@ -32,7 +32,7 @@ export function AppSettingsPage() {
   }, [refreshInfo]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader breadcrumb="设置" title="设置" description="查看应用信息并管理本地诊断日志。" />
 
       {error ? <EmptyState text={error} /> : null}
@@ -42,9 +42,9 @@ export function AppSettingsPage() {
           <dl className="divide-y divide-stone-100 text-sm dark:divide-stone-800">
             <InfoRow label="版本号" value={info ? `v${info.version} · ${info.buildChannel}` : "正在读取…"} />
             <InfoRow label="运行平台" value={info ? `${info.platform} · ${info.architecture}` : "正在读取…"} />
-            <div className="flex items-center justify-between gap-6 py-4">
+            <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <dt className="shrink-0 text-stone-500 dark:text-stone-400">项目地址</dt>
-              <dd className="min-w-0 text-right">
+              <dd className="min-w-0 sm:text-right">
                 <a
                   className="inline-flex items-center gap-1 break-all font-medium text-orange-700 underline underline-offset-4 dark:text-orange-300"
                   href={info?.projectUrl ?? "https://github.com/dfshfghj/PKUElective"}
@@ -62,7 +62,7 @@ export function AppSettingsPage() {
           <dl className="divide-y divide-stone-100 text-sm dark:divide-stone-800">
             <InfoRow label="当前账号" value={snapshot.auth.username ?? "未登录"} />
             <InfoRow label="自动登录" value={snapshot.auth.auto_login ? "已启用" : "未启用"} />
-            <div className="flex items-center justify-between gap-6 py-4">
+            <div className="flex items-center justify-between gap-4 py-4 sm:gap-6">
               <dt className="text-stone-500 dark:text-stone-400">安全凭据存储</dt>
               <dd><Badge variant={snapshot.auth.secure_store_available ? "secondary" : "outline"}>{snapshot.auth.secure_store_available ? "可用" : "不可用"}</Badge></dd>
             </div>
@@ -80,7 +80,7 @@ export function AppSettingsPage() {
               </p>
               {updater.notes ? <p className="mt-1 whitespace-pre-wrap text-sm text-stone-500 dark:text-stone-400">{updater.notes}</p> : null}
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row [&>button]:w-full sm:[&>button]:w-auto">
               <Button disabled={updater.phase === "checking" || updater.phase === "downloading"} onClick={() => void updater.checkForUpdates()} variant="outline">
                 <RefreshCw className={`size-4 ${updater.phase === "checking" ? "animate-spin" : ""}`} />
                 检查更新
@@ -120,7 +120,7 @@ export function AppSettingsPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
             <Button disabled={busy !== null || !info} onClick={() => void handleExport()}>
               <Download className="size-4" /> {busy === "export" ? "正在导出…" : "导出到下载目录"}
             </Button>
@@ -178,9 +178,9 @@ export function AppSettingsPage() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-6 py-4">
+    <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <dt className="shrink-0 text-stone-500 dark:text-stone-400">{label}</dt>
-      <dd className="min-w-0 break-all text-right font-medium text-stone-900 dark:text-stone-100">{value}</dd>
+      <dd className="min-w-0 break-all font-medium text-stone-900 sm:text-right dark:text-stone-100">{value}</dd>
     </div>
   );
 }

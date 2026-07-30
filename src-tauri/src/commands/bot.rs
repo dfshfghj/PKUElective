@@ -41,7 +41,11 @@ pub async fn add_bot(app: AppHandle, state: State<'_, AppState>) -> Result<Snaps
             .await
             .map_err(|err| err.to_string())?;
     }
-    emit_message(&app, "success", format!("Bot 已添加，请先完成 {bot_id} 的验证码。"))?;
+    emit_message(
+        &app,
+        "success",
+        format!("Bot 已添加，请先完成 {bot_id} 的验证码。"),
+    )?;
 
     emit_snapshot_events(&app, &state).await
 }

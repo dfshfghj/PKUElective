@@ -126,7 +126,7 @@ export function SupplementPage() {
   }, [handleRefreshSupplement, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.supplement]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         breadcrumb="补选退选"
         title="补选退选"
@@ -187,9 +187,9 @@ export function SupplementPage() {
                 ? "当前验证码已通过，接下来可以继续补选或退选。"
                 : "验证码不区分大小写，验证通过后再进行补选或退选。"}
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <input
-                className="h-10 w-40 rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none ring-0 transition focus:border-emerald-400 dark:border-stone-700 dark:bg-stone-950"
+                className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none ring-0 transition focus:border-emerald-400 sm:w-40 dark:border-stone-700 dark:bg-stone-950"
                 disabled={pending !== null}
                 maxLength={5}
                 onChange={(event) => setCaptchaCode(event.target.value)}
@@ -237,7 +237,7 @@ export function SupplementPage() {
             }}
             mobileCardTitle={(course) => course.name}
             mobileCardDescription={(course) =>
-              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+              [course.course_id, course.class_id, course.teacher].filter(Boolean).join(" · ")
             }
             mobileCardBadges={(course) => (
               <>
@@ -279,7 +279,7 @@ export function SupplementPage() {
             }}
             mobileCardTitle={(course) => course.name}
             mobileCardDescription={(course) =>
-              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+              [course.course_id, course.class_id, course.teacher].filter(Boolean).join(" · ")
             }
             mobileCardBadges={(course) => (
               <>
@@ -304,11 +304,11 @@ function baseColumns<T extends AvailableRow | SelectedRow>(): ColumnDef<T>[] {
     sortableTextColumn("name", "课程名", (_value, row) => <CourseDetailLink detailUrl={row.detail_url} name={row.name} />, { mobileHidden: true }),
     sortableTextColumn("category", "课程类别", undefined, { mobileHidden: true }),
     sortableTextColumn("credits", "学分", undefined, { mobileHidden: true }),
-    sortableTextColumn("weekly_hours", "周学时"),
+    sortableTextColumn("weekly_hours", "周学时", undefined, { mobileHidden: true }),
     sortableTextColumn("teacher", "教师", undefined, { mobileHidden: true }),
     sortableTextColumn("class_id", "班号", undefined, { mobileHidden: true }),
-    sortableTextColumn("department", "开课单位", (value) => tableCellMuted(value)),
-    sortableTextColumn("grade", "年级"),
+    sortableTextColumn("department", "开课单位", (value) => tableCellMuted(value), { mobileHidden: true }),
+    sortableTextColumn("grade", "年级", undefined, { mobileHidden: true }),
     {
       accessorKey: "schedule",
       meta: { label: "上课/考试信息" },
@@ -321,7 +321,7 @@ function baseColumns<T extends AvailableRow | SelectedRow>(): ColumnDef<T>[] {
         />
       ),
     },
-    sortableTextColumn("pnp_status", "自选P/NP", (value) => tableCellMuted(value)),
+    sortableTextColumn("pnp_status", "自选P/NP", (value) => tableCellMuted(value), { mobileHidden: true }),
   ];
 }
 

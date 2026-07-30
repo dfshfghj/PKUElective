@@ -72,7 +72,8 @@ impl AppState {
 
     pub async fn clear_auth_state(&self) {
         self.auth_generation.fetch_add(1, Ordering::AcqRel);
-        self.elective_data_preloading.store(false, Ordering::Release);
+        self.elective_data_preloading
+            .store(false, Ordering::Release);
         {
             let mut credentials = self.credentials.lock().await;
             *credentials = None;

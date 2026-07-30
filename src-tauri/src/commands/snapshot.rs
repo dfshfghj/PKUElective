@@ -1,6 +1,6 @@
 use heed_core::{
-    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse,
-    PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
+    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, PlanCourse,
+    PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
 };
 use serde::Serialize;
 use std::sync::atomic::Ordering;
@@ -84,9 +84,9 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
                     .ok()
                     .map(|duration| duration.as_millis())
             }),
-            captcha_image_b64: bot
-                .captcha_image()
-                .map(|bytes| base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)),
+            captcha_image_b64: bot.captcha_image().map(|bytes| {
+                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)
+            }),
         })
         .collect();
 

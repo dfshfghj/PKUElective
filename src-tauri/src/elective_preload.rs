@@ -22,9 +22,13 @@ pub fn spawn(app: AppHandle) {
         if state.auth_generation.load(Ordering::Acquire) != generation {
             return;
         }
-        state.elective_data_preloading.store(false, Ordering::Release);
+        state
+            .elective_data_preloading
+            .store(false, Ordering::Release);
         if let Err(err) = emit_snapshot_events(&app, state.inner()).await {
-            logger::error(format!("failed to emit completed elective preload snapshot: {err}"));
+            logger::error(format!(
+                "failed to emit completed elective preload snapshot: {err}"
+            ));
         }
     });
 }
@@ -65,7 +69,11 @@ async fn preload(app: AppHandle, generation: u64) {
 
     match session.refresh_plan_courses().await {
         Ok(courses) if is_current_user(&state, &username, generation).await => {
-            state.orchestrator.lock().await.set_latest_plan_courses(courses);
+            state
+                .orchestrator
+                .lock()
+                .await
+                .set_latest_plan_courses(courses);
             emit_progress(&app, &state, "plan").await;
         }
         Ok(_) => return,
@@ -74,13 +82,16 @@ async fn preload(app: AppHandle, generation: u64) {
 
     match session.refresh_supplement_page().await {
         Ok(page) if is_current_user(&state, &username, generation).await => {
-            state.orchestrator.lock().await.set_latest_supplement_page(page);
+            state
+                .orchestrator
+                .lock()
+                .await
+                .set_latest_supplement_page(page);
             if let Ok(captcha) = session.fetch_captcha().await
                 && is_current_user(&state, &username, generation).await
             {
-                *state.manual_captcha_image_b64.lock().await = Some(
-                    base64::engine::general_purpose::STANDARD.encode(captcha),
-                );
+                *state.manual_captcha_image_b64.lock().await =
+                    Some(base64::engine::general_purpose::STANDARD.encode(captcha));
             }
             emit_progress(&app, &state, "supplement").await;
         }
@@ -108,6 +119,8 @@ async fn is_current_user(state: &AppState, username: &str, generation: u64) -> b
 async fn emit_progress(app: &AppHandle, state: &AppState, section: &str) {
     logger::info(format!("preloaded elective {section} data"));
     if let Err(err) = emit_snapshot_events(app, state).await {
-        logger::error(format!("failed to emit elective preload snapshot for {section}: {err}"));
+        logger::error(format!(
+            "failed to emit elective preload snapshot for {section}: {err}"
+        ));
     }
 }

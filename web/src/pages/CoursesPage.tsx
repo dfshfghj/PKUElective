@@ -98,7 +98,7 @@ export function CoursesPage() {
       },
       {
         accessorKey: "department",
-        meta: { label: "开课单位" },
+        meta: { label: "开课单位", mobileHidden: true },
         cell: ({ row }) => tableCellMuted(row.original.department),
         header: ({ column }) => (
           <SortableHeader
@@ -202,7 +202,7 @@ export function CoursesPage() {
   const selectedColumns = useMemo<ColumnDef<PreselectedCourse & { key: string }>[]>(
     () => [
       { accessorKey: "course_id", meta: { label: "课程号", mobileHidden: true }, header: () => "课程号" },
-      { accessorKey: "name", meta: { label: "课程名" }, cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />, header: () => "课程名" },
+      { accessorKey: "name", meta: { label: "课程名", mobileHidden: true }, cell: ({ row }) => <CourseDetailLink detailUrl={row.original.detail_url} name={row.original.name} />, header: () => "课程名" },
       { accessorKey: "teacher", meta: { label: "教师", mobileHidden: true }, header: () => "教师" },
       { accessorKey: "class_id", meta: { label: "班号", mobileHidden: true }, header: () => "班号" },
       { accessorKey: "schedule", meta: { label: "上课/考试信息" }, cell: ({ row }) => <LineBreakText text={row.original.schedule} />, header: () => "上课/考试信息" },
@@ -233,7 +233,7 @@ export function CoursesPage() {
   }, [handleRefreshPreselect, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.preselect_courses.length, snapshot.preselected_courses.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         breadcrumb="预选"
         title="预选"
@@ -259,7 +259,7 @@ export function CoursesPage() {
             }}
             mobileCardTitle={(course) => course.name}
             mobileCardDescription={(course) =>
-              `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`
+              [course.course_id, course.class_id, course.teacher].filter(Boolean).join(" · ")
             }
             mobileCardBadges={(course) => (
               <>
@@ -291,7 +291,7 @@ export function CoursesPage() {
             getRowId={(course) => course.key}
             initialVisibility={{ teacher: false, class_id: false }}
             mobileCardTitle={(course) => course.name}
-            mobileCardDescription={(course) => `${course.course_id} · 班号 ${course.class_id} · ${course.teacher || "教师待定"}`}
+            mobileCardDescription={(course) => [course.course_id, course.class_id, course.teacher].filter(Boolean).join(" · ")}
             mobileCardBadges={(course) => <><Badge variant="secondary">{course.category}</Badge><Badge variant="outline">{course.credits} 学分</Badge></>}
           />
         )}
