@@ -208,7 +208,7 @@ export function DataTable<TData>({
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className="px-2 py-3 font-semibold text-stone-700 dark:text-stone-300"
+                      className="py-3 font-semibold text-stone-700 dark:text-stone-300"
                     >
                       {header.isPlaceholder
                         ? null
@@ -226,7 +226,7 @@ export function DataTable<TData>({
                     className="border-stone-900/6 hover:bg-orange-50/60 dark:border-stone-800 dark:hover:bg-stone-900"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-2 py-2 align-top text-center align-middle">
+                      <TableCell key={cell.id} className="py-2 align-top text-center align-middle">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
