@@ -12,6 +12,7 @@ on:
       - "Cargo.toml"
       - "crates/**/Cargo.toml"
       - "src-tauri/Cargo.toml"
+      - "src-tauri/gen/android/**"
       - "web/package-lock.json"
 
 permissions:
@@ -93,3 +94,73 @@ jobs:
 
       - name: Compile release dependencies
         run: cargo build --release --workspace ${{ matrix.cargo_args }}
+
+  android:
+    name: Warm Android release cache
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 29.0.14206865
+      BUILD_TOOLS_VERSION: 36.0.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build dependencies
+        shell: bash
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;${BUILD_TOOLS_VERSION}" "ndk;${NDK_VERSION}"
+          echo "NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache cargo-tauri CLI
+        id: cargo-tauri-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: cargo-tauri-${{ runner.os }}-2.11.0
+
+      - name: Install cargo-tauri CLI
+        if: steps.cargo-tauri-cache.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli --version 2.11.0 --locked
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+          key: android-release
+
+      - name: Warm Android release build
+        env:
+          HEED_BUILD_CHANNEL: Release
+          VITE_HIDE_AUTOMATION: true
+        run: >-
+          ./web/node_modules/.bin/tauri android build
+          --ci --apk --split-per-abi

@@ -179,6 +179,9 @@ jobs:
           sdkmanager "platforms;android-36" "build-tools;${BUILD_TOOLS_VERSION}" "ndk;${NDK_VERSION}"
           echo "NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -194,6 +197,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache cargo-tauri CLI
+        id: cargo-tauri-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: cargo-tauri-${{ runner.os }}-2.11.0
+
+      - name: Install cargo-tauri CLI
+        if: steps.cargo-tauri-cache.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli --version 2.11.0 --locked
+
+      - name: Verify cargo-tauri CLI
+        run: cargo tauri --version
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
