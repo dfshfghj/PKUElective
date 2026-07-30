@@ -1,4 +1,4 @@
-use heed_core::{Credentials, ElectiveSession};
+use elective_core::{Credentials, ElectiveSession};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;

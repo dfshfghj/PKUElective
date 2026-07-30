@@ -204,11 +204,11 @@ def prompt_for_label(sample_path: Path) -> Optional[str]:
 
 
 def resolve_credentials(args: argparse.Namespace) -> Credentials:
-    username = args.username or os.environ.get("HEED_USERNAME", "").strip()
+    username = args.username or os.environ.get("ELECTIVE_USERNAME", "").strip()
     if not username:
-        raise AuthError("missing username; pass --username or set HEED_USERNAME")
+        raise AuthError("missing username; pass --username or set ELECTIVE_USERNAME")
 
-    channel = args.channel or os.environ.get("HEED_CHANNEL")
+    channel = args.channel or os.environ.get("ELECTIVE_CHANNEL")
     if channel:
         channel = channel.strip().lower()
     if channel not in (None, "", "bzx", "bfx"):
@@ -220,7 +220,7 @@ def ensure_password(credentials: Credentials, args: argparse.Namespace) -> Crede
     if credentials.password:
         return credentials
 
-    password = args.password or os.environ.get("HEED_PASSWORD")
+    password = args.password or os.environ.get("ELECTIVE_PASSWORD")
     if not password:
         password = getpass.getpass("password: ")
     if not password:

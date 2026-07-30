@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for the main HEED window.",
+  "description": "Default capability for the main PKUElective window.",
   "windows": ["main"],
   "permissions": [
     "core:event:allow-listen",

@@ -1,7 +1,7 @@
 (() => {
-  if (window.HEEDCourseReview) return;
+  if (window.ElectiveCourseReview) return;
 
-  const STYLE_ELEMENT_ID = "heed-course-review-style";
+  const STYLE_ELEMENT_ID = "elective-course-review-style";
 
   const api = {
     installStyle(css) {
@@ -20,14 +20,14 @@
     },
   };
 
-  Object.defineProperty(window, "HEEDCourseReview", {
+  Object.defineProperty(window, "ElectiveCourseReview", {
     configurable: false,
     enumerable: false,
     writable: false,
     value: api,
   });
 
-  window.dispatchEvent(new CustomEvent("heed-course-review-ready", { detail: api }));
+  window.dispatchEvent(new CustomEvent("elective-course-review-ready", { detail: api }));
 
   const injectStyle = () => {
     const root = document.head || document.documentElement;

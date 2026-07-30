@@ -6,7 +6,7 @@ use crate::{
         SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable,
         TimetableCell, TimetableRow,
     },
-    error::{HeedError, Result},
+    error::{ElectiveError, Result},
 };
 
 const BASE_URL: &str = "https://elective.pku.edu.cn";
@@ -172,12 +172,12 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             .select(&class_selector)
             .next()
             .map(normalized_text)
-            .ok_or_else(|| HeedError::Parse("missing class id".into()))?;
+            .ok_or_else(|| ElectiveError::Parse("missing class id".into()))?;
         let name = row
             .select(&name_selector)
             .next()
             .map(normalized_text)
-            .ok_or_else(|| HeedError::Parse("missing course name".into()))?;
+            .ok_or_else(|| ElectiveError::Parse("missing course name".into()))?;
         let teacher = row
             .select(&teacher_selector)
             .next()
@@ -188,7 +188,7 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             .select(&elected_selector)
             .next()
             .map(normalized_text)
-            .ok_or_else(|| HeedError::Parse("missing elected count".into()))?;
+            .ok_or_else(|| ElectiveError::Parse("missing elected count".into()))?;
 
         let (volume_cnt, elected_cnt) = parse_count_pair(&count_text)?;
         let elected_cnt = if elected_cnt == 0 {
@@ -201,7 +201,7 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             .value()
             .attr("href")
             .map(|path| format!("{BASE_URL}{path}"))
-            .ok_or_else(|| HeedError::Parse("missing select url".into()))?;
+            .ok_or_else(|| ElectiveError::Parse("missing select url".into()))?;
 
         courses.push(Course {
             name,
@@ -385,7 +385,7 @@ fn parse_preselect_courses(document: &Html) -> Result<Vec<PreselectCourse>> {
                 select_link
                     .value()
                     .attr("href")
-                    .ok_or_else(|| HeedError::Parse("missing preselect url".into()))?,
+                    .ok_or_else(|| ElectiveError::Parse("missing preselect url".into()))?,
             ),
             detail_url: course_detail_url(row),
         });
@@ -406,7 +406,7 @@ fn parse_preselected_courses(document: &Html) -> Result<Vec<PreselectedCourse>> 
         if cells.len() < 14 { continue; }
         let Some(cancel_link) = row.select(&link_selector).next() else { continue; };
         let (volume_cnt, elected_cnt) = parse_count_pair(&cell_text(cells[11]))?;
-        let cancel_url = cancel_link.value().attr("href").ok_or_else(|| HeedError::Parse("missing preselect cancel url".into()))?;
+        let cancel_url = cancel_link.value().attr("href").ok_or_else(|| ElectiveError::Parse("missing preselect cancel url".into()))?;
         courses.push(PreselectedCourse {
             course_id: cell_text(cells[0]), name: cell_text(cells[1]), category: cell_text(cells[2]),
             credits: cell_text(cells[3]), weekly_hours: cell_text(cells[4]), teacher: cell_text(cells[5]),
@@ -533,7 +533,7 @@ pub fn parse_elective_schedule(html: &str) -> Result<Vec<ElectiveScheduleRow>> {
             .collect());
     }
 
-    Err(HeedError::Parse("missing elective schedule table".into()))
+    Err(ElectiveError::Parse("missing elective schedule table".into()))
 }
 
 fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
@@ -682,19 +682,19 @@ fn parse_count_pair(raw: &str) -> Result<(u32, u32)> {
     let mut parts = normalized.split('/');
     let volume = parts
         .next()
-        .ok_or_else(|| HeedError::Parse("missing volume count".into()))?
+        .ok_or_else(|| ElectiveError::Parse("missing volume count".into()))?
         .parse::<u32>()
-        .map_err(|_| HeedError::Parse(format!("invalid volume count: {raw}")))?;
+        .map_err(|_| ElectiveError::Parse(format!("invalid volume count: {raw}")))?;
 
     let elected_raw = parts
         .next()
-        .ok_or_else(|| HeedError::Parse("missing elected count".into()))?;
+        .ok_or_else(|| ElectiveError::Parse("missing elected count".into()))?;
     let elected = elected_raw
         .split('/')
         .next()
         .unwrap_or(elected_raw)
         .parse::<u32>()
-        .map_err(|_| HeedError::Parse(format!("invalid elected count: {raw}")))?;
+        .map_err(|_| ElectiveError::Parse(format!("invalid elected count: {raw}")))?;
 
     Ok((volume, elected))
 }
@@ -767,7 +767,7 @@ fn extract_background_color(style: &str) -> Option<String> {
 }
 
 fn selector(value: &str) -> Result<Selector> {
-    Selector::parse(value).map_err(|_| HeedError::Parse(format!("invalid selector: {value}")))
+    Selector::parse(value).map_err(|_| ElectiveError::Parse(format!("invalid selector: {value}")))
 }
 
 #[cfg(test)]

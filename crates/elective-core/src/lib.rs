@@ -19,7 +19,7 @@ pub use course::{
     SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable, TimetableCell,
     TimetableRow, WishlistItem,
 };
-pub use error::{HeedError, Result};
+pub use error::{ElectiveError, Result};
 pub use orchestrator::Orchestrator;
 pub use session::{CourseQueryFilters, ElectiveSession, SelectResult};
 pub use types::{BotId, Channel};

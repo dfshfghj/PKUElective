@@ -8,7 +8,7 @@ use crate::{
         Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage,
         WishlistItem,
     },
-    error::{HeedError, Result},
+    error::{ElectiveError, Result},
     session::{CourseQueryFilters, SelectResult},
     types::BotId,
 };
@@ -162,7 +162,7 @@ impl Orchestrator {
         let bot = self
             .bots
             .get_mut(bot_id)
-            .ok_or_else(|| HeedError::Config(format!("unknown bot: {bot_id}")))?;
+            .ok_or_else(|| ElectiveError::Config(format!("unknown bot: {bot_id}")))?;
         bot.fetch_captcha().await?;
         Ok(())
     }
@@ -171,7 +171,7 @@ impl Orchestrator {
         let bot = self
             .bots
             .get_mut(bot_id)
-            .ok_or_else(|| HeedError::Config(format!("unknown bot: {bot_id}")))?;
+            .ok_or_else(|| ElectiveError::Config(format!("unknown bot: {bot_id}")))?;
         bot.verify_captcha(code).await
     }
 
@@ -180,12 +180,12 @@ impl Orchestrator {
             .bots
             .iter()
             .find_map(|(id, bot)| (bot.status() == &BotStatus::Idle).then_some(id.clone()))
-            .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+            .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
 
         let bot = self
             .bots
             .get_mut(&bot_id)
-            .ok_or_else(|| HeedError::Config("bot disappeared during refresh".into()))?;
+            .ok_or_else(|| ElectiveError::Config("bot disappeared during refresh".into()))?;
 
         self.latest_courses = bot.refresh_courses().await?;
         self.latest_preselect_courses = bot.refresh_preselect_courses().await?;
@@ -199,7 +199,7 @@ impl Orchestrator {
         let courses = {
             let bot = self
                 .idle_bot_mut()
-                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+                .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
             bot.refresh_courses().await?
         };
         self.latest_courses = courses.clone();
@@ -227,7 +227,7 @@ impl Orchestrator {
         let select_result = {
             let bot = self
                 .idle_bot_mut()
-                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+                .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
             bot.select_course(&target.select_url).await
         };
 
@@ -259,12 +259,12 @@ impl Orchestrator {
             .bots
             .iter()
             .find_map(|(id, bot)| (bot.status() == &BotStatus::Idle).then_some(id.clone()))
-            .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+            .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
 
         let bot = self
             .bots
             .get_mut(&bot_id)
-            .ok_or_else(|| HeedError::Config("bot disappeared during query".into()))?;
+            .ok_or_else(|| ElectiveError::Config("bot disappeared during query".into()))?;
 
         self.latest_query_courses = bot.search_query_courses(filters).await?;
         Ok(&self.latest_query_courses)
@@ -274,7 +274,7 @@ impl Orchestrator {
         let (plan_courses, query_courses, preselect_courses) = {
             let bot = self
                 .idle_bot_mut()
-                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+                .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
             bot.add_course_to_plan(add_url).await?;
             (
                 bot.refresh_plan_courses().await?,
@@ -292,7 +292,7 @@ impl Orchestrator {
         let (plan_courses, preselect_courses) = {
             let bot = self
                 .idle_bot_mut()
-                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+                .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
             bot.remove_plan_course(delete_url).await?;
             (
                 bot.refresh_plan_courses().await?,
@@ -312,7 +312,7 @@ impl Orchestrator {
         let (result, preselect_courses, plan_courses) = {
             let bot = self
                 .idle_bot_mut()
-                .ok_or_else(|| HeedError::Config("no idle bot available".into()))?;
+                .ok_or_else(|| ElectiveError::Config("no idle bot available".into()))?;
             let result = bot.preselect_course(select_url, preference).await?;
             let preselect_courses = bot.refresh_preselect_courses().await?;
             let plan_courses = bot.refresh_plan_courses().await?;

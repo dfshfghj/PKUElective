@@ -24,7 +24,7 @@ pub fn get_app_info(app: AppHandle) -> Result<AppInfoView, String> {
     let log_path = logger::log_file_path(&app)?;
     Ok(AppInfoView {
         version: app.package_info().version.to_string(),
-        build_channel: option_env!("HEED_BUILD_CHANNEL").unwrap_or(if cfg!(debug_assertions) {
+        build_channel: option_env!("PKUELECTIVE_BUILD_CHANNEL").unwrap_or(if cfg!(debug_assertions) {
             "Dev"
         } else {
             "Release"
@@ -47,7 +47,7 @@ pub fn export_app_log(app: AppHandle) -> Result<String, String> {
         .path()
         .download_dir()
         .map_err(|err| err.to_string())?
-        .join(format!("HEED-log-{timestamp}.log"));
+        .join(format!("PKUElective-log-{timestamp}.log"));
     logger::export_to(&destination)?;
     logger::info(format!(
         "exported application log to {}",

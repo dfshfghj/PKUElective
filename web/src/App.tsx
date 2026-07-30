@@ -91,7 +91,7 @@ function ProtectedLayout() {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const locationBreadcrumbs = breadcrumbsForLocation(pathname, searchParams);
-  const mobileTitle = locationBreadcrumbs[locationBreadcrumbs.length - 1]?.label ?? "HEED";
+  const mobileTitle = locationBreadcrumbs[locationBreadcrumbs.length - 1]?.label ?? "PKUElective";
 
   if (loading) {
     return <LoadingScreen message={message} />;
@@ -167,7 +167,7 @@ function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams)
     "/settings": "设置",
   };
 
-  return [{ label: labels[pathname] ?? "HEED" }];
+  return [{ label: labels[pathname] ?? "PKUElective" }];
 }
 
 function DetailParentRoute({ page }: { page: ReactNode }) {

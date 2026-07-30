@@ -1,4 +1,4 @@
-package com.heed.desktop
+package com.pkuelective.desktop
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

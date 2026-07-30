@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use heed_core::{AppConfig, Credentials, ElectiveScheduleRow, ElectiveSession, Orchestrator};
+use elective_core::{AppConfig, Credentials, ElectiveScheduleRow, ElectiveSession, Orchestrator};
 use tokio::sync::Mutex;
 
 use crate::auth_persistence::AuthPreferences;

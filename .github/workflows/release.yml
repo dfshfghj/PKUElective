@@ -111,15 +111,15 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEED_BUILD_CHANNEL: Release
+          PKUELECTIVE_BUILD_CHANNEL: Release
           VITE_HIDE_AUTOMATION: ${{ github.event_name != 'workflow_dispatch' || inputs.hide_automation }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v${{ steps.version.outputs.version }}
-          releaseName: HEED v${{ steps.version.outputs.version }}
+          releaseName: PKUElective v${{ steps.version.outputs.version }}
           releaseBody: |
-            Automated build for HEED.
+            Automated build for PKUElective.
           releaseDraft: ${{ github.ref_type != 'tag' }}
           prerelease: ${{ github.ref_type != 'tag' }}
           args: ${{ matrix.args }} --config '{"version":"${{ steps.version.outputs.version }}"}'
@@ -237,7 +237,7 @@ jobs:
 
       - name: Build signed Android packages
         env:
-          HEED_BUILD_CHANNEL: Release
+          PKUELECTIVE_BUILD_CHANNEL: Release
           VITE_HIDE_AUTOMATION: ${{ github.event_name != 'workflow_dispatch' || inputs.hide_automation }}
         run: >-
           ./web/node_modules/.bin/tauri android build
@@ -261,7 +261,7 @@ jobs:
       - name: Upload Android workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HEED-Android-${{ steps.version.outputs.version }}
+          name: PKUElective-Android-${{ steps.version.outputs.version }}
           if-no-files-found: error
           path: |
             src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk

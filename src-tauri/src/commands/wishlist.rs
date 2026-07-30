@@ -1,6 +1,6 @@
 use tauri::{AppHandle, State};
 
-use heed_core::WishlistItem;
+use elective_core::WishlistItem;
 
 use crate::app_state::AppState;
 use crate::commands::snapshot::SnapshotView;

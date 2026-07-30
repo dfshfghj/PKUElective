@@ -1,4 +1,4 @@
-use heed_core::{CourseDetail, CourseQueryFilters};
+use elective_core::{CourseDetail, CourseQueryFilters};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;

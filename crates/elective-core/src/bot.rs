@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     auth::Credentials,
-    error::{HeedError, Result},
+    error::{ElectiveError, Result},
     session::{CourseQueryFilters, ElectiveSession, SelectResult},
     types::BotId,
 };
@@ -201,10 +201,10 @@ impl ElectiveBot {
         self.finish_select_result(self.session.select_course(select_url).await)
     }
 
-    fn fail_loop<T>(&mut self, err: HeedError) -> Result<T> {
+    fn fail_loop<T>(&mut self, err: ElectiveError) -> Result<T> {
         self.last_error = Some(err.to_string());
         self.status = match err {
-            HeedError::SessionExpired | HeedError::Fatal(_) => BotStatus::Dead,
+            ElectiveError::SessionExpired | ElectiveError::Fatal(_) => BotStatus::Dead,
             _ => BotStatus::Idle,
         };
         Err(err)

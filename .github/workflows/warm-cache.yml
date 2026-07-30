@@ -159,7 +159,7 @@ jobs:
 
       - name: Warm Android release build
         env:
-          HEED_BUILD_CHANNEL: Release
+          PKUELECTIVE_BUILD_CHANNEL: Release
           VITE_HIDE_AUTOMATION: true
         run: >-
           ./web/node_modules/.bin/tauri android build

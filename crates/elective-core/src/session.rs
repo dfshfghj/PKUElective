@@ -7,7 +7,7 @@ use crate::{
         Course, CourseDetail, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse,
         PreselectedCourse, QueryCourse, SupplementPage,
     },
-    error::{HeedError, Result},
+    error::{ElectiveError, Result},
     parser::{
         parse_course_page, parse_elective_schedule, parse_plan_page, parse_preselect_page,
         parse_query_page, parse_results_page, parse_supplement_page,
@@ -76,7 +76,7 @@ impl ElectiveSession {
         while let Some(url) = next_url.take() {
             page_count += 1;
             if page_count > 16 {
-                return Err(HeedError::Fatal("pagination depth exceeded".into()));
+                return Err(ElectiveError::Fatal("pagination depth exceeded".into()));
             }
 
             let response = self
@@ -92,10 +92,10 @@ impl ElectiveSession {
             let page = parse_course_page(&body)?;
 
             if let Some(error) = page.fatal_error {
-                return Err(HeedError::Fatal(error));
+                return Err(ElectiveError::Fatal(error));
             }
             if page.title.as_deref() != Some("补选退选") {
-                return Err(HeedError::SessionExpired);
+                return Err(ElectiveError::SessionExpired);
             }
 
             courses.extend(page.courses);
@@ -120,10 +120,10 @@ impl ElectiveSession {
         let page = parse_supplement_page(&body)?;
 
         if let Some(error) = page.fatal_error {
-            return Err(HeedError::Fatal(error));
+            return Err(ElectiveError::Fatal(error));
         }
         if page.title.as_deref() != Some("补选退选") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
 
         Ok(page.page)
@@ -155,7 +155,7 @@ impl ElectiveSession {
         let body: serde_json::Value = response.json().await?;
         match body.get("valid").and_then(|value| value.as_str()) {
             Some("2") => Ok(()),
-            _ => Err(HeedError::CaptchaInvalid),
+            _ => Err(ElectiveError::CaptchaInvalid),
         }
     }
 
@@ -175,7 +175,7 @@ impl ElectiveSession {
         while let Some(url) = next_url.take() {
             page_count += 1;
             if page_count > 16 {
-                return Err(HeedError::Fatal("pagination depth exceeded".into()));
+                return Err(ElectiveError::Fatal("pagination depth exceeded".into()));
             }
 
             let body = self.fetch_html(&url, &referer).await?;
@@ -183,10 +183,10 @@ impl ElectiveSession {
             let page = parse_preselect_page(&body)?;
 
             if let Some(error) = page.fatal_error {
-                return Err(HeedError::Fatal(error));
+                return Err(ElectiveError::Fatal(error));
             }
             if page.title.as_deref() != Some("选课") {
-                return Err(HeedError::SessionExpired);
+                return Err(ElectiveError::SessionExpired);
             }
 
             courses.extend(page.courses);
@@ -206,7 +206,7 @@ impl ElectiveSession {
             .find(|course| same_action_identity(&course.select_url, stale_url))
             .map(|course| course.select_url.clone())
             .ok_or_else(|| {
-                HeedError::Selection("预选列表已更新，未找到对应课程，请刷新后重试".into())
+                ElectiveError::Selection("预选列表已更新，未找到对应课程，请刷新后重试".into())
             })
     }
 
@@ -217,7 +217,7 @@ impl ElectiveSession {
             .find(|course| same_action_identity(&course.cancel_url, stale_url))
             .map(|course| course.cancel_url.clone())
             .ok_or_else(|| {
-                HeedError::Selection("预选状态已更新，未找到对应课程，请刷新后重试".into())
+                ElectiveError::Selection("预选状态已更新，未找到对应课程，请刷新后重试".into())
             })
     }
 
@@ -230,7 +230,7 @@ impl ElectiveSession {
         while let Some(url) = next_url.take() {
             page_count += 1;
             if page_count > 16 {
-                return Err(HeedError::Fatal("pagination depth exceeded".into()));
+                return Err(ElectiveError::Fatal("pagination depth exceeded".into()));
             }
 
             let body = self.fetch_html(&url, &referer).await?;
@@ -238,10 +238,10 @@ impl ElectiveSession {
             let page = parse_plan_page(&body)?;
 
             if let Some(error) = page.fatal_error {
-                return Err(HeedError::Fatal(error));
+                return Err(ElectiveError::Fatal(error));
             }
             if page.title.as_deref() != Some("选课计划") {
-                return Err(HeedError::SessionExpired);
+                return Err(ElectiveError::SessionExpired);
             }
 
             courses.extend(page.courses);
@@ -260,7 +260,7 @@ impl ElectiveSession {
         while let Some(url) = next_url.take() {
             page_count += 1;
             if page_count > 16 {
-                return Err(HeedError::Fatal("pagination depth exceeded".into()));
+                return Err(ElectiveError::Fatal("pagination depth exceeded".into()));
             }
 
             let body = self.fetch_html(&url, &referer).await?;
@@ -268,10 +268,10 @@ impl ElectiveSession {
             let page = parse_query_page(&body)?;
 
             if let Some(error) = page.fatal_error {
-                return Err(HeedError::Fatal(error));
+                return Err(ElectiveError::Fatal(error));
             }
             if page.title.as_deref() != Some("课程查询") {
-                return Err(HeedError::SessionExpired);
+                return Err(ElectiveError::SessionExpired);
             }
 
             courses.extend(page.courses);
@@ -286,10 +286,10 @@ impl ElectiveSession {
         let page = parse_results_page(&body)?;
 
         if let Some(error) = page.fatal_error {
-            return Err(HeedError::Fatal(error));
+            return Err(ElectiveError::Fatal(error));
         }
         if page.title.as_deref() != Some("选课结果") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
 
         Ok(page.results)
@@ -298,20 +298,20 @@ impl ElectiveSession {
     pub async fn fetch_elective_schedule(&self) -> Result<Vec<ElectiveScheduleRow>> {
         let body = self.fetch_html(INITIAL_REFERER, INITIAL_REFERER).await?;
         if !body.contains("<title>帮助-总体流程</title>") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
         parse_elective_schedule(&body)
     }
 
     pub async fn fetch_course_detail(&self, detail_url: &str) -> Result<CourseDetail> {
         let url = Url::parse(detail_url)
-            .map_err(|_| HeedError::Fatal("invalid course detail url".into()))?;
+            .map_err(|_| ElectiveError::Fatal("invalid course detail url".into()))?;
         if url.scheme() != "https"
             || url.host_str() != Some("elective.pku.edu.cn")
             || !url.path().ends_with("/goNested.do")
             || !url.query_pairs().any(|(key, _)| key == "course_seq_no")
         {
-            return Err(HeedError::Fatal("invalid course detail url".into()));
+            return Err(ElectiveError::Fatal("invalid course detail url".into()));
         }
 
         let body = self.fetch_html(detail_url, INITIAL_REFERER).await?;
@@ -393,10 +393,10 @@ impl ElectiveSession {
         let page = parse_query_page(&body)?;
 
         if let Some(error) = page.fatal_error {
-            return Err(HeedError::Fatal(error));
+            return Err(ElectiveError::Fatal(error));
         }
         if page.title.as_deref() != Some("课程查询") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
 
         Ok(page.courses)
@@ -441,7 +441,7 @@ impl ElectiveSession {
             });
         }
         if page.title.as_deref() != Some("选课") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
 
         Ok(SelectResult {
@@ -475,7 +475,7 @@ impl ElectiveSession {
             });
         }
         if page.title.as_deref() != Some("选课") {
-            return Err(HeedError::SessionExpired);
+            return Err(ElectiveError::SessionExpired);
         }
 
         Ok(SelectResult {
@@ -563,7 +563,7 @@ impl ElectiveSession {
         let status = response.status();
         let body = response.text().await?;
         if !status.is_success() {
-            return Err(HeedError::Fatal(format!("http status {status}")));
+            return Err(ElectiveError::Fatal(format!("http status {status}")));
         }
         Ok(body)
     }
@@ -571,7 +571,7 @@ impl ElectiveSession {
     async fn visit_action(&self, url: &str, referer: &str) -> Result<()> {
         let body = self.fetch_html(url, referer).await?;
         if let Some(error) = parse_course_page(&body)?.fatal_error {
-            return Err(HeedError::Selection(error));
+            return Err(ElectiveError::Selection(error));
         }
         Ok(())
     }
@@ -583,7 +583,7 @@ fn with_optional_query(url: &str, key: &str, value: Option<u32>) -> Result<Strin
     };
 
     let mut parsed =
-        Url::parse(url).map_err(|err| HeedError::Config(format!("invalid action url: {err}")))?;
+        Url::parse(url).map_err(|err| ElectiveError::Config(format!("invalid action url: {err}")))?;
     parsed
         .query_pairs_mut()
         .append_pair(key, &value.to_string());

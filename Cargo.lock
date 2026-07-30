@@ -972,6 +972,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2972feb8dffe7bc8c5463b1dacda1b0dfbed3710e50f977d965429692d74cd8"
 
 [[package]]
+name = "elective-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cookie_store 0.21.1",
+ "reqwest 0.12.28",
+ "reqwest_cookie_store",
+ "scraper",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
+name = "elective-tauri"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "elective-core",
+ "keyring",
+ "reqwest 0.12.28",
+ "rustls",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-process",
+ "tauri-plugin-updater",
+ "tokio",
+]
+
+[[package]]
 name = "embed-resource"
 version = "3.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1621,39 +1654,6 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
-
-[[package]]
-name = "heed-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "cookie_store 0.21.1",
- "reqwest 0.12.28",
- "reqwest_cookie_store",
- "scraper",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
-name = "heed-tauri"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "heed-core",
- "keyring",
- "reqwest 0.12.28",
- "rustls",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-process",
- "tauri-plugin-updater",
- "tokio",
-]
 
 [[package]]
 name = "hermit-abi"

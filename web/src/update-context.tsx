@@ -128,7 +128,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         totalBytes: null,
         message: `发现新版本 v${update.version}`,
       });
-      toast.info(`发现 HEED v${update.version}`, {
+      toast.info(`发现 PKUElective v${update.version}`, {
         action: { label: "安装更新", onClick: () => void installRef.current() },
         description: update.body || "新版本已经可以下载。",
         duration: 30_000,

@@ -38,7 +38,7 @@ export function AppSettingsPage() {
       {error ? <EmptyState text={error} /> : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Surface title="关于 HEED">
+        <Surface title="关于 PKUElective">
           <dl className="divide-y divide-stone-100 text-sm dark:divide-stone-800">
             <InfoRow label="版本号" value={info ? `v${info.version} · ${info.buildChannel}` : "正在读取…"} />
             <InfoRow label="运行平台" value={info ? `${info.platform} · ${info.architecture}` : "正在读取…"} />

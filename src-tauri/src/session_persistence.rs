@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use heed_core::{AuthSession, Channel, ElectiveSession, HeedError};
+use elective_core::{AuthSession, Channel, ElectiveSession, ElectiveError};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
@@ -94,7 +94,7 @@ pub async fn restore_session_on_startup(app: &AppHandle, state: &AppState) -> Re
             logger::info("persisted session verified successfully on startup");
             Ok(true)
         }
-        Err(HeedError::SessionExpired) | Err(HeedError::AuthFailed(_)) => {
+        Err(ElectiveError::SessionExpired) | Err(ElectiveError::AuthFailed(_)) => {
             logger::warn(
                 "persisted session was expired or rejected during startup verification; clearing session file",
             );
@@ -116,13 +116,13 @@ pub async fn clear_session_and_auth(app: &AppHandle, state: &AppState) -> Result
 }
 
 pub async fn handle_session_result<T>(
-    result: Result<T, HeedError>,
+    result: Result<T, ElectiveError>,
     app: &AppHandle,
     state: &AppState,
 ) -> Result<T, String> {
     match result {
         Ok(value) => Ok(value),
-        Err(HeedError::SessionExpired) => {
+        Err(ElectiveError::SessionExpired) => {
             logger::warn("session expired during command execution");
             clear_session_and_auth(app, state).await?;
             Err("session expired".to_string())

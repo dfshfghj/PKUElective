@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, HeedError>;
+pub type Result<T> = std::result::Result<T, ElectiveError>;
 
 #[derive(Debug, Error)]
-pub enum HeedError {
+pub enum ElectiveError {
     #[error("authentication failed: {0}")]
     AuthFailed(String),
     #[error("captcha required")]
@@ -24,7 +24,7 @@ pub enum HeedError {
     Config(String),
 }
 
-impl From<reqwest::Error> for HeedError {
+impl From<reqwest::Error> for ElectiveError {
     fn from(value: reqwest::Error) -> Self {
         Self::Network(value.to_string())
     }

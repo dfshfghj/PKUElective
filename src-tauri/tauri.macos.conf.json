@@ -2,7 +2,7 @@
   "app": {
     "windows": [
       {
-        "title": "HEED",
+        "title": "PKUElective",
         "width": 1280,
         "height": 800,
         "resizable": true,

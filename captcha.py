@@ -1,3 +1,0 @@
-def recognize(img):
-    ...
-    return 'FUCK'

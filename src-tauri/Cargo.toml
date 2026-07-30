@@ -1,10 +1,10 @@
 [package]
-name = "heed-tauri"
+name = "elective-tauri"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "heed_tauri_lib"
+name = "elective_tauri_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -12,7 +12,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 base64 = "0.22"
-heed-core = { path = "../crates/heed-core" }
+elective-core = { path = "../crates/elective-core" }
 keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

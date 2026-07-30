@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    error::{HeedError, Result},
+    error::{ElectiveError, Result},
     types::Channel,
 };
 
@@ -38,7 +38,7 @@ impl Credentials {
     ) -> Result<Self> {
         let username = username.trim().to_string();
         if username.is_empty() || password.is_empty() {
-            return Err(HeedError::AuthFailed("missing username or password".into()));
+            return Err(ElectiveError::AuthFailed("missing username or password".into()));
         }
 
         let channel = match channel
@@ -48,7 +48,7 @@ impl Credentials {
         {
             Some("bzx") => Some(Channel::Bzx),
             Some("bfx") => Some(Channel::Bfx),
-            Some(other) => return Err(HeedError::Config(format!("unsupported channel: {other}"))),
+            Some(other) => return Err(ElectiveError::Config(format!("unsupported channel: {other}"))),
             None => None,
         };
 
@@ -85,15 +85,15 @@ impl AuthSession {
         let store = self
             .cookie_store
             .lock()
-            .map_err(|err| HeedError::Fatal(format!("cookie store lock poisoned: {err}")))?;
+            .map_err(|err| ElectiveError::Fatal(format!("cookie store lock poisoned: {err}")))?;
         let mut writer = BufWriter::new(Vec::new());
         save_incl_expired_and_nonpersistent(&*store, &mut writer)
-            .map_err(|err| HeedError::Fatal(format!("failed to serialize cookies: {err}")))?;
+            .map_err(|err| ElectiveError::Fatal(format!("failed to serialize cookies: {err}")))?;
         let bytes = writer
             .into_inner()
-            .map_err(|err| HeedError::Fatal(format!("failed to flush cookies: {err}")))?;
+            .map_err(|err| ElectiveError::Fatal(format!("failed to flush cookies: {err}")))?;
         String::from_utf8(bytes)
-            .map_err(|err| HeedError::Fatal(format!("cookie store contained invalid utf8: {err}")))
+            .map_err(|err| ElectiveError::Fatal(format!("cookie store contained invalid utf8: {err}")))
     }
 
     pub fn from_persisted_cookies(
@@ -102,7 +102,7 @@ impl AuthSession {
         cookies_json: &str,
     ) -> Result<Self> {
         let cookie_store = load_cookies_json(BufReader::new(cookies_json.as_bytes()))
-            .map_err(|err| HeedError::Fatal(format!("failed to deserialize cookies: {err}")))?;
+            .map_err(|err| ElectiveError::Fatal(format!("failed to deserialize cookies: {err}")))?;
         Self::build(
             username,
             channel,
@@ -123,7 +123,7 @@ impl AuthSession {
         if body.contains(HELP_TITLE) {
             Ok(())
         } else {
-            Err(HeedError::SessionExpired)
+            Err(ElectiveError::SessionExpired)
         }
     }
 }
@@ -168,7 +168,7 @@ struct LoginResponse {
 
 pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
     if credentials.username.trim().is_empty() || credentials.password.is_empty() {
-        return Err(HeedError::AuthFailed("missing username or password".into()));
+        return Err(ElectiveError::AuthFailed("missing username or password".into()));
     }
 
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::default()));
@@ -195,14 +195,14 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
 
     let login: LoginResponse = response.json().await?;
     if !login.success {
-        return Err(HeedError::AuthFailed(
+        return Err(ElectiveError::AuthFailed(
             "login endpoint returned failure".into(),
         ));
     }
 
     let token = login
         .token
-        .ok_or_else(|| HeedError::AuthFailed("login endpoint did not return token".into()))?;
+        .ok_or_else(|| ElectiveError::AuthFailed("login endpoint did not return token".into()))?;
 
     let response = client
         .get(SSO_URL)
@@ -222,14 +222,14 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
 
     if body.contains("/scnStAthVef.jsp/") {
         let channel = credentials.channel.as_ref().ok_or_else(|| {
-            HeedError::AuthFailed("channel required for identity selection".into())
+            ElectiveError::AuthFailed("channel required for identity selection".into())
         })?;
         let sida = body
             .split("/ssoLogin.do?sida=")
             .nth(1)
             .and_then(|segment| segment.split('&').next())
             .filter(|value| value.chars().all(|ch| ch.is_ascii_alphanumeric()))
-            .ok_or_else(|| HeedError::AuthFailed("unable to extract sida".into()))?;
+            .ok_or_else(|| ElectiveError::AuthFailed("unable to extract sida".into()))?;
 
         let response = client
             .get(SSO_URL)
@@ -247,7 +247,7 @@ pub async fn authenticate(credentials: &Credentials) -> Result<AuthSession> {
         }
     }
 
-    Err(HeedError::AuthFailed(
+    Err(ElectiveError::AuthFailed(
         "after login check did not reach elective home".into(),
     ))
 }

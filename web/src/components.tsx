@@ -53,7 +53,7 @@ export function AppTitlebar({
   breadcrumbs?: BreadcrumbItem[];
   breadcrumb?: string;
 }) {
-  const items = breadcrumbs ?? [{ label: breadcrumb ?? "HEED" }];
+  const items = breadcrumbs ?? [{ label: breadcrumb ?? "PKUElective" }];
 
   return (
     <div className="mb-4 hidden h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80 md:flex">

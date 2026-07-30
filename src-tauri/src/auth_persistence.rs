@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use heed_core::{Channel, Credentials, ElectiveSession};
+use elective_core::{Channel, Credentials, ElectiveSession};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 

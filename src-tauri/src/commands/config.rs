@@ -1,4 +1,4 @@
-use heed_core::AppConfig;
+use elective_core::AppConfig;
 use serde::Deserialize;
 use tauri::{AppHandle, Manager, State};
 

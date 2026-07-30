@@ -1,4 +1,4 @@
-use heed_core::{
+use elective_core::{
     AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, PlanCourse,
     PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
 };

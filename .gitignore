@@ -1,20 +1,15 @@
 /.idea/
 __pycache__/
 *.pyc
-/wishlist.txt
 /.venv/
 .vscode
 build/
 README.pdf
 /setup.py
 
-main.build
-main.dist
-main.onefile-build
-main.exe
 /target/
 /web/node_modules/
 /web/dist
 /example
 /docs
-/src-tauri/heed-updater.key
+/src-tauri/pkuelective-updater.key

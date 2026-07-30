@@ -1,4 +1,4 @@
-use heed_core::{
+use elective_core::{
     AppConfig, Course, Orchestrator, WishlistItem,
     parser::{detect_fatal_error, parse_course_page},
 };
