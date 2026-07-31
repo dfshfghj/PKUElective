@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3 } from "lucide-react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsCompactViewport } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -57,7 +57,7 @@ export function DataTable<TData>({
     initialVisibility ?? {},
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompactViewport();
 
   const table = useReactTable({
     columns,

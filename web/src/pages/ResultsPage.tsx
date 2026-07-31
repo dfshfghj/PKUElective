@@ -4,7 +4,7 @@ import { Dialog } from "radix-ui";
 
 import { EmptyState, LineBreakText, PageHeader, Surface } from "../components";
 import { useAppModel } from "../app-model";
-import { useIsMobile } from "../hooks/use-mobile";
+import { useIsCompactViewport } from "../hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { TimetableCell } from "../types";
 
@@ -21,7 +21,7 @@ const compactWeekdayLabels: Record<string, string> = {
 
 export function ResultsPage() {
   const { snapshot, pending, handleRefreshResults } = useAppModel();
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompactViewport();
   const hasTriggeredAutoRefresh = useRef(false);
   const [selectedTimetableCell, setSelectedTimetableCell] = useState<{
     text: string;

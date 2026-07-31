@@ -26,7 +26,7 @@ export function PageHeader(props: {
   return (
     <header className="flex flex-col gap-2 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h2 className="hidden text-xl font-semibold leading-tight text-stone-950 md:block md:text-2xl dark:text-stone-100">
+        <h2 className="page-header-title hidden text-xl font-semibold leading-tight text-stone-950 md:block md:text-2xl dark:text-stone-100">
           {props.title}
         </h2>
         {props.description ? (
@@ -56,7 +56,7 @@ export function AppTitlebar({
   const items = breadcrumbs ?? [{ label: breadcrumb ?? "PKUElective" }];
 
   return (
-    <div className="mb-4 hidden h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80 md:flex">
+    <div className="app-titlebar mb-4 hidden h-12 shrink-0 items-center border-b border-sidebar-border bg-white/80 px-4 backdrop-blur dark:border-stone-800/60 dark:bg-stone-950/80 md:flex">
       <div
         className="flex flex-1 items-center gap-1 self-stretch"
         data-tauri-drag-region

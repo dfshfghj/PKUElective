@@ -4,10 +4,11 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isMobilePlatform } from "@/safe-area";
 
 export function WindowControls({ className }: { className?: string }) {
   const [isMaximized, setIsMaximized] = useState(false);
-  const desktop = isTauri();
+  const desktop = isTauri() && !isMobilePlatform();
   const isMacOS = navigator.userAgent.includes("Macintosh");
 
   useEffect(() => {

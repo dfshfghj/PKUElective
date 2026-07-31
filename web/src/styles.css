@@ -71,8 +71,9 @@ select {
   --radius: 0.625rem;
 }
 
-@media (max-width: 767px) {
+.mobile-layout {
   .mobile-app-bar {
+    display: flex;
     min-height: calc(3.25rem + var(--safe-area-top));
     padding-top: calc(0.5rem + var(--safe-area-top));
     padding-right: max(1rem, var(--safe-area-right));
@@ -157,6 +158,11 @@ select {
     --mobile-offset-right: max(1rem, var(--safe-area-right));
     --mobile-offset-bottom: calc(1rem + var(--safe-area-bottom));
     --mobile-offset-left: max(1rem, var(--safe-area-left));
+  }
+
+  .app-titlebar,
+  .page-header-title {
+    display: none;
   }
 }
 
