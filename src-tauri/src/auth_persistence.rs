@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use elective_core::{Channel, Credentials, ElectiveSession};
@@ -11,6 +12,22 @@ use crate::{app_state::AppState, logger, session_persistence};
 
 const AUTH_PREFERENCES_FILE_NAME: &str = "auth_preferences.json";
 const PASSWORD_SERVICE_SUFFIX: &str = ".elective.password";
+static SECURE_STORE_AVAILABLE: AtomicBool = AtomicBool::new(false);
+
+pub fn initialize_secure_store() -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    keyring_core::set_default_store(
+        android_native_keyring_store::Store::new().map_err(|err| err.to_string())?,
+    );
+
+    #[cfg(target_os = "ios")]
+    keyring_core::set_default_store(
+        apple_native_keyring_store::keychain::Store::new().map_err(|err| err.to_string())?,
+    );
+
+    SECURE_STORE_AVAILABLE.store(true, Ordering::Release);
+    Ok(())
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AuthPreferences {
@@ -192,7 +209,7 @@ pub async fn disable_auto_login(app: &AppHandle, state: &AppState) -> Result<(),
 }
 
 pub fn secure_store_available() -> bool {
-    cfg!(not(target_os = "android"))
+    SECURE_STORE_AVAILABLE.load(Ordering::Acquire)
 }
 
 pub fn secure_store_backend_name() -> &'static str {
@@ -206,17 +223,22 @@ pub fn secure_store_backend_name() -> &'static str {
     }
     #[cfg(target_os = "linux")]
     {
-        "linux-native-sync-persistent"
+        "linux-secret-service"
     }
     #[cfg(target_os = "android")]
     {
-        "android-adapter-pending"
+        "android-keystore-shared-preferences"
+    }
+    #[cfg(target_os = "ios")]
+    {
+        "apple-native"
     }
     #[cfg(not(any(
         target_os = "windows",
         target_os = "macos",
         target_os = "linux",
-        target_os = "android"
+        target_os = "android",
+        target_os = "ios"
     )))]
     {
         "unsupported"
@@ -251,7 +273,6 @@ fn auth_preferences_file_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join(Path::new(AUTH_PREFERENCES_FILE_NAME)))
 }
 
-#[cfg(not(target_os = "android"))]
 fn store_password(app: &AppHandle, username: &str, password: &str) -> Result<(), String> {
     let service = password_service_name(app);
     logger::info(format!(
@@ -284,12 +305,6 @@ fn store_password(app: &AppHandle, username: &str, password: &str) -> Result<(),
     }
 }
 
-#[cfg(target_os = "android")]
-fn store_password(_app: &AppHandle, _username: &str, _password: &str) -> Result<(), String> {
-    Err("android secure credential storage adapter is not wired in this build yet".to_string())
-}
-
-#[cfg(not(target_os = "android"))]
 fn load_password(app: &AppHandle, username: &str) -> Result<Option<String>, String> {
     let service = password_service_name(app);
     logger::info(format!(
@@ -313,12 +328,6 @@ fn load_password(app: &AppHandle, username: &str) -> Result<Option<String>, Stri
     }
 }
 
-#[cfg(target_os = "android")]
-fn load_password(_app: &AppHandle, _username: &str) -> Result<Option<String>, String> {
-    Ok(None)
-}
-
-#[cfg(not(target_os = "android"))]
 fn delete_password(app: &AppHandle, username: &str) -> Result<(), String> {
     let service = password_service_name(app);
     logger::info(format!(
@@ -333,11 +342,6 @@ fn delete_password(app: &AppHandle, username: &str) -> Result<(), String> {
             service, username, err
         )),
     }
-}
-
-#[cfg(target_os = "android")]
-fn delete_password(_app: &AppHandle, _username: &str) -> Result<(), String> {
-    Ok(())
 }
 
 fn password_service_name(app: &AppHandle) -> String {

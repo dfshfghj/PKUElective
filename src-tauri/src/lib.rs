@@ -31,9 +31,15 @@ pub fn run() {
                 "application starting; log file at {}",
                 log_path.display()
             ));
+            if let Err(err) = auth_persistence::initialize_secure_store() {
+                logger::warn(format!(
+                    "failed to initialize secure credential store: {err}"
+                ));
+            }
             logger::info(format!(
-                "secure credential backend configured as {}",
-                auth_persistence::secure_store_backend_name()
+                "secure credential backend configured as {} (available: {})",
+                auth_persistence::secure_store_backend_name(),
+                auth_persistence::secure_store_available()
             ));
 
             app.manage(AppState::default());
