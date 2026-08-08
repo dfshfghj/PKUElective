@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useId, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { useId, useRef, useState } from "react";
 import type { ColumnDef, SortingState, VisibilityState } from "@tanstack/react-table";
 import {
   flexRender,
@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type DataTableProps<TData> = {
@@ -57,7 +58,20 @@ export function DataTable<TData>({
     initialVisibility ?? {},
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [expandedMobileRows, setExpandedMobileRows] = useState<Set<string>>(() => new Set());
   const isMobile = useIsCompactViewport();
+
+  function toggleMobileRow(rowId: string) {
+    setExpandedMobileRows((current) => {
+      const next = new Set(current);
+      if (next.has(rowId)) {
+        next.delete(rowId);
+      } else {
+        next.add(rowId);
+      }
+      return next;
+    });
+  }
 
   const table = useReactTable({
     columns,
@@ -129,17 +143,133 @@ export function DataTable<TData>({
 
       {isMobile ? (
         table.getRowModel().rows.length > 0 ? (
-          <div className="grid min-w-0 gap-2">
+          <div className="grid min-w-0 gap-1">
             {table.getRowModel().rows.map((row) => {
               const visibleCells = row.getVisibleCells();
               const contentCells = visibleCells.filter((cell) => {
                 const meta = getColumnMeta(cell.column.columnDef);
-                return !meta?.mobileHidden && meta?.mobileSlot !== "footer";
+                return !meta?.mobileHidden && !meta?.mobileSlot;
+              });
+              const summaryCells = visibleCells.filter((cell) => {
+                const meta = getColumnMeta(cell.column.columnDef);
+                return !meta?.mobileHidden && meta?.mobileSlot === "summary";
               });
               const footerCells = visibleCells.filter((cell) => {
                 const meta = getColumnMeta(cell.column.columnDef);
                 return !meta?.mobileHidden && meta?.mobileSlot === "footer";
               });
+              const isExpanded = expandedMobileRows.has(row.id);
+
+              if (mobileCardTitle) {
+                return (
+                  <Card
+                    key={row.id}
+                    aria-expanded={isExpanded}
+                    className="min-w-0 cursor-pointer gap-0 overflow-hidden rounded-xl bg-white/90 py-2 shadow-none dark:border-stone-800 dark:bg-stone-950/80"
+                    onClick={(event) => {
+                      const target = event.target;
+                      if (
+                        target instanceof Element &&
+                        target.closest("button, a, input, select, textarea, [role=button]")
+                      ) {
+                        return;
+                      }
+                      toggleMobileRow(row.id);
+                    }}
+                  >
+                    <CardHeader className="min-w-0 gap-0 px-2.5 py-0">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <CardTitle className="min-w-16 flex-1 truncate text-sm font-semibold text-stone-950 dark:text-stone-100">
+                          {mobileCardTitle(row.original)}
+                        </CardTitle>
+                        {!isExpanded && mobileCardDescription ? (
+                          <CardDescription className="hidden min-w-0 max-w-40 truncate text-[11px] text-stone-500 min-[520px]:block dark:text-stone-400">
+                            {mobileCardDescription(row.original)}
+                          </CardDescription>
+                        ) : null}
+                        {!isExpanded && mobileCardBadges ? (
+                          <div className="hidden max-w-44 items-center gap-1 overflow-hidden whitespace-nowrap min-[700px]:flex [&>*]:shrink-0 [&>*]:px-1.5 [&>*]:py-0.5 [&>*]:text-[10px]">
+                            {mobileCardBadges(row.original)}
+                          </div>
+                        ) : null}
+                        {summaryCells.map((cell) => (
+                          <div
+                            key={cell.id}
+                            className="flex shrink-0 items-center gap-1 text-xs text-stone-500 dark:text-stone-400 [&_input]:h-8 [&_input]:w-14 [&_input]:px-1"
+                          >
+                            <span className="hidden min-[360px]:inline">
+                              {getColumnLabel(cell.column.columnDef, cell.column.id)}
+                            </span>
+                            <div className="text-stone-800 dark:text-stone-200">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </div>
+                        ))}
+                        {footerCells.map((cell) => (
+                          <div
+                            key={cell.id}
+                            className="shrink-0 [&_button]:h-8 [&_button]:px-2.5 [&_button]:text-xs"
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        ))}
+                        {/*
+                          <Button
+                            aria-label={isExpanded ? "收起课程详情" : "展开课程详情"}
+                            className="size-8 shrink-0 p-0"
+                            onClick={() => toggleMobileRow(row.id)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="size-4" />
+                            ) : (
+                              <ChevronDown className="size-4" />
+                            )}
+                          </Button>
+                        */}
+                      </div>
+                    </CardHeader>
+                    {isExpanded ? (
+                      <>
+                        {mobileCardDescription || mobileCardBadges ? (
+                          <div className="space-y-1.5 px-3 pb-1 pt-2">
+                            {mobileCardDescription ? (
+                              <CardDescription className="break-words text-xs leading-5 text-stone-500 dark:text-stone-400">
+                                {mobileCardDescription(row.original)}
+                              </CardDescription>
+                            ) : null}
+                            {mobileCardBadges ? (
+                              <div className="flex flex-wrap gap-1 [&>*]:px-2 [&>*]:py-0.5 [&>*]:text-[11px]">
+                                {mobileCardBadges(row.original)}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <CardContent className="grid min-w-0 gap-0 px-3 pt-1">
+                          {contentCells.map((cell) => {
+                            const label = getColumnLabel(cell.column.columnDef, cell.column.id);
+                            return (
+                              <div
+                                key={cell.id}
+                                className="flex min-w-0 items-start justify-between gap-3 border-t border-stone-200/60 py-2 dark:border-stone-800/70"
+                              >
+                                <div className="shrink-0 text-xs text-stone-500 dark:text-stone-400">
+                                  {label}
+                                </div>
+                                <div className="min-w-0 break-words text-right text-xs leading-5 text-stone-800 dark:text-stone-200">
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </CardContent>
+                      </>
+                    ) : null}
+                  </Card>
+                );
+              }
 
               return (
                 <Card
@@ -148,11 +278,6 @@ export function DataTable<TData>({
                 >
                   <CardHeader className="min-w-0 gap-2 px-3 pb-1">
                     <div className="min-w-0 space-y-0.5">
-                      {mobileCardTitle ? (
-                        <CardTitle className="break-words text-sm font-semibold text-stone-950 dark:text-stone-100">
-                          {mobileCardTitle(row.original)}
-                        </CardTitle>
-                      ) : null}
                       {mobileCardDescription ? (
                         <CardDescription className="break-words text-xs leading-5 text-stone-500 dark:text-stone-400">
                           {mobileCardDescription(row.original)}
@@ -226,9 +351,9 @@ export function DataTable<TData>({
                     className="border-stone-900/6 hover:bg-orange-50/60 dark:border-stone-800 dark:hover:bg-stone-900"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-2 align-top text-center align-middle">
+                      <EllipsisTableCell key={cell.id} className="py-2 align-top text-center align-middle">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      </EllipsisTableCell>
                     ))}
                   </TableRow>
                 ))
@@ -247,6 +372,44 @@ export function DataTable<TData>({
         </ScrollArea>
       )}
     </div>
+  );
+}
+
+function EllipsisTableCell({ children, ...props }: ComponentProps<typeof TableCell>) {
+  const cellRef = useRef<HTMLTableCellElement>(null);
+  const [tooltipText, setTooltipText] = useState("");
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  function handleOpenChange(open: boolean) {
+    if (!open) {
+      setTooltipOpen(false);
+      return;
+    }
+
+    const cell = cellRef.current;
+    if (!cell) return;
+
+    const isOverflowing =
+      cell.scrollWidth > cell.clientWidth || cell.scrollHeight > cell.clientHeight;
+    const fullText = cell.innerText.trim();
+
+    if (isOverflowing && fullText) {
+      setTooltipText(fullText);
+      setTooltipOpen(true);
+    }
+  }
+
+  return (
+    <Tooltip open={tooltipOpen} onOpenChange={handleOpenChange}>
+      <TooltipTrigger asChild>
+        <TableCell ref={cellRef} {...props}>
+          {children}
+        </TableCell>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm whitespace-pre-wrap break-words">
+        {tooltipText}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -293,7 +456,7 @@ function getColumnMeta<TData>(columnDef: ColumnDef<TData>) {
     | {
         label?: string;
         mobileHidden?: boolean;
-        mobileSlot?: "content" | "footer";
+        mobileSlot?: "content" | "summary" | "footer";
       }
     | undefined;
 }

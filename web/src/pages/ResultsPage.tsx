@@ -89,7 +89,7 @@ export function ResultsPage() {
         {results.courses.length === 0 ? (
           <EmptyState text="还没有拿到选课结果，先刷新一次看看。" />
         ) : isMobile ? (
-          <div className="grid min-w-0 gap-2">
+          <div className="grid min-w-0 gap-1">
             {results.courses.map((course) => (
               <article
                 className="min-w-0 rounded-xl border border-stone-200/80 bg-white/80 p-3 dark:border-stone-800 dark:bg-stone-950/80"

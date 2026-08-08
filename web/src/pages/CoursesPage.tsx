@@ -142,7 +142,7 @@ export function CoursesPage() {
       {
         id: "preference_value",
         accessorFn: (row) => preferenceDrafts[row.key] ?? row.preference_value,
-        meta: { label: "意愿值" },
+        meta: { label: "意愿值", mobileSlot: "summary" },
         enableHiding: false,
         cell: ({ row }) => {
           const draftValue = preferenceDrafts[row.original.key] ?? row.original.preference_value;
