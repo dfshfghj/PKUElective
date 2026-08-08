@@ -11,17 +11,15 @@ export function DashboardPage() {
       <PageHeader breadcrumb="概览" title="概览" />
 
       <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Surface title="当前会话">
-          <div className="rounded-2xl bg-stone-100 p-4 sm:p-5 dark:bg-stone-900">
+        <Surface className="rounded-2xl bg-stone-100 p-2 sm:p-5 dark:bg-stone-900">
             <p className="hidden text-sm text-stone-500 sm:block dark:text-stone-400">当前账号</p>
             <p className="text-xl font-semibold text-stone-950 sm:mt-2 sm:text-2xl dark:text-stone-100">
               {snapshot.auth.username ?? "未登录"}
             </p>
-          </div>
         </Surface>
 
-        <Surface title="数据概览">
-          <dl className="grid gap-3 rounded-2xl bg-stone-100/80 p-4 text-sm text-stone-700 sm:rounded-3xl sm:p-5 dark:bg-stone-900/80 dark:text-stone-300">
+        <Surface>
+          <dl className="grid gap-3 rounded-2xl text-sm text-stone-700 sm:rounded-3xl dark:text-stone-300">
             {!HIDE_AUTOMATION && <Stat label="Bot 数量" value={snapshot.bots.length} />}
             <Stat label="课程快照" value={snapshot.courses.length} />
             <Stat label="Wishlist" value={snapshot.wishlist.length} />
