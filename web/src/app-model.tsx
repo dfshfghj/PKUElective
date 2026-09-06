@@ -93,8 +93,10 @@ type LoginFormState = {
 };
 
 type WishlistFormState = {
+  courseId: string;
   name: string;
   classId: string;
+  teacher: string;
 };
 
 type AppModel = {
@@ -129,8 +131,13 @@ type AppModel = {
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleAddWishlist: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleAddWishlistDirect: (name: string, classId: string) => Promise<void>;
-  handleRemoveWishlist: (name: string, classId: string) => Promise<void>;
+  handleAddWishlistDirect: (
+    courseId: string,
+    name: string,
+    classId: string,
+    teacher: string,
+  ) => Promise<void>;
+  handleRemoveWishlist: (courseId: string, classId: string) => Promise<void>;
   handleSearchQuery: (filters: CourseQueryFilters) => Promise<void>;
   handleAddCourseToPlan: (addUrl: string) => Promise<void>;
   handleRemovePlanCourse: (deleteUrl: string) => Promise<void>;
@@ -152,8 +159,10 @@ export function AppProvider(props: { children: ReactNode }) {
     autoLogin: false,
   });
   const [wishlistFormState, setWishlistFormState] = useState<WishlistFormState>({
+    courseId: "",
     name: "",
     classId: "",
+    teacher: "",
   });
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
@@ -404,23 +413,38 @@ export function AppProvider(props: { children: ReactNode }) {
 
   async function handleAddWishlist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!wishlistFormState.name.trim() || !wishlistFormState.classId.trim()) {
-      const message = "请先填写课程名和班号。";
+    if (
+      !wishlistFormState.courseId.trim() ||
+      !wishlistFormState.name.trim() ||
+      !wishlistFormState.classId.trim() ||
+      !wishlistFormState.teacher.trim()
+    ) {
+      const message = "请先填写课程号、课程名、班号和教师。";
       setError(message);
       toast.error(message);
       return;
     }
 
-    await handleAddWishlistDirect(wishlistFormState.name.trim(), wishlistFormState.classId.trim());
-    setWishlistFormState({ name: "", classId: "" });
+    await handleAddWishlistDirect(
+      wishlistFormState.courseId.trim(),
+      wishlistFormState.name.trim(),
+      wishlistFormState.classId.trim(),
+      wishlistFormState.teacher.trim(),
+    );
+    setWishlistFormState({ courseId: "", name: "", classId: "", teacher: "" });
   }
 
-  async function handleAddWishlistDirect(name: string, classId: string) {
-    await runAction("加入待选列表", () => addWishlist(name, classId));
+  async function handleAddWishlistDirect(
+    courseId: string,
+    name: string,
+    classId: string,
+    teacher: string,
+  ) {
+    await runAction("加入待选列表", () => addWishlist(courseId, name, classId, teacher));
   }
 
-  async function handleRemoveWishlist(name: string, classId: string) {
-    await runAction("移出待选列表", () => removeWishlist(name, classId));
+  async function handleRemoveWishlist(courseId: string, classId: string) {
+    await runAction("移出待选列表", () => removeWishlist(courseId, classId));
   }
 
   async function handleSearchQuery(filters: CourseQueryFilters) {
@@ -478,7 +502,8 @@ export function AppProvider(props: { children: ReactNode }) {
       snapshot.courses.map((course) => {
         const selectable = course.elected_cnt < course.volume_cnt;
         const wanted = snapshot.wishlist.some(
-          (item) => item.name === course.name && item.class_id === course.class_id,
+          (item) =>
+            item.course_id === course.course_id && item.class_id === course.class_id,
         );
         return {
           ...course,

@@ -89,16 +89,23 @@ export async function refreshResults(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_results");
 }
 
-export async function addWishlist(name: string, classId: string): Promise<SnapshotView> {
+export async function addWishlist(
+  courseId: string,
+  name: string,
+  classId: string,
+  teacher: string,
+): Promise<SnapshotView> {
   return invoke<SnapshotView>("add_wishlist", {
+    courseId,
     name,
     classId,
+    teacher,
   });
 }
 
-export async function removeWishlist(name: string, classId: string): Promise<SnapshotView> {
+export async function removeWishlist(courseId: string, classId: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("remove_wishlist", {
-    name,
+    courseId,
     classId,
   });
 }

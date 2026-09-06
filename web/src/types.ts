@@ -36,6 +36,7 @@ export type BotView = {
 };
 
 export type Course = {
+  course_id: string;
   name: string;
   class_id: string;
   teacher: string;
@@ -209,8 +210,10 @@ export type CourseQueryFilters = {
 };
 
 export type WishlistItem = {
+  course_id: string;
   name: string;
   class_id: string;
+  teacher: string;
   busy: boolean;
 };
 

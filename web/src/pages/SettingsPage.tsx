@@ -33,6 +33,7 @@ export function SettingsPage() {
 
   const columns = useMemo<ColumnDef<AutomationCourseRow>[]>(
     () => [
+      sortableTextColumn("course_id", "课程号"),
       sortableTextColumn("name", "课程名"),
       sortableTextColumn("class_id", "班号"),
       sortableTextColumn("teacher", "教师", (value) => tableCellMuted(value)),
@@ -86,7 +87,9 @@ export function SettingsPage() {
             <Button
               className="gap-2"
               disabled={pending !== null}
-              onClick={() => void handleRemoveWishlist(row.original.name, row.original.class_id)}
+              onClick={() =>
+                void handleRemoveWishlist(row.original.course_id, row.original.class_id)
+              }
               size="sm"
               type="button"
               variant="outline"
@@ -98,7 +101,14 @@ export function SettingsPage() {
             <Button
               className="gap-2"
               disabled={pending !== null}
-              onClick={() => void handleAddWishlistDirect(row.original.name, row.original.class_id)}
+              onClick={() =>
+                void handleAddWishlistDirect(
+                  row.original.course_id,
+                  row.original.name,
+                  row.original.class_id,
+                  row.original.teacher,
+                )
+              }
               size="sm"
               type="button"
             >
@@ -185,7 +195,7 @@ export function SettingsPage() {
             <DataTable
               columns={columns}
               data={courseRows}
-              getRowId={(course) => `${course.name}-${course.class_id}`}
+              getRowId={(course) => `${course.course_id}-${course.class_id}`}
             />
           )}
         </Surface>
@@ -199,20 +209,21 @@ export function SettingsPage() {
                 {snapshot.wishlist.map((item) => (
                   <div
                     className="flex items-center justify-between gap-3 rounded-xl border border-stone-200/80 bg-white/70 px-3 py-3 dark:border-stone-800 dark:bg-stone-950/70"
-                    key={`${item.name}-${item.class_id}`}
+                    key={`${item.course_id}-${item.class_id}`}
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-stone-900 dark:text-stone-100">
                         {item.name}
                       </p>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                        {item.class_id} 班{item.busy ? " · 提交中" : ""}
+                        {item.course_id} · {item.class_id} 班 · {item.teacher || "教师未知"}
+                        {item.busy ? " · 提交中" : ""}
                       </p>
                     </div>
                     <Button
                       aria-label="移出待抢列表"
                       disabled={pending !== null || item.busy}
-                      onClick={() => void handleRemoveWishlist(item.name, item.class_id)}
+                      onClick={() => void handleRemoveWishlist(item.course_id, item.class_id)}
                       size="icon-sm"
                       type="button"
                       variant="ghost"

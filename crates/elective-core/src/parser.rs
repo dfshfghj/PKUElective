@@ -154,9 +154,10 @@ pub fn detect_tips(html: &str) -> Result<Option<String>> {
 
 fn parse_courses(document: &Html) -> Result<Vec<Course>> {
     let row_selector = selector("tr.datagrid-all, tr.datagrid-odd, tr.datagrid-even")?;
-    let class_selector = selector("td:nth-of-type(1) span")?;
+    let course_id_selector = selector("td:nth-of-type(1) span")?;
     let name_selector = selector("td:nth-of-type(2) span")?;
     let teacher_selector = selector("td:nth-of-type(6) span")?;
+    let class_selector = selector("td:nth-of-type(7) span")?;
     let select_selector = selector(
         r#"a[href^="/elective2008/edu/pku/stu/elective/controller/supplement/electSupplement.do"]"#,
     )?;
@@ -168,11 +169,11 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             continue;
         };
 
-        let class_id = row
-            .select(&class_selector)
+        let course_id = row
+            .select(&course_id_selector)
             .next()
             .map(normalized_text)
-            .ok_or_else(|| ElectiveError::Parse("missing class id".into()))?;
+            .ok_or_else(|| ElectiveError::Parse("missing course id".into()))?;
         let name = row
             .select(&name_selector)
             .next()
@@ -183,6 +184,11 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             .next()
             .map(normalized_text)
             .unwrap_or_default();
+        let class_id = row
+            .select(&class_selector)
+            .next()
+            .map(normalized_text)
+            .ok_or_else(|| ElectiveError::Parse("missing class id".into()))?;
 
         let count_text = row
             .select(&elected_selector)
@@ -204,6 +210,7 @@ fn parse_courses(document: &Html) -> Result<Vec<Course>> {
             .ok_or_else(|| ElectiveError::Parse("missing select url".into()))?;
 
         courses.push(Course {
+            course_id,
             name,
             class_id,
             teacher,
@@ -803,10 +810,11 @@ mod tests {
           <body>
             <table>
               <tr class="datagrid-odd">
-                <td><span>1</span></td>
+                <td><span>04830010</span></td>
                 <td><span>计算机系统导论</span></td>
                 <td></td><td></td><td></td>
                 <td><span>张老师</span></td>
+                <td><span>1</span></td>
                 <td><span id="electedNum1">100 / 99</span></td>
                 <td><a href="/elective2008/edu/pku/stu/elective/controller/supplement/electSupplement.do?id=1">选课</a></td>
               </tr>
@@ -819,6 +827,8 @@ mod tests {
         let parsed = parse_course_page(html).expect("parser should succeed");
         assert_eq!(parsed.title.as_deref(), Some("补选退选"));
         assert_eq!(parsed.courses.len(), 1);
+        assert_eq!(parsed.courses[0].course_id, "04830010");
+        assert_eq!(parsed.courses[0].class_id, "1");
         assert_eq!(parsed.courses[0].name, "计算机系统导论");
         assert_eq!(parsed.courses[0].remaining(), 1);
         assert_eq!(

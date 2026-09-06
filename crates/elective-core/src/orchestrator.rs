@@ -5,8 +5,8 @@ use crate::{
     bot::{BotStatus, ElectiveBot},
     config::AppConfig,
     course::{
-        Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage,
-        WishlistItem,
+        Course, ElectiveResults, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
+        SupplementPage, WishlistItem,
     },
     error::{ElectiveError, Result},
     session::{CourseQueryFilters, SelectResult},
@@ -139,15 +139,15 @@ impl Orchestrator {
         if !self
             .wishlist
             .iter()
-            .any(|current| current.name == item.name && current.class_id == item.class_id)
+            .any(|current| current.same_target(&item))
         {
             self.wishlist.push(item);
         }
     }
 
-    pub fn remove_wishlist(&mut self, name: &str, class_id: &str) {
+    pub fn remove_wishlist(&mut self, course_id: &str, class_id: &str) {
         self.wishlist
-            .retain(|item| !(item.name == name && item.class_id == class_id));
+            .retain(|item| !item.matches_identity(course_id, class_id));
     }
 
     pub async fn add_bot(&mut self, credentials: &Credentials) -> Result<BotId> {
@@ -223,7 +223,7 @@ impl Orchestrator {
             });
         };
 
-        self.mark_wishlist_busy_by_name(&target.name, true);
+        self.mark_wishlist_busy(&target, true);
         let select_result = {
             let bot = self
                 .idle_bot_mut()
@@ -234,9 +234,9 @@ impl Orchestrator {
         match select_result {
             Ok(result) => {
                 if result.ok {
-                    self.remove_wishlist_by_name(&target.name);
+                    self.remove_wishlist_target(&target);
                 } else {
-                    self.mark_wishlist_busy_by_name(&target.name, false);
+                    self.mark_wishlist_busy(&target, false);
                 }
                 Ok(AutomationTick {
                     checked_courses: self.latest_courses.len(),
@@ -245,7 +245,7 @@ impl Orchestrator {
                 })
             }
             Err(err) => {
-                self.mark_wishlist_busy_by_name(&target.name, false);
+                self.mark_wishlist_busy(&target, false);
                 Err(err)
             }
         }
@@ -331,15 +331,15 @@ impl Orchestrator {
         self.bots.get_mut(&bot_id)
     }
 
-    fn mark_wishlist_busy_by_name(&mut self, name: &str, busy: bool) {
+    fn mark_wishlist_busy(&mut self, course: &Course, busy: bool) {
         for item in &mut self.wishlist {
-            if item.name == name {
+            if item.matches_course(course) {
                 item.busy = busy;
             }
         }
     }
 
-    fn remove_wishlist_by_name(&mut self, name: &str) {
-        self.wishlist.retain(|item| item.name != name);
+    fn remove_wishlist_target(&mut self, course: &Course) {
+        self.wishlist.retain(|item| !item.matches_course(course));
     }
 }

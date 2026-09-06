@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Course {
+    pub course_id: String,
     pub name: String,
     pub class_id: String,
     pub teacher: String,
@@ -211,21 +212,38 @@ pub struct ElectiveResults {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WishlistItem {
+    pub course_id: String,
     pub name: String,
     pub class_id: String,
+    pub teacher: String,
     pub busy: bool,
 }
 
 impl WishlistItem {
-    pub fn new(name: impl Into<String>, class_id: impl Into<String>) -> Self {
+    pub fn new(
+        course_id: impl Into<String>,
+        name: impl Into<String>,
+        class_id: impl Into<String>,
+        teacher: impl Into<String>,
+    ) -> Self {
         Self {
+            course_id: course_id.into(),
             name: name.into(),
             class_id: class_id.into(),
+            teacher: teacher.into(),
             busy: false,
         }
     }
 
     pub fn matches_course(&self, course: &Course) -> bool {
-        self.name == course.name && self.class_id == course.class_id
+        self.matches_identity(&course.course_id, &course.class_id)
+    }
+
+    pub fn same_target(&self, other: &Self) -> bool {
+        self.matches_identity(&other.course_id, &other.class_id)
+    }
+
+    pub fn matches_identity(&self, course_id: &str, class_id: &str) -> bool {
+        self.course_id == course_id && self.class_id == class_id
     }
 }
