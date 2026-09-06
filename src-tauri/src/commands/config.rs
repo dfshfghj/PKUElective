@@ -1,8 +1,9 @@
-use elective_core::AppConfig;
+use elective_core::{AppConfig, ElectiveError};
 use serde::Deserialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::app_state::AppState;
+use crate::commands::bot::auto_verify_bot_captcha;
 use crate::commands::snapshot::SnapshotView;
 use crate::emit::{emit_message, emit_snapshot_events};
 use crate::logger;
@@ -106,6 +107,9 @@ async fn ensure_automation_runner(app: AppHandle) {
                 }
                 Err(err) => {
                     let _ = emit_message(&app, "error", format!("自动化刷新失败：{err}"));
+                    if matches!(err, ElectiveError::SessionExpired) {
+                        recover_bot_captcha(&app, &state).await;
+                    }
                 }
             }
 
@@ -128,4 +132,43 @@ async fn ensure_automation_runner(app: AppHandle) {
             ));
         }
     });
+}
+
+async fn recover_bot_captcha(app: &AppHandle, state: &AppState) {
+    let (enabled, bot_ids) = {
+        let orchestrator = state.orchestrator.lock().await;
+        (
+            orchestrator.config().auto_captcha,
+            orchestrator.bots_requiring_captcha(),
+        )
+    };
+    if !enabled || state.captcha_recognizer().is_none() {
+        return;
+    }
+    for bot_id in bot_ids {
+        let refreshed = {
+            let mut orchestrator = state.orchestrator.lock().await;
+            orchestrator.refresh_bot_captcha(&bot_id).await
+        };
+        if refreshed.is_err() {
+            continue;
+        }
+        let _ = emit_message(
+            app,
+            "info",
+            format!("{bot_id} session 已失效，正在重新识别验证码…"),
+        );
+        match auto_verify_bot_captcha(state, &bot_id).await {
+            Ok(()) => {
+                let _ = emit_message(app, "success", format!("{bot_id} 已恢复验证。"));
+            }
+            Err(error) => {
+                let _ = emit_message(
+                    app,
+                    "warn",
+                    format!("{bot_id} 自动恢复失败，请手动输入：{error}"),
+                );
+            }
+        }
+    }
 }

@@ -1,0 +1,19 @@
+[package]
+name = "elective-captcha-rten"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+elective-core = { path = "../elective-core" }
+image = "0.25"
+rten = "0.22"
+rten-tensor = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[[bin]]
+name = "rten-captcha-eval"
+path = "src/bin/rten_captcha_eval.rs"

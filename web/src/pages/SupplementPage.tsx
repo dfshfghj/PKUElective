@@ -187,6 +187,19 @@ export function SupplementPage() {
                 ? "当前验证码已通过，接下来可以继续补选或退选。"
                 : "验证码不区分大小写，验证通过后再进行补选或退选。"}
             </p>
+            {snapshot.captcha_model_error ? (
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                模型不可用，仍可手动输入验证码：{snapshot.captcha_model_error}
+              </p>
+            ) : snapshot.supplement_captcha_recognized ? (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                模型识别参考值：<span className="font-semibold tracking-wider">{snapshot.supplement_captcha_recognized}</span>
+              </p>
+            ) : snapshot.supplement_captcha_recognition_error ? (
+              <p className="text-sm text-stone-500 dark:text-stone-400">
+                模型识别失败，请手动输入验证码。
+              </p>
+            ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <input
                 className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none ring-0 transition focus:border-emerald-400 sm:w-40 dark:border-stone-700 dark:bg-stone-950"

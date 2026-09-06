@@ -232,6 +232,9 @@ export type SnapshotView = {
   supplement: SupplementPage;
   supplement_captcha_image_b64: string | null;
   supplement_captcha_verified: boolean;
+  supplement_captcha_recognized: string | null;
+  supplement_captcha_recognition_error: string | null;
+  captcha_model_error: string | null;
   results: ElectiveResults;
   wishlist: WishlistItem[];
 };

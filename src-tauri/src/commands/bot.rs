@@ -6,6 +6,48 @@ use crate::emit::{emit_message, emit_snapshot_events};
 use crate::logger;
 use crate::session_persistence::handle_session_result;
 
+const MAX_AUTO_CAPTCHA_ATTEMPTS: usize = 3;
+
+pub(crate) async fn auto_verify_bot_captcha(state: &AppState, bot_id: &str) -> Result<(), String> {
+    let mut last_error = None;
+    for attempt in 1..=MAX_AUTO_CAPTCHA_ATTEMPTS {
+        let image = {
+            let orchestrator = state.orchestrator.lock().await;
+            orchestrator
+                .bot_captcha_image(bot_id)
+                .map_err(|err| err.to_string())?
+        };
+        let code = match state.recognize_captcha(image).await {
+            Ok(code) => code,
+            Err(err) => {
+                last_error = Some(err);
+                if attempt < MAX_AUTO_CAPTCHA_ATTEMPTS {
+                    let mut orchestrator = state.orchestrator.lock().await;
+                    let _ = orchestrator.refresh_bot_captcha(bot_id).await;
+                }
+                continue;
+            }
+        };
+        match state
+            .orchestrator
+            .lock()
+            .await
+            .verify_bot_captcha(bot_id, &code)
+            .await
+        {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                last_error = Some(err.to_string());
+                if attempt < MAX_AUTO_CAPTCHA_ATTEMPTS {
+                    let mut orchestrator = state.orchestrator.lock().await;
+                    let _ = orchestrator.refresh_bot_captcha(bot_id).await;
+                }
+            }
+        }
+    }
+    Err(last_error.unwrap_or_else(|| "自动识别验证码失败。".into()))
+}
+
 #[tauri::command]
 pub async fn add_bot(app: AppHandle, state: State<'_, AppState>) -> Result<SnapshotView, String> {
     logger::info("command: add_bot");
@@ -41,10 +83,26 @@ pub async fn add_bot(app: AppHandle, state: State<'_, AppState>) -> Result<Snaps
             .await
             .map_err(|err| err.to_string())?;
     }
+    let auto_captcha = state.orchestrator.lock().await.config().auto_captcha;
+    if auto_captcha {
+        if state.captcha_recognizer().is_some() {
+            emit_message(&app, "info", format!("正在自动识别 {bot_id} 的验证码…"))?;
+            match auto_verify_bot_captcha(&state, &bot_id).await {
+                Ok(()) => emit_message(&app, "success", format!("{bot_id} 验证码已自动通过。"))?,
+                Err(error) => emit_message(
+                    &app,
+                    "warn",
+                    format!("{bot_id} 自动识别失败，请手动输入：{error}"),
+                )?,
+            }
+        } else if let Some(error) = state.captcha_model_error() {
+            emit_message(&app, "warn", error)?;
+        }
+    }
     emit_message(
         &app,
         "success",
-        format!("Bot 已添加，请先完成 {bot_id} 的验证码。"),
+        format!("Bot 已添加，{bot_id} 可继续使用。"),
     )?;
 
     emit_snapshot_events(&app, &state).await

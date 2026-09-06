@@ -175,6 +175,21 @@ impl Orchestrator {
         bot.verify_captcha(code).await
     }
 
+    pub fn bot_captcha_image(&self, bot_id: &str) -> Result<Vec<u8>> {
+        self.bots
+            .get(bot_id)
+            .and_then(|bot| bot.captcha_image().map(ToOwned::to_owned))
+            .ok_or_else(|| ElectiveError::Config(format!("captcha image unavailable for bot: {bot_id}")))
+    }
+
+    pub fn bots_requiring_captcha(&self) -> Vec<BotId> {
+        self.bots
+            .iter()
+            .filter(|(_, bot)| matches!(bot.status(), BotStatus::Dead))
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
     pub async fn refresh_with_idle_bot(&mut self) -> Result<&[Course]> {
         let bot_id = self
             .bots

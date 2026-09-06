@@ -91,7 +91,18 @@ async fn preload(app: AppHandle, generation: u64) {
                 && is_current_user(&state, &username, generation).await
             {
                 *state.manual_captcha_image_b64.lock().await =
-                    Some(base64::engine::general_purpose::STANDARD.encode(captcha));
+                    Some(base64::engine::general_purpose::STANDARD.encode(&captcha));
+                let recognition = state.recognize_captcha(captcha).await;
+                match recognition {
+                    Ok(value) => {
+                        *state.supplement_captcha_recognized.lock().await = Some(value);
+                        *state.supplement_captcha_recognition_error.lock().await = None;
+                    }
+                    Err(error) => {
+                        *state.supplement_captcha_recognized.lock().await = None;
+                        *state.supplement_captcha_recognition_error.lock().await = Some(error);
+                    }
+                }
             }
             emit_progress(&app, &state, "supplement").await;
         }

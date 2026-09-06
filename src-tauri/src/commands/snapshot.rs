@@ -45,6 +45,9 @@ pub struct SnapshotView {
     pub supplement: SupplementPage,
     pub supplement_captcha_image_b64: Option<String>,
     pub supplement_captcha_verified: bool,
+    pub supplement_captcha_recognized: Option<String>,
+    pub supplement_captcha_recognition_error: Option<String>,
+    pub captcha_model_error: Option<String>,
     pub results: ElectiveResults,
     pub wishlist: Vec<WishlistItem>,
 }
@@ -73,6 +76,13 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     let automation_running = *state.automation_running.lock().await;
     let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
     let supplement_captcha_verified = *state.manual_captcha_verified.lock().await;
+    let supplement_captcha_recognized = state.supplement_captcha_recognized.lock().await.clone();
+    let supplement_captcha_recognition_error = state
+        .supplement_captcha_recognition_error
+        .lock()
+        .await
+        .clone();
+    let captcha_model_error = state.captcha_model_error();
     let bots = orchestrator
         .bots()
         .map(|bot| BotView {
@@ -105,6 +115,9 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         supplement: orchestrator.latest_supplement_page().clone(),
         supplement_captcha_image_b64,
         supplement_captcha_verified,
+        supplement_captcha_recognized,
+        supplement_captcha_recognition_error,
+        captcha_model_error,
         results: orchestrator.latest_results().clone(),
         wishlist: orchestrator.wishlist().to_vec(),
     }

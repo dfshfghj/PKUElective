@@ -12,6 +12,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 base64 = "0.22"
+elective-captcha-rten = { path = "../crates/elective-captcha-rten" }
 elective-core = { path = "../crates/elective-core" }
 keyring = "4.1.5"
 keyring-core = "1.0.0"

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/elective-core", "src-tauri"]
+members = ["crates/elective-core", "crates/elective-captcha-rten", "src-tauri"]
 resolver = "2"
 
 [profile.release]

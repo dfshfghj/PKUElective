@@ -74,6 +74,9 @@ const emptySnapshot: SnapshotView = {
   },
   supplement_captcha_image_b64: null,
   supplement_captcha_verified: false,
+  supplement_captcha_recognized: null,
+  supplement_captcha_recognition_error: null,
+  captcha_model_error: null,
   results: {
     summary: null,
     notice: null,

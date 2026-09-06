@@ -43,6 +43,13 @@ pub fn run() {
             ));
 
             app.manage(AppState::default());
+            app.state::<AppState>()
+                .initialize_captcha_model(app.path().resource_dir().ok());
+            if let Some(error) = app.state::<AppState>().captcha_model_error() {
+                logger::warn(error);
+            } else {
+                logger::info("captcha recognition model loaded");
+            }
             app.manage(course_reviews::CourseReviewState::new());
             let handle = app.handle().clone();
             let review_handle = handle.clone();

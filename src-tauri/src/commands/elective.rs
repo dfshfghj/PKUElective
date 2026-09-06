@@ -11,6 +11,22 @@ fn encode_captcha(bytes: &[u8]) -> String {
     base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)
 }
 
+async fn recognize_supplement_captcha(state: &AppState, captcha: &[u8]) {
+    let result = state.recognize_captcha(captcha.to_vec()).await;
+    let mut recognized = state.supplement_captcha_recognized.lock().await;
+    let mut error = state.supplement_captcha_recognition_error.lock().await;
+    match result {
+        Ok(value) => {
+            *recognized = Some(value);
+            *error = None;
+        }
+        Err(message) => {
+            *recognized = None;
+            *error = Some(message);
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn search_query_courses(
     filters: CourseQueryFilters,
@@ -76,6 +92,7 @@ pub async fn refresh_supplement_page(
         let mut verified = state.manual_captcha_verified.lock().await;
         *verified = false;
     }
+    recognize_supplement_captcha(&state, &captcha).await;
     emit_message(&app, "success", "补选退选列表已更新。")?;
     emit_snapshot_events(&app, &state).await
 }
@@ -101,6 +118,7 @@ pub async fn refresh_supplement_captcha(
         let mut verified = state.manual_captcha_verified.lock().await;
         *verified = false;
     }
+    recognize_supplement_captcha(&state, &captcha).await;
     emit_message(&app, "success", "验证码已刷新。")?;
     emit_snapshot_events(&app, &state).await
 }
