@@ -44,7 +44,6 @@ pub struct SnapshotView {
     pub query_courses: Vec<QueryCourse>,
     pub supplement: SupplementPage,
     pub supplement_captcha_image_b64: Option<String>,
-    pub supplement_captcha_verified: bool,
     pub supplement_captcha_recognized: Option<String>,
     pub supplement_captcha_recognition_error: Option<String>,
     pub captcha_model_error: Option<String>,
@@ -75,7 +74,6 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     let orchestrator = state.orchestrator.lock().await;
     let automation_running = *state.automation_running.lock().await;
     let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
-    let supplement_captcha_verified = *state.manual_captcha_verified.lock().await;
     let supplement_captcha_recognized = state.supplement_captcha_recognized.lock().await.clone();
     let supplement_captcha_recognition_error = state
         .supplement_captcha_recognition_error
@@ -114,7 +112,6 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         query_courses: orchestrator.latest_query_courses().to_vec(),
         supplement: orchestrator.latest_supplement_page().clone(),
         supplement_captcha_image_b64,
-        supplement_captcha_verified,
         supplement_captcha_recognized,
         supplement_captcha_recognition_error,
         captcha_model_error,

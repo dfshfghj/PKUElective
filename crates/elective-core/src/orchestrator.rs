@@ -107,6 +107,10 @@ impl Orchestrator {
         &self.latest_supplement_page
     }
 
+    pub fn latest_supplement_page_mut(&mut self) -> &mut SupplementPage {
+        &mut self.latest_supplement_page
+    }
+
     pub fn set_latest_courses(&mut self, courses: Vec<Course>) {
         self.latest_courses = courses;
     }

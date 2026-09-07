@@ -1,5 +1,6 @@
 use reqwest::{Url, header::REFERER};
 use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
     auth::{AuthSession, Credentials, authenticate},
@@ -17,6 +18,7 @@ use crate::{
 const SUPPLY_CANCEL_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/SupplyCancel.do";
 const CAPTCHA_URL: &str = "https://elective.pku.edu.cn/elective2008/DrawServlet";
 const CAPTCHA_VERIFY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/validate.do";
+const REFRESH_LIMIT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/refreshLimit.do";
 const ELECTIVE_PLAN_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electivePlan/ElectivePlanController.jpf";
 const COURSE_QUERY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/CourseQueryController.jpf";
 const COURSE_QUERY_FORM_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/getCurriculmByForm.do";
@@ -130,12 +132,16 @@ impl ElectiveSession {
     }
 
     pub async fn fetch_captcha(&self) -> Result<Vec<u8>> {
+        let rand = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos().to_string())
+            .unwrap_or_else(|_| "0".to_string());
         let response = self
             .auth
             .client()
             .get(CAPTCHA_URL)
             .header(REFERER, SUPPLY_CANCEL_URL)
-            .query(&[("Rand", "0.1")])
+            .query(&[("Rand", rand)])
             .send()
             .await?
             .error_for_status()?;
@@ -157,6 +163,55 @@ impl ElectiveSession {
             Some("2") => Ok(()),
             _ => Err(ElectiveError::CaptchaInvalid),
         }
+    }
+
+    pub async fn refresh_supplement_limit(&self, select_url: &str) -> Result<(u32, u32)> {
+        let url = Url::parse(select_url)
+            .map_err(|err| ElectiveError::Config(format!("invalid supplement action url: {err}")))?;
+        let index = url
+            .query_pairs()
+            .find(|(key, _)| key == "index")
+            .map(|(_, value)| value.into_owned())
+            .ok_or_else(|| ElectiveError::Config("supplement action url lacks index".into()))?;
+        let seq = url
+            .query_pairs()
+            .find(|(key, _)| key == "seq")
+            .map(|(_, value)| value.into_owned())
+            .ok_or_else(|| ElectiveError::Config("supplement action url lacks seq".into()))?;
+        let response: serde_json::Value = self
+            .auth
+            .client()
+            .post(REFRESH_LIMIT_URL)
+            .header(REFERER, SUPPLY_CANCEL_URL)
+            .form(&[("index", index), ("seq", seq), ("xh", self.auth.username().to_string())])
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        let elected_value = response
+            .get("electedNum")
+            .ok_or_else(|| ElectiveError::Fatal("刷新课程名额返回格式异常".into()))?;
+        if elected_value.as_str() == Some("NA") {
+            return Err(ElectiveError::Fatal("刷新频繁，请稍后再试".into()));
+        }
+        if elected_value.as_str() == Some("NB") {
+            return Err(ElectiveError::Fatal("刷新课程名额异常".into()));
+        }
+        let parse_count = |value: &serde_json::Value| {
+            value
+                .as_u64()
+                .and_then(|number| u32::try_from(number).ok())
+                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u32>().ok()))
+        };
+        let elected = parse_count(elected_value)
+            .ok_or_else(|| ElectiveError::Fatal("刷新课程名额返回格式异常".into()))?;
+        let limit = response
+            .get("limitNum")
+            .and_then(parse_count)
+            .ok_or_else(|| ElectiveError::Fatal("刷新课程名额返回格式异常".into()))?;
+        Ok((limit, elected))
     }
 
     pub async fn refresh_preselect_courses(&self) -> Result<Vec<PreselectCourse>> {

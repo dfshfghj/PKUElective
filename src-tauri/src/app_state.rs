@@ -19,7 +19,6 @@ pub struct AppState {
     pub elective_schedule: Mutex<Vec<ElectiveScheduleRow>>,
     pub auth_generation: AtomicU64,
     pub manual_captcha_image_b64: Mutex<Option<String>>,
-    pub manual_captcha_verified: Mutex<bool>,
     pub supplement_captcha_recognized: Mutex<Option<String>>,
     pub supplement_captcha_recognition_error: Mutex<Option<String>>,
     pub captcha_recognizer: StdMutex<Option<Arc<Recognizer>>>,
@@ -41,7 +40,6 @@ impl Default for AppState {
             elective_schedule: Mutex::new(Vec::new()),
             auth_generation: AtomicU64::new(0),
             manual_captcha_image_b64: Mutex::new(None),
-            manual_captcha_verified: Mutex::new(false),
             supplement_captcha_recognized: Mutex::new(None),
             supplement_captcha_recognition_error: Mutex::new(None),
             captcha_recognizer: StdMutex::new(None),
@@ -142,10 +140,6 @@ impl AppState {
             let mut guard = self.manual_captcha_image_b64.lock().await;
             *guard = None;
         }
-        {
-            let mut guard = self.manual_captcha_verified.lock().await;
-            *guard = false;
-        }
         *self.supplement_captcha_recognized.lock().await = None;
         *self.supplement_captcha_recognition_error.lock().await = None;
     }
@@ -177,10 +171,6 @@ impl AppState {
         {
             let mut captcha = self.manual_captcha_image_b64.lock().await;
             *captcha = None;
-        }
-        {
-            let mut verified = self.manual_captcha_verified.lock().await;
-            *verified = false;
         }
         *self.supplement_captcha_recognized.lock().await = None;
         *self.supplement_captcha_recognition_error.lock().await = None;

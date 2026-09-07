@@ -166,10 +166,6 @@ export async function refreshSupplementCaptcha(): Promise<SnapshotView> {
   return invoke<SnapshotView>("refresh_supplement_captcha");
 }
 
-export async function verifySupplementCaptcha(code: string): Promise<SnapshotView> {
-  return invoke<SnapshotView>("verify_supplement_captcha", { code });
-}
-
 export async function addCourseToPlan(addUrl: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("add_course_to_plan", { addUrl });
 }
@@ -192,10 +188,14 @@ export async function cancelPreselectCourse(cancelUrl: string): Promise<Snapshot
   return invoke<SnapshotView>("cancel_preselect_course", { cancelUrl });
 }
 
-export async function supplementSelectCourse(selectUrl: string): Promise<SnapshotView> {
-  return invoke<SnapshotView>("supplement_select_course", { selectUrl });
+export async function supplementSelectCourse(selectUrl: string, captchaCode: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("supplement_select_course", { selectUrl, captchaCode });
 }
 
-export async function supplementCancelCourse(cancelUrl: string): Promise<SnapshotView> {
-  return invoke<SnapshotView>("supplement_cancel_course", { cancelUrl });
+export async function refreshSupplementLimit(selectUrl: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("refresh_supplement_limit", { selectUrl });
+}
+
+export async function supplementCancelCourse(cancelUrl: string, captchaCode: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("supplement_cancel_course", { cancelUrl, captchaCode });
 }

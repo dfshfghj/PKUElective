@@ -21,6 +21,7 @@ import {
   refreshBotCaptcha,
   refreshSupplementPage,
   refreshSupplementCaptcha,
+  refreshSupplementLimit,
   refreshPlanCourses,
   refreshPreselectCourses,
   refreshResults,
@@ -34,7 +35,6 @@ import {
   supplementSelectCourse,
   updateConfig,
   verifyBotCaptcha,
-  verifySupplementCaptcha,
 } from "./api";
 import { subscribeToAppEvents } from "./events";
 import type { ConfigPatch, CourseQueryFilters, MessageEvent, SnapshotView } from "./types";
@@ -73,7 +73,6 @@ const emptySnapshot: SnapshotView = {
     selected_credits: null,
   },
   supplement_captcha_image_b64: null,
-  supplement_captcha_verified: false,
   supplement_captcha_recognized: null,
   supplement_captcha_recognition_error: null,
   captcha_model_error: null,
@@ -129,7 +128,7 @@ type AppModel = {
   handleRefreshResults: () => Promise<void>;
   handleRefreshSupplement: () => Promise<void>;
   handleRefreshSupplementCaptcha: () => Promise<void>;
-  handleVerifySupplementCaptcha: (code: string) => Promise<void>;
+  handleRefreshSupplementLimit: (selectUrl: string) => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -146,8 +145,8 @@ type AppModel = {
   handleRemovePlanCourse: (deleteUrl: string) => Promise<void>;
   handlePreselectCourse: (selectUrl: string, preference?: number | null) => Promise<void>;
   handleCancelPreselectCourse: (cancelUrl: string) => Promise<void>;
-  handleSupplementSelectCourse: (selectUrl: string) => Promise<void>;
-  handleSupplementCancelCourse: (cancelUrl: string) => Promise<void>;
+  handleSupplementSelectCourse: (selectUrl: string, captchaCode: string) => Promise<void>;
+  handleSupplementCancelCourse: (cancelUrl: string, captchaCode: string) => Promise<void>;
 };
 
 const AppModelContext = createContext<AppModel | null>(null);
@@ -389,10 +388,6 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("刷新验证码", refreshSupplementCaptcha);
   }
 
-  async function handleVerifySupplementCaptcha(code: string) {
-    await runAction("验证验证码", () => verifySupplementCaptcha(code));
-  }
-
   async function handleConfigToggle(key: "auto_refresh" | "auto_captcha" | "notifications") {
     await runAction("更新配置", () =>
       updateConfig({
@@ -437,6 +432,10 @@ export function AppProvider(props: { children: ReactNode }) {
     setWishlistFormState({ courseId: "", name: "", classId: "", teacher: "" });
   }
 
+  async function handleRefreshSupplementLimit(selectUrl: string) {
+    await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl));
+  }
+
   async function handleAddWishlistDirect(
     courseId: string,
     name: string,
@@ -470,12 +469,12 @@ export function AppProvider(props: { children: ReactNode }) {
     await runAction("取消预选", () => cancelPreselectCourse(cancelUrl));
   }
 
-  async function handleSupplementSelectCourse(selectUrl: string) {
-    await runAction("提交补选", () => supplementSelectCourse(selectUrl));
+  async function handleSupplementSelectCourse(selectUrl: string, captchaCode: string) {
+    await runAction("提交补选", () => supplementSelectCourse(selectUrl, captchaCode));
   }
 
-  async function handleSupplementCancelCourse(cancelUrl: string) {
-    await runAction("提交退选", () => supplementCancelCourse(cancelUrl));
+  async function handleSupplementCancelCourse(cancelUrl: string, captchaCode: string) {
+    await runAction("提交退选", () => supplementCancelCourse(cancelUrl, captchaCode));
   }
 
   function applyMessage(payload: MessageEvent) {
@@ -547,7 +546,7 @@ export function AppProvider(props: { children: ReactNode }) {
     handleRefreshResults,
     handleRefreshSupplement,
     handleRefreshSupplementCaptcha,
-    handleVerifySupplementCaptcha,
+    handleRefreshSupplementLimit,
     handleConfigToggle,
     handleConfigSave,
     handleConfigNumberSubmit,

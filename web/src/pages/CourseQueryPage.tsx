@@ -319,109 +319,107 @@ export function CourseQueryPage() {
         title="课程查询"
       />
 
-      <Surface title="查询条件">
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSearchQuery({
-              course_setting_type: filters.courseSettingType,
-              course_id: filters.courseId || null,
-              course_name: filters.courseName || null,
-              dept_id: filters.deptId || "ALL",
-              course_day: filters.courseDay || null,
-              course_time: filters.courseTime || null,
-              query_date_flag: filters.queryDateFlag,
-            });
-          }}
-        >
-          <div className="grid gap-4 xl:grid-cols-4">
-            <SelectField
-              label="课程分类"
-              onChange={(value) =>
-                setFilters((current) => {
-                  const nextDepartmentState = departmentStateForCategory(value);
-                  return {
-                    ...current,
-                    courseSettingType: value,
-                    deptId: nextDepartmentState.value ?? current.deptId,
-                  };
-                })
+      <form
+        className="grid gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSearchQuery({
+            course_setting_type: filters.courseSettingType,
+            course_id: filters.courseId || null,
+            course_name: filters.courseName || null,
+            dept_id: filters.deptId || "ALL",
+            course_day: filters.courseDay || null,
+            course_time: filters.courseTime || null,
+            query_date_flag: filters.queryDateFlag,
+          });
+        }}
+      >
+        <div className="grid gap-4 xl:grid-cols-4">
+          <SelectField
+            label="课程分类"
+            onChange={(value) =>
+              setFilters((current) => {
+                const nextDepartmentState = departmentStateForCategory(value);
+                return {
+                  ...current,
+                  courseSettingType: value,
+                  deptId: nextDepartmentState.value ?? current.deptId,
+                };
+              })
+            }
+            options={categoryOptions}
+            value={filters.courseSettingType}
+          />
+          <InputField
+            label="课程号"
+            onChange={(value) => setFilters((current) => ({ ...current, courseId: value }))}
+            placeholder="至少填一项"
+            value={filters.courseId}
+          />
+          <InputField
+            label="课程名"
+            onChange={(value) => setFilters((current) => ({ ...current, courseName: value }))}
+            placeholder="至少填一项"
+            value={filters.courseName}
+          />
+          <SelectField
+            label="开课单位"
+            disabled={departmentState.disabled}
+            onChange={(value) => setFilters((current) => ({ ...current, deptId: value }))}
+            options={departmentState.options}
+            value={filters.deptId}
+          />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr_auto]">
+          <SelectField
+            label="上课星期"
+            onChange={(value) => setFilters((current) => ({ ...current, courseDay: value }))}
+            options={courseDayOptions}
+            value={filters.courseDay}
+          />
+          <SelectField
+            label="上课节次"
+            onChange={(value) => setFilters((current) => ({ ...current, courseTime: value }))}
+            options={courseTimeOptions}
+            value={filters.courseTime}
+          />
+          <label className="flex items-center gap-3 pb-2 mt-auto text-sm text-stone-600 dark:text-stone-300">
+            <Checkbox
+              className="size-4"
+              checked={filters.queryDateFlag}
+              onCheckedChange={(checked) =>
+                setFilters((current) => ({
+                  ...current,
+                  queryDateFlag: checkedStateToBoolean(checked),
+                }))
               }
-              options={categoryOptions}
-              value={filters.courseSettingType}
             />
-            <InputField
-              label="课程号"
-              onChange={(value) => setFilters((current) => ({ ...current, courseId: value }))}
-              placeholder="至少填一项"
-              value={filters.courseId}
-            />
-            <InputField
-              label="课程名"
-              onChange={(value) => setFilters((current) => ({ ...current, courseName: value }))}
-              placeholder="至少填一项"
-              value={filters.courseName}
-            />
-            <SelectField
-              label="开课单位"
-              disabled={departmentState.disabled}
-              onChange={(value) => setFilters((current) => ({ ...current, deptId: value }))}
-              options={departmentState.options}
-              value={filters.deptId}
-            />
-          </div>
-          <div className="grid gap-4 xl:grid-cols-[1fr_1fr_auto]">
-            <SelectField
-              label="上课星期"
-              onChange={(value) => setFilters((current) => ({ ...current, courseDay: value }))}
-              options={courseDayOptions}
-              value={filters.courseDay}
-            />
-            <SelectField
-              label="上课节次"
-              onChange={(value) => setFilters((current) => ({ ...current, courseTime: value }))}
-              options={courseTimeOptions}
-              value={filters.courseTime}
-            />
-            <label className="flex items-center gap-3 pb-2 mt-auto text-sm text-stone-600 dark:text-stone-300">
-              <Checkbox
-                className="size-4"
-                checked={filters.queryDateFlag}
-                onCheckedChange={(checked) =>
-                  setFilters((current) => ({
-                    ...current,
-                    queryDateFlag: checkedStateToBoolean(checked),
-                  }))
-                }
-              />
-              <span>时间反查</span>
-            </label>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
-            <PrimaryButton disabled={pending !== null} type="submit">
-              查询
-            </PrimaryButton>
-            <SecondaryButton
-              disabled={pending !== null}
-              onClick={() =>
-                setFilters({
-                  courseSettingType: "speciality",
-                  courseId: "",
-                  courseName: "",
-                  deptId: "ALL",
-                  courseDay: "",
-                  courseTime: "",
-                  queryDateFlag: false,
-                })
-              }
-              type="button"
-            >
-              清空条件
-            </SecondaryButton>
-          </div>
-        </form>
-      </Surface>
+            <span>时间反查</span>
+          </label>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
+          <PrimaryButton disabled={pending !== null} type="submit">
+            查询
+          </PrimaryButton>
+          <SecondaryButton
+            disabled={pending !== null}
+            onClick={() =>
+              setFilters({
+                courseSettingType: "speciality",
+                courseId: "",
+                courseName: "",
+                deptId: "ALL",
+                courseDay: "",
+                courseTime: "",
+                queryDateFlag: false,
+              })
+            }
+            type="button"
+          >
+            清空条件
+          </SecondaryButton>
+        </div>
+      </form>
 
       <Surface title="查询结果">
         {snapshot.query_courses.length === 0 ? (

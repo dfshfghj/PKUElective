@@ -9,6 +9,8 @@ import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-tab
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type AvailableRow = SupplementAvailableCourse & { key: string; remaining: number };
 type SelectedRow = SupplementSelectedCourse & { key: string; remaining: number };
@@ -19,9 +21,9 @@ export function SupplementPage() {
     snapshot,
     handleRefreshSupplement,
     handleRefreshSupplementCaptcha,
+    handleRefreshSupplementLimit,
     handleSupplementCancelCourse,
     handleSupplementSelectCourse,
-    handleVerifySupplementCaptcha,
   } = useAppModel();
   const hasAutoLoadedRef = useRef(false);
   const [captchaCode, setCaptchaCode] = useState("");
@@ -56,7 +58,11 @@ export function SupplementPage() {
           <SecondaryButton
             disabled={pending !== null || !row.original.select_url}
             onClick={() =>
-              row.original.select_url && void handleSupplementSelectCourse(row.original.select_url)
+              row.original.select_url && void (
+                row.original.action_label === "刷新"
+                  ? handleRefreshSupplementLimit(row.original.select_url)
+                  : handleSupplementSelectCourse(row.original.select_url, captchaCode)
+              )
             }
           >
             {row.original.action_label || "补选"}
@@ -65,7 +71,7 @@ export function SupplementPage() {
         header: () => <span className="px-2">补选</span>,
       },
     ],
-    [handleSupplementSelectCourse, pending],
+    [captchaCode, handleRefreshSupplementLimit, handleSupplementSelectCourse, pending],
   );
   const selectedColumns = useMemo<ColumnDef<SelectedRow>[]>(
     () => [
@@ -95,7 +101,7 @@ export function SupplementPage() {
               if (!row.original.cancel_url) return;
               const confirmed = window.confirm(`确认退选 ${row.original.name} ${row.original.class_id} 班？`);
               if (confirmed) {
-                void handleSupplementCancelCourse(row.original.cancel_url);
+                void handleSupplementCancelCourse(row.original.cancel_url, captchaCode);
               }
             }}
           >
@@ -105,8 +111,12 @@ export function SupplementPage() {
         header: () => <span className="px-2">退选</span>,
       },
     ],
-    [handleSupplementCancelCourse, pending],
+    [captchaCode, handleSupplementCancelCourse, pending],
   );
+
+  useEffect(() => {
+    setCaptchaCode("");
+  }, [snapshot.supplement_captcha_image_b64]);
 
   useEffect(() => {
     if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
@@ -149,94 +159,76 @@ export function SupplementPage() {
       />
 
       {snapshot.supplement.notices.length > 0 ? (
-        <Surface title="页面通知">
-          <div className="grid gap-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-            {snapshot.supplement.notices.slice(0, 3).map((notice, index) => (
-              <div
-                className="rounded-xl border border-orange-200/70 bg-orange-50/70 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/80"
-                key={`${notice}-${index}`}
-              >
-                {notice}
-              </div>
-            ))}
-          </div>
-        </Surface>
-      ) : null}
-
-      <Surface
-        title="验证码"
-        meta={snapshot.supplement_captcha_verified ? "已验证" : "未验证"}
-      >
-        <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
-          <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
-            {snapshot.supplement_captcha_image_b64 ? (
-              <img
-                alt="补选退选验证码"
-                className="block h-24 w-full object-contain"
-                src={`data:image/png;base64,${snapshot.supplement_captcha_image_b64}`}
-              />
-            ) : (
-              <div className="flex h-24 items-center justify-center text-sm text-stone-500 dark:text-stone-400">
-                暂无验证码
-              </div>
-            )}
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm text-stone-600 dark:text-stone-300">
-              {snapshot.supplement_captcha_verified
-                ? "当前验证码已通过，接下来可以继续补选或退选。"
-                : "验证码不区分大小写，验证通过后再进行补选或退选。"}
-            </p>
-            {snapshot.captcha_model_error ? (
-              <p className="text-sm text-orange-700 dark:text-orange-300">
-                模型不可用，仍可手动输入验证码：{snapshot.captcha_model_error}
-              </p>
-            ) : snapshot.supplement_captcha_recognized ? (
-              <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                模型识别参考值：<span className="font-semibold tracking-wider">{snapshot.supplement_captcha_recognized}</span>
-              </p>
-            ) : snapshot.supplement_captcha_recognition_error ? (
-              <p className="text-sm text-stone-500 dark:text-stone-400">
-                模型识别失败，请手动输入验证码。
-              </p>
-            ) : null}
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <input
-                className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm outline-none ring-0 transition focus:border-emerald-400 sm:w-40 dark:border-stone-700 dark:bg-stone-950"
-                disabled={pending !== null}
-                maxLength={5}
-                onChange={(event) => setCaptchaCode(event.target.value)}
-                placeholder="输入验证码"
-                type="text"
-                value={captchaCode}
-              />
-              <PrimaryButton
-                disabled={pending !== null || captchaCode.trim().length === 0}
-                onClick={() => {
-                  void handleVerifySupplementCaptcha(captchaCode.trim());
-                  setCaptchaCode("");
-                }}
-              >
-                验证
-              </PrimaryButton>
-              <SecondaryButton
-                disabled={pending !== null}
-                onClick={() => {
-                  void handleRefreshSupplementCaptcha();
-                  setCaptchaCode("");
-                }}
-              >
-                刷新验证码
-              </SecondaryButton>
+        <div className="grid gap-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
+          {snapshot.supplement.notices.slice(0, 3).map((notice, index) => (
+            <div
+              className="rounded-xl border border-orange-200/70 bg-orange-50/70 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/80"
+              key={`${notice}-${index}`}
+            >
+              {notice}
             </div>
-          </div>
+          ))}
         </div>
-      </Surface>
+      ) : null}
 
       <Surface title="选课计划中本学期可选列表">
         {availableRows.length === 0 ? (
           <EmptyState text="还没有补选课程数据，先刷新一次。" />
         ) : (
+          <div>
+            <div className="flex gap-4">
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-wrap">
+                  <Input
+                    className="h-7 w-full px-3 text-sm outline-none sm:w-40"
+                    disabled={pending !== null}
+                    maxLength={5}
+                    onChange={(event) => setCaptchaCode(event.target.value)}
+                    placeholder="输入验证码"
+                    type="text"
+                    value={captchaCode}
+                  />
+                  <div className="flex gap-4">
+                    <Button
+                      disabled={pending !== null}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        void handleRefreshSupplementCaptcha();
+                        setCaptchaCode("");
+                      }}
+                    >
+                      <RefreshCw className="size-4" />
+                      <span>刷新</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div>
+                {snapshot.supplement_captcha_image_b64 ? (
+                  <img
+                    alt="补选退选验证码"
+                    className="block object-contain"
+                    src={`data:image/png;base64,${snapshot.supplement_captcha_image_b64}`}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center text-sm text-stone-500 dark:text-stone-400">
+                    暂无验证码
+                  </div>
+                )}
+                {snapshot.captcha_model_error ? (
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    模型不可用，仍可手动输入验证码：{snapshot.captcha_model_error}
+                  </p>
+                ) : snapshot.supplement_captcha_recognized ? (
+                  <p className="text-sm text-stone-500 dark:text-stone-400">
+                    OCR：<span className="font-semibold tracking-wider">{snapshot.supplement_captcha_recognized}</span>
+                  </p>
+                ) : snapshot.supplement_captcha_recognition_error ? (
+                  <p className="text-sm text-stone-500 dark:text-stone-400"></p>
+                ) : null}
+              </div>
+            </div>
           <DataTable
             columns={availableColumns}
             data={availableRows}
@@ -269,6 +261,7 @@ export function SupplementPage() {
               </>
             )}
           />
+          </div>
         )}
       </Surface>
 

@@ -8,6 +8,8 @@ import { useAppModel } from "../app-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type AutomationCourseRow = ReturnType<typeof useAppModel>["courseRows"][number];
 
@@ -129,10 +131,6 @@ export function SettingsPage() {
         title="自动化"
         actions={
           <>
-            <StatusPill
-              label={snapshot.config.auto_refresh ? "自动刷新开启" : "自动刷新暂停"}
-              tone={snapshot.config.auto_refresh ? "green" : "stone"}
-            />
             <PrimaryButton
               disabled={pending !== null}
               onClick={() => void handleConfigToggle("auto_refresh")}
@@ -150,17 +148,40 @@ export function SettingsPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Bot" value={`${snapshot.bots.length}`} detail={automationReady ? "有空闲 Bot" : "需要空闲 Bot"} />
-        <Metric label="待抢" value={`${wantedCount}`} detail={`${selectableWantedCount} 门当前有余量`} />
-        <Metric
-          label="扫描结果"
-          value={`${courseRows.length}`}
-          detail={snapshot.automation_running ? "后台运行中" : "后台未运行"}
-        />
-        <Metric label="间隔" value={`${snapshot.config.interval_ms} ms`} detail="每轮刷新间隔" />
-      </div>
+      <div className="flex gap-8">
+        <div className="grid gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center space-x-2">
+              <Switch onClick={() => void handleConfigToggle("auto_captcha")}></Switch>
+              <Label>验证码自动识别</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch onClick={() => void handleConfigToggle("notifications")}></Switch>
+              <Label>通知</Label>
+            </div>
+          </div>
+        </div>
 
+        <form className="grid content-center gap-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleConfigNumberSubmit}>
+          <InputField
+            label="刷新间隔/ms"
+            name="interval_ms"
+            type="number"
+            defaultValue={snapshot.config.interval_ms}
+          />
+          <InputField
+            label="超时/ms"
+            name="timeout_ms"
+            type="number"
+            defaultValue={snapshot.config.timeout_ms}
+          />
+          <div className="mt-auto">
+            <PrimaryButton disabled={pending !== null} type="submit">
+              保存
+            </PrimaryButton>
+          </div>
+        </form>
+      </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <Surface
           title="可抢课程"
@@ -324,43 +345,6 @@ export function SettingsPage() {
           </Surface>
         </div>
       </div>
-
-      <Surface title="运行参数">
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ToggleTile
-              title="验证码"
-              active={snapshot.config.auto_captcha}
-              onClick={() => void handleConfigToggle("auto_captcha")}
-            />
-            <ToggleTile
-              title="通知"
-              active={snapshot.config.notifications}
-              onClick={() => void handleConfigToggle("notifications")}
-            />
-          </div>
-
-          <form className="grid content-center gap-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleConfigNumberSubmit}>
-            <InputField
-              label="刷新间隔 ms"
-              name="interval_ms"
-              type="number"
-              defaultValue={snapshot.config.interval_ms}
-            />
-            <InputField
-              label="超时 ms"
-              name="timeout_ms"
-              type="number"
-              defaultValue={snapshot.config.timeout_ms}
-            />
-            <div className="mt-auto">
-              <PrimaryButton disabled={pending !== null} type="submit">
-                保存
-              </PrimaryButton>
-            </div>
-          </form>
-        </div>
-      </Surface>
     </div>
   );
 }
