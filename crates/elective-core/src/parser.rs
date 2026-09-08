@@ -641,7 +641,14 @@ fn parse_results(document: &Html) -> Result<ElectiveResults> {
                             background_color: cell
                                 .value()
                                 .attr("style")
-                                .and_then(extract_background_color),
+                                .and_then(extract_background_color)
+                                .or_else(|| {
+                                    cell.value()
+                                        .attr("bgcolor")
+                                        .map(str::trim)
+                                        .filter(|value| !value.is_empty())
+                                        .map(ToOwned::to_owned)
+                                }),
                         })
                         .collect(),
                 })
@@ -768,7 +775,15 @@ fn extract_background_color(style: &str) -> Option<String> {
         .split(';')
         .filter_map(|part| part.split_once(':'))
         .find_map(|(key, value)| {
-            (key.trim().eq_ignore_ascii_case("background-color")).then(|| value.trim().to_string())
+            if key.trim().eq_ignore_ascii_case("background-color") {
+                Some(value.trim().to_string())
+            } else if key.trim().eq_ignore_ascii_case("background")
+                && !value.trim().to_ascii_lowercase().contains("url(")
+            {
+                Some(value.trim().to_string())
+            } else {
+                None
+            }
         })
         .filter(|value| !value.is_empty())
 }

@@ -200,7 +200,7 @@ export function ResultsPage() {
                           >
                             <button
                               aria-label={`查看${compact.courseName || "课程"}详情`}
-                              className="absolute inset-0 flex h-full w-full items-center justify-center gap-0.5 overflow-hidden px-0.5 py-1 text-stone-900 outline-none transition active:brightness-95 focus-visible:ring-2 focus-visible:ring-orange-500/40 dark:text-stone-100"
+                              className="absolute inset-0 flex h-full w-full rounded-md items-center justify-center gap-0.5 overflow-hidden px-0.5 py-1 text-stone-900 outline-none transition active:brightness-95 focus-visible:ring-2 focus-visible:ring-orange-500/40 dark:text-stone-100"
                               onClick={() =>
                                 setSelectedTimetableCell({
                                   text: cell.text,
@@ -214,11 +214,11 @@ export function ResultsPage() {
                               }}
                               type="button"
                             >
-                              <span className="max-h-28 overflow-hidden break-all text-[10px] font-medium leading-3 [writing-mode:vertical-rl]">
+                              <span className="break-all text-[12px] font-medium [writing-mode:vertical-rl]">
                                 {compact.courseName}
                               </span>
                               {compact.classroom ? (
-                                <span className="max-h-28 overflow-hidden break-all text-[9px] leading-3 text-stone-600 [writing-mode:vertical-rl] dark:text-stone-300">
+                                <span className="break-all text-[10px] text-stone-600 [writing-mode:vertical-rl] dark:text-stone-300">
                                   {compact.classroom}
                                 </span>
                               ) : null}
@@ -257,8 +257,8 @@ export function ResultsPage() {
                           }
                           const palette = courseCellPalette(cell.background_color);
                           return (
-                            <td key={`${row.section}-${index}`} rowSpan={cell.rowSpan} className="break-words border-b border-r border-stone-200/80 align-top last:border-r-0 dark:border-stone-800">
-                              <div className="flex h-full min-h-24 min-w-0 rounded-md px-2 py-2 text-xs leading-5 text-stone-900 shadow-sm dark:text-stone-100" style={{ backgroundColor: palette.backgroundColor, borderColor: palette.borderColor }} title={cell.text}>
+                            <td key={`${row.section}-${index}`} rowSpan={cell.rowSpan} className="relative h-px break-words border-b border-r border-stone-200/80 p-0 align-top last:border-r-0 dark:border-stone-800">
+                              <div className="flex h-full min-h-24 w-full min-w-0 items-center overflow-hidden rounded-md px-2 py-2 text-xs leading-5 text-stone-900 shadow-sm dark:text-stone-100" style={{ backgroundColor: palette.backgroundColor, borderColor: palette.borderColor }} title={cell.text}>
                                 <div className="min-w-0 whitespace-pre-line break-words">{cell.text}</div>
                               </div>
                             </td>
@@ -393,40 +393,11 @@ function courseCellPalette(backgroundColor: string | null) {
   const normalized = (backgroundColor ?? "").trim().toLowerCase();
   const isDark = document.documentElement.classList.contains("dark");
 
-  const themedPalettes: Record<
-    string,
-    { backgroundColor: string; borderColor: string }
-  > = {
-    aquamarine: {
-      backgroundColor: isDark ? "rgba(16, 185, 129, 0.22)" : "rgba(16, 185, 129, 0.16)",
-      borderColor: isDark ? "rgba(94, 234, 212, 0.28)" : "rgba(16, 185, 129, 0.35)",
-    },
-    lightyellow: {
-      backgroundColor: isDark ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 158, 11, 0.16)",
-      borderColor: isDark ? "rgba(251, 191, 36, 0.3)" : "rgba(245, 158, 11, 0.35)",
-    },
-    pink: {
-      backgroundColor: isDark ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.15)",
-      borderColor: isDark ? "rgba(244, 114, 182, 0.3)" : "rgba(236, 72, 153, 0.35)",
-    },
-    lightblue: {
-      backgroundColor: isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.16)",
-      borderColor: isDark ? "rgba(96, 165, 250, 0.3)" : "rgba(59, 130, 246, 0.35)",
-    },
-    khaki: {
-      backgroundColor: isDark ? "rgba(217, 119, 6, 0.2)" : "rgba(217, 119, 6, 0.16)",
-      borderColor: isDark ? "rgba(251, 146, 60, 0.3)" : "rgba(217, 119, 6, 0.35)",
-    },
-  };
-
-  if (normalized && themedPalettes[normalized]) {
-    return themedPalettes[normalized];
-  }
-
   if (normalized) {
+    const mixTarget = isDark ? "black" : "white";
     return {
-      backgroundColor: isDark ? "rgba(249, 115, 22, 0.18)" : "rgba(249, 115, 22, 0.12)",
-      borderColor: isDark ? "rgba(251, 146, 60, 0.28)" : "rgba(249, 115, 22, 0.28)",
+      backgroundColor: `color-mix(in srgb, ${normalized} 32%, ${mixTarget})`,
+      borderColor: `color-mix(in srgb, ${normalized} 42%, ${mixTarget})`,
     };
   }
 
