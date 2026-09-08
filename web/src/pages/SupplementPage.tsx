@@ -6,6 +6,7 @@ import { RefreshCw } from "lucide-react";
 import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
@@ -22,6 +23,7 @@ export function SupplementPage() {
     handleRefreshSupplement,
     handleRefreshSupplementCaptcha,
     handleRefreshSupplementLimit,
+    handlePaginateSupplement,
     handleSupplementCancelCourse,
     handleSupplementSelectCourse,
   } = useAppModel();
@@ -263,6 +265,11 @@ export function SupplementPage() {
           />
           </div>
         )}
+        <ServerPagination
+          disabled={pending !== null}
+          onNavigate={(url) => void handlePaginateSupplement(url)}
+          pagination={snapshot.supplement.pagination}
+        />
       </Surface>
 
       <Surface

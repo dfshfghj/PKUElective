@@ -55,11 +55,12 @@ async fn preload(app: AppHandle, generation: u64) {
         Err(err) => logger::warn(format!("failed to preload schedule data: {err}")),
     }
 
-    match session.refresh_preselect_data().await {
-        Ok((courses, selected_courses)) if is_current_user(&state, &username, generation).await => {
+    match session.refresh_preselect_page().await {
+        Ok(page) if is_current_user(&state, &username, generation).await => {
             let mut orchestrator = state.orchestrator.lock().await;
-            orchestrator.set_latest_preselect_courses(courses);
-            orchestrator.set_latest_preselected_courses(selected_courses);
+            orchestrator.set_latest_preselect_courses(page.courses);
+            orchestrator.set_latest_preselected_courses(page.selected_courses);
+            orchestrator.set_latest_preselect_pagination(page.pagination);
             drop(orchestrator);
             emit_progress(&app, &state, "preselect").await;
         }
@@ -67,13 +68,12 @@ async fn preload(app: AppHandle, generation: u64) {
         Err(err) => logger::warn(format!("failed to preload preselect data: {err}")),
     }
 
-    match session.refresh_plan_courses().await {
-        Ok(courses) if is_current_user(&state, &username, generation).await => {
-            state
-                .orchestrator
-                .lock()
-                .await
-                .set_latest_plan_courses(courses);
+    match session.refresh_plan_page().await {
+        Ok(page) if is_current_user(&state, &username, generation).await => {
+            let mut orchestrator = state.orchestrator.lock().await;
+            orchestrator.set_latest_plan_courses(page.courses);
+            orchestrator.set_latest_plan_pagination(page.pagination);
+            drop(orchestrator);
             emit_progress(&app, &state, "plan").await;
         }
         Ok(_) => return,

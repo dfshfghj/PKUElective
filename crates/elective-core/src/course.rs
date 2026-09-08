@@ -1,6 +1,35 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PaginationLink {
+    pub page: usize,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Pagination {
+    pub current_page: usize,
+    pub total_pages: usize,
+    pub pages: Vec<PaginationLink>,
+    pub previous_url: Option<String>,
+    pub next_url: Option<String>,
+    pub current_url: String,
+}
+
+impl Default for Pagination {
+    fn default() -> Self {
+        Self {
+            current_page: 1,
+            total_pages: 1,
+            pages: Vec::new(),
+            previous_url: None,
+            next_url: None,
+            current_url: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Course {
     pub course_id: String,
     pub name: String,
@@ -17,6 +46,7 @@ pub struct SupplementPage {
     pub available_courses: Vec<SupplementAvailableCourse>,
     pub selected_courses: Vec<SupplementSelectedCourse>,
     pub selected_credits: Option<String>,
+    pub pagination: Pagination,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -208,6 +238,7 @@ pub struct ElectiveResults {
     pub export_url: Option<String>,
     pub courses: Vec<CourseResult>,
     pub timetable: Option<Timetable>,
+    pub pagination: Pagination,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -4,13 +4,14 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { PreselectCourse, PreselectedCourse } from "@/types";
 
 export function CoursesPage() {
-  const { pending, snapshot, handleCancelPreselectCourse, handlePreselectCourse, handleRefreshPreselect } = useAppModel();
+  const { pending, snapshot, handleCancelPreselectCourse, handlePaginatePreselect, handlePreselectCourse, handleRefreshPreselect } = useAppModel();
   const [preferenceDrafts, setPreferenceDrafts] = useState<Record<string, string>>({});
   const [cancelCandidate, setCancelCandidate] = useState<Pick<PreselectedCourse, "name" | "class_id" | "cancel_url"> | null>(null);
   const hasAutoLoadedRef = useRef(false);
@@ -279,6 +280,11 @@ export function CoursesPage() {
             )}
           />
         )}
+        <ServerPagination
+          disabled={pending !== null}
+          onNavigate={(url) => void handlePaginatePreselect(url)}
+          pagination={snapshot.preselect_pagination}
+        />
       </Surface>
 
       <Surface title="已选列表" meta={selectedRows.length ? `${selectedRows.length} 门课程` : undefined}>

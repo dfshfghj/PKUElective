@@ -103,6 +103,26 @@ export async function addWishlist(
   });
 }
 
+export async function paginatePreselect(url: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("paginate_preselect", { url });
+}
+
+export async function paginatePlan(url: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("paginate_plan", { url });
+}
+
+export async function paginateQuery(url: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("paginate_query", { url });
+}
+
+export async function paginateSupplement(url: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("paginate_supplement", { url });
+}
+
+export async function paginateResults(url: string): Promise<SnapshotView> {
+  return invoke<SnapshotView>("paginate_results", { url });
+}
+
 export async function removeWishlist(courseId: string, classId: string): Promise<SnapshotView> {
   return invoke<SnapshotView>("remove_wishlist", {
     courseId,

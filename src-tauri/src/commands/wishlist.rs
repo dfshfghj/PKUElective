@@ -17,7 +17,10 @@ pub async fn add_wishlist(
     state: State<'_, AppState>,
 ) -> Result<SnapshotView, String> {
     logger::info("command: add_wishlist");
-    let label = format!("已加入待选列表：{} {}班（{}）", course_id, class_id, teacher);
+    let label = format!(
+        "已加入待选列表：{} {}班（{}）",
+        course_id, class_id, teacher
+    );
     {
         let mut orchestrator = state.orchestrator.lock().await;
         orchestrator.add_wishlist(WishlistItem::new(course_id, name, class_id, teacher));

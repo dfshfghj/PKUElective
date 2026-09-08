@@ -45,11 +45,26 @@ export type Course = {
   elected_cnt: number;
 };
 
+export type PaginationLink = {
+  page: number;
+  url: string;
+};
+
+export type PaginationState = {
+  current_page: number;
+  total_pages: number;
+  pages: PaginationLink[];
+  previous_url: string | null;
+  next_url: string | null;
+  current_url: string;
+};
+
 export type SupplementPage = {
   notices: string[];
   available_courses: SupplementAvailableCourse[];
   selected_courses: SupplementSelectedCourse[];
   selected_credits: string | null;
+  pagination: PaginationState;
 };
 
 export type SupplementAvailableCourse = {
@@ -197,6 +212,7 @@ export type ElectiveResults = {
   export_url: string | null;
   courses: CourseResult[];
   timetable: Timetable | null;
+  pagination: PaginationState;
 };
 
 export type CourseQueryFilters = {
@@ -227,8 +243,11 @@ export type SnapshotView = {
   courses: Course[];
   preselect_courses: PreselectCourse[];
   preselected_courses: PreselectedCourse[];
+  preselect_pagination: PaginationState;
   plan_courses: PlanCourse[];
+  plan_pagination: PaginationState;
   query_courses: QueryCourse[];
+  query_pagination: PaginationState;
   supplement: SupplementPage;
   supplement_captcha_image_b64: string | null;
   supplement_captcha_recognized: string | null;

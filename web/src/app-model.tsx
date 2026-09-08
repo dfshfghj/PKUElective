@@ -17,6 +17,11 @@ import {
   addWishlist,
   getSnapshot,
   login,
+  paginatePlan,
+  paginatePreselect,
+  paginateQuery,
+  paginateResults,
+  paginateSupplement,
   preselectCourse,
   refreshBotCaptcha,
   refreshSupplementPage,
@@ -38,6 +43,15 @@ import {
 } from "./api";
 import { subscribeToAppEvents } from "./events";
 import type { ConfigPatch, CourseQueryFilters, MessageEvent, SnapshotView } from "./types";
+
+const emptyPagination = {
+  current_page: 1,
+  total_pages: 1,
+  pages: [],
+  previous_url: null,
+  next_url: null,
+  current_url: "",
+};
 
 const emptySnapshot: SnapshotView = {
   auth: {
@@ -64,13 +78,17 @@ const emptySnapshot: SnapshotView = {
   courses: [],
   preselect_courses: [],
   preselected_courses: [],
+  preselect_pagination: { ...emptyPagination },
   plan_courses: [],
+  plan_pagination: { ...emptyPagination },
   query_courses: [],
+  query_pagination: { ...emptyPagination },
   supplement: {
     notices: [],
     available_courses: [],
     selected_courses: [],
     selected_credits: null,
+    pagination: { ...emptyPagination },
   },
   supplement_captcha_image_b64: null,
   supplement_captcha_recognized: null,
@@ -82,6 +100,7 @@ const emptySnapshot: SnapshotView = {
     export_url: null,
     courses: [],
     timetable: null,
+    pagination: { ...emptyPagination },
   },
   wishlist: [],
 };
@@ -129,6 +148,11 @@ type AppModel = {
   handleRefreshSupplement: () => Promise<void>;
   handleRefreshSupplementCaptcha: () => Promise<void>;
   handleRefreshSupplementLimit: (selectUrl: string) => Promise<void>;
+  handlePaginatePreselect: (url: string) => Promise<void>;
+  handlePaginatePlan: (url: string) => Promise<void>;
+  handlePaginateQuery: (url: string) => Promise<void>;
+  handlePaginateSupplement: (url: string) => Promise<void>;
+  handlePaginateResults: (url: string) => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -432,6 +456,26 @@ export function AppProvider(props: { children: ReactNode }) {
     setWishlistFormState({ courseId: "", name: "", classId: "", teacher: "" });
   }
 
+  async function handlePaginatePreselect(url: string) {
+    await runAction("切换预选页码", () => paginatePreselect(url));
+  }
+
+  async function handlePaginatePlan(url: string) {
+    await runAction("切换选课计划页码", () => paginatePlan(url));
+  }
+
+  async function handlePaginateQuery(url: string) {
+    await runAction("切换课程查询页码", () => paginateQuery(url));
+  }
+
+  async function handlePaginateSupplement(url: string) {
+    await runAction("切换补选退选页码", () => paginateSupplement(url));
+  }
+
+  async function handlePaginateResults(url: string) {
+    await runAction("切换选课结果页码", () => paginateResults(url));
+  }
+
   async function handleRefreshSupplementLimit(selectUrl: string) {
     await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl));
   }
@@ -547,6 +591,11 @@ export function AppProvider(props: { children: ReactNode }) {
     handleRefreshSupplement,
     handleRefreshSupplementCaptcha,
     handleRefreshSupplementLimit,
+    handlePaginatePreselect,
+    handlePaginatePlan,
+    handlePaginateQuery,
+    handlePaginateSupplement,
+    handlePaginateResults,
     handleConfigToggle,
     handleConfigSave,
     handleConfigNumberSubmit,

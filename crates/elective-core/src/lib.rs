@@ -15,11 +15,15 @@ pub use auth::{AuthSession, Credentials};
 pub use bot::{BotStatus, ElectiveBot};
 pub use config::AppConfig;
 pub use course::{
-    Course, CourseDetail, CourseResult, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
+    Course, CourseDetail, CourseResult, ElectiveResults, ElectiveScheduleRow, Pagination,
+    PaginationLink, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
     SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable, TimetableCell,
     TimetableRow, WishlistItem,
 };
 pub use error::{ElectiveError, Result};
 pub use orchestrator::Orchestrator;
-pub use session::{CourseQueryFilters, ElectiveSession, SelectResult};
+pub use session::{
+    CourseQueryFilters, ElectiveSession, PlanPageData, PreselectPageData, QueryPageData,
+    SelectResult,
+};
 pub use types::{BotId, Channel};

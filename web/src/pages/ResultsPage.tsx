@@ -8,6 +8,7 @@ import { useAppModel } from "../app-model";
 import { useIsCompactViewport } from "../hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import type { CourseResult, TimetableCell } from "../types";
 
@@ -23,7 +24,7 @@ const compactWeekdayLabels: Record<string, string> = {
 };
 
 export function ResultsPage() {
-  const { snapshot, pending, handleRefreshResults } = useAppModel();
+  const { snapshot, pending, handlePaginateResults, handleRefreshResults } = useAppModel();
   const isMobile = useIsCompactViewport();
   const hasTriggeredAutoRefresh = useRef(false);
   const [selectedTimetableCell, setSelectedTimetableCell] = useState<{
@@ -146,6 +147,11 @@ export function ResultsPage() {
             mobileCardTitle={(course) => course.name}
           />
         )}
+        <ServerPagination
+          disabled={pending !== null}
+          onNavigate={(url) => void handlePaginateResults(url)}
+          pagination={results.pagination}
+        />
       </Surface>
 
       <Surface className="mobile-compact-surface" title={timetable?.caption ?? "学期课程表"}>

@@ -10,12 +10,13 @@ import {
 } from "../components";
 import { useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
+import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import type { PlanCourse } from "@/types";
 
 export function WishlistPage() {
-  const { snapshot, pending, handleRefreshPlan, handleRemovePlanCourse } = useAppModel();
+  const { snapshot, pending, handlePaginatePlan, handleRefreshPlan, handleRemovePlanCourse } = useAppModel();
   const planRows = snapshot.plan_courses;
   const hasTriggeredAutoRefresh = useRef(false);
   const columns = useMemo<ColumnDef<PlanCourse>[]>(
@@ -224,6 +225,11 @@ export function WishlistPage() {
             )}
           />
         )}
+        <ServerPagination
+          disabled={pending !== null}
+          onNavigate={(url) => void handlePaginatePlan(url)}
+          pagination={snapshot.plan_pagination}
+        />
       </Surface>
     </div>
   );

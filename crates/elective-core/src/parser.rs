@@ -2,9 +2,9 @@ use scraper::{Html, Selector, node::Node};
 
 use crate::{
     course::{
-        Course, CourseResult, ElectiveResults, ElectiveScheduleRow, PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse,
-        SupplementAvailableCourse, SupplementPage, SupplementSelectedCourse, Timetable,
-        TimetableCell, TimetableRow,
+        Course, CourseResult, ElectiveResults, ElectiveScheduleRow, Pagination, PaginationLink,
+        PlanCourse, PreselectCourse, PreselectedCourse, QueryCourse, SupplementAvailableCourse,
+        SupplementPage, SupplementSelectedCourse, Timetable, TimetableCell, TimetableRow,
     },
     error::{ElectiveError, Result},
 };
@@ -35,6 +35,7 @@ pub struct ParsedPreselectPage {
     pub courses: Vec<PreselectCourse>,
     pub selected_courses: Vec<PreselectedCourse>,
     pub next_page_url: Option<String>,
+    pub pagination: Pagination,
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +44,7 @@ pub struct ParsedPlanPage {
     pub fatal_error: Option<String>,
     pub courses: Vec<PlanCourse>,
     pub next_page_url: Option<String>,
+    pub pagination: Pagination,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +53,7 @@ pub struct ParsedQueryPage {
     pub fatal_error: Option<String>,
     pub courses: Vec<QueryCourse>,
     pub next_page_url: Option<String>,
+    pub pagination: Pagination,
 }
 
 #[derive(Debug, Clone)]
@@ -67,7 +70,8 @@ pub fn parse_course_page(html: &str) -> Result<ParsedCoursePage> {
     let fatal_error = detect_fatal_error(html)?;
     let tips = detect_tips(html)?;
     let courses = parse_courses(&document)?;
-    let next_page_url = find_next_page_url(&document)?;
+    let pagination = parse_pagination(&document)?;
+    let next_page_url = pagination.next_url.clone();
 
     Ok(ParsedCoursePage {
         title,
@@ -80,51 +84,63 @@ pub fn parse_course_page(html: &str) -> Result<ParsedCoursePage> {
 
 pub fn parse_supplement_page(html: &str) -> Result<ParsedSupplementPage> {
     let document = Html::parse_document(html);
+    let pagination = parse_pagination(&document)?;
+    let mut page = parse_supplement(&document)?;
+    page.pagination = pagination;
     Ok(ParsedSupplementPage {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
         tips: detect_tips(html)?,
-        page: parse_supplement(&document)?,
+        page,
     })
 }
 
 pub fn parse_preselect_page(html: &str) -> Result<ParsedPreselectPage> {
     let document = Html::parse_document(html);
+    let pagination = parse_pagination(&document)?;
     Ok(ParsedPreselectPage {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
         courses: parse_preselect_courses(&document)?,
         selected_courses: parse_preselected_courses(&document)?,
-        next_page_url: find_next_page_url(&document)?,
+        next_page_url: pagination.next_url.clone(),
+        pagination,
     })
 }
 
 pub fn parse_plan_page(html: &str) -> Result<ParsedPlanPage> {
     let document = Html::parse_document(html);
+    let pagination = parse_pagination(&document)?;
     Ok(ParsedPlanPage {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
         courses: parse_plan_courses(&document)?,
-        next_page_url: find_next_page_url(&document)?,
+        next_page_url: pagination.next_url.clone(),
+        pagination,
     })
 }
 
 pub fn parse_query_page(html: &str) -> Result<ParsedQueryPage> {
     let document = Html::parse_document(html);
+    let pagination = parse_pagination(&document)?;
     Ok(ParsedQueryPage {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
         courses: parse_query_courses(&document)?,
-        next_page_url: find_next_page_url(&document)?,
+        next_page_url: pagination.next_url.clone(),
+        pagination,
     })
 }
 
 pub fn parse_results_page(html: &str) -> Result<ParsedResultsPage> {
     let document = Html::parse_document(html);
+    let pagination = parse_pagination(&document)?;
+    let mut results = parse_results(&document)?;
+    results.pagination = pagination;
     Ok(ParsedResultsPage {
         title: page_title(&document)?,
         fatal_error: detect_fatal_error(html)?,
-        results: parse_results(&document)?,
+        results,
     })
 }
 
@@ -410,15 +426,31 @@ fn parse_preselected_courses(document: &Html) -> Result<Vec<PreselectedCourse>> 
 
     for row in document.select(&row_selector) {
         let cells = row.select(&cell_selector).collect::<Vec<_>>();
-        if cells.len() < 14 { continue; }
-        let Some(cancel_link) = row.select(&link_selector).next() else { continue; };
+        if cells.len() < 14 {
+            continue;
+        }
+        let Some(cancel_link) = row.select(&link_selector).next() else {
+            continue;
+        };
         let (volume_cnt, elected_cnt) = parse_count_pair(&cell_text(cells[11]))?;
-        let cancel_url = cancel_link.value().attr("href").ok_or_else(|| ElectiveError::Parse("missing preselect cancel url".into()))?;
+        let cancel_url = cancel_link
+            .value()
+            .attr("href")
+            .ok_or_else(|| ElectiveError::Parse("missing preselect cancel url".into()))?;
         courses.push(PreselectedCourse {
-            course_id: cell_text(cells[0]), name: cell_text(cells[1]), category: cell_text(cells[2]),
-            credits: cell_text(cells[3]), weekly_hours: cell_text(cells[4]), teacher: cell_text(cells[5]),
-            class_id: cell_text(cells[6]), department: cell_text(cells[7]), grade: cell_text(cells[8]),
-            schedule: cell_text_with_breaks(cells[9]), pnp_status: cell_text(cells[10]), volume_cnt, elected_cnt,
+            course_id: cell_text(cells[0]),
+            name: cell_text(cells[1]),
+            category: cell_text(cells[2]),
+            credits: cell_text(cells[3]),
+            weekly_hours: cell_text(cells[4]),
+            teacher: cell_text(cells[5]),
+            class_id: cell_text(cells[6]),
+            department: cell_text(cells[7]),
+            grade: cell_text(cells[8]),
+            schedule: cell_text_with_breaks(cells[9]),
+            pnp_status: cell_text(cells[10]),
+            volume_cnt,
+            elected_cnt,
             preference_value: cells[12]
                 .select(&input_selector)
                 .next()
@@ -521,7 +553,10 @@ pub fn parse_elective_schedule(html: &str) -> Result<Vec<ElectiveScheduleRow>> {
     let cell_selector = selector("td")?;
 
     for table in document.select(&table_selector) {
-        let headers = table.select(&header_selector).map(cell_text).collect::<Vec<_>>();
+        let headers = table
+            .select(&header_selector)
+            .map(cell_text)
+            .collect::<Vec<_>>();
         if headers != ["选课阶段", "开始时间", "结束时间", "备注"] {
             continue;
         }
@@ -540,7 +575,9 @@ pub fn parse_elective_schedule(html: &str) -> Result<Vec<ElectiveScheduleRow>> {
             .collect());
     }
 
-    Err(ElectiveError::Parse("missing elective schedule table".into()))
+    Err(ElectiveError::Parse(
+        "missing elective schedule table".into(),
+    ))
 }
 
 fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
@@ -551,7 +588,10 @@ fn course_detail_url(row: scraper::ElementRef<'_>) -> Option<String> {
         .map(absolute_url)
 }
 
-fn course_detail_url_in_cell(cell: scraper::ElementRef<'_>, controller_path: &str) -> Option<String> {
+fn course_detail_url_in_cell(
+    cell: scraper::ElementRef<'_>,
+    controller_path: &str,
+) -> Option<String> {
     let detail_selector = selector(&format!(r#"a[href*="{controller_path}"]"#)).ok()?;
     cell.select(&detail_selector)
         .next()
@@ -668,20 +708,140 @@ fn parse_results(document: &Html) -> Result<ElectiveResults> {
         export_url,
         courses,
         timetable,
+        ..ElectiveResults::default()
     })
 }
 
-fn find_next_page_url(document: &Html) -> Result<Option<String>> {
-    let selector = selector("a")?;
-    for link in document.select(&selector) {
+fn parse_pagination(document: &Html) -> Result<Pagination> {
+    let mut pagination = Pagination::default();
+    let (summary_current, summary_total) = parse_page_summary(&cell_text(document.root_element()));
+    pagination.current_page = summary_current.unwrap_or(1);
+    pagination.total_pages = summary_total.unwrap_or(1);
+
+    for link in document.select(&selector("a")?) {
         let label = normalized_text(link);
-        if label == "Next" {
-            if let Some(path) = link.value().attr("href") {
-                return Ok(Some(format!("{BASE_URL}{path}")));
+        let Some(href) = link.value().attr("href") else {
+            continue;
+        };
+        let Some(url) = resolve_site_url(href) else {
+            continue;
+        };
+        match label.as_str() {
+            "Next" => pagination.next_url = Some(url),
+            "Previous" => pagination.previous_url = Some(url),
+            _ => {
+                if let Ok(page) = label.parse::<usize>() {
+                    pagination.pages.push(PaginationLink { page, url });
+                }
             }
         }
     }
-    Ok(None)
+
+    if let Some(form) = document
+        .select(&selector(r#"form[name="pageForm"]"#)?)
+        .next()
+        && let Some(action) = form.value().attr("action").and_then(resolve_site_url)
+    {
+        let options = form
+            .select(&selector(r#"select[name="netui_row"] option"#)?)
+            .collect::<Vec<_>>();
+        if let Some(selected_index) = options
+            .iter()
+            .position(|option| option.value().attr("selected").is_some())
+            .or((!options.is_empty()).then_some(0))
+        {
+            pagination.current_page = selected_index + 1;
+        }
+        pagination.total_pages = pagination.total_pages.max(options.len().max(1));
+
+        for (index, option) in options.iter().enumerate() {
+            let Some(value) = option.value().attr("value") else {
+                continue;
+            };
+            let page = normalized_text(*option)
+                .parse::<usize>()
+                .unwrap_or(index + 1);
+            if !pagination.pages.iter().any(|link| link.page == page)
+                && let Some(url) = replace_query_value(&action, "netui_row", value)
+            {
+                pagination.pages.push(PaginationLink { page, url });
+            }
+        }
+
+        if pagination.previous_url.is_none() && pagination.current_page > 1 {
+            pagination.previous_url = pagination
+                .pages
+                .iter()
+                .find(|link| link.page + 1 == pagination.current_page)
+                .map(|link| link.url.clone());
+        }
+        if pagination.next_url.is_none() {
+            pagination.next_url = pagination
+                .pages
+                .iter()
+                .find(|link| link.page == pagination.current_page + 1)
+                .map(|link| link.url.clone());
+        }
+    }
+
+    pagination.pages.sort_by_key(|link| link.page);
+    pagination.total_pages = pagination.total_pages.max(
+        pagination
+            .pages
+            .iter()
+            .map(|link| link.page)
+            .max()
+            .unwrap_or(1),
+    );
+    Ok(pagination)
+}
+
+fn resolve_site_url(raw: &str) -> Option<String> {
+    let base = reqwest::Url::parse(BASE_URL).ok()?;
+    let url = base.join(raw).ok()?;
+    (url.scheme() == "https" && url.host_str() == Some("elective.pku.edu.cn"))
+        .then(|| url.to_string())
+}
+
+fn replace_query_value(raw_url: &str, key: &str, value: &str) -> Option<String> {
+    let mut url = reqwest::Url::parse(raw_url).ok()?;
+    let pairs = url
+        .query_pairs()
+        .filter(|(name, _)| name != key)
+        .map(|(name, value)| (name.into_owned(), value.into_owned()))
+        .collect::<Vec<_>>();
+    url.set_query(None);
+    {
+        let mut query = url.query_pairs_mut();
+        for (name, value) in pairs {
+            query.append_pair(&name, &value);
+        }
+        query.append_pair(key, value);
+    }
+    Some(url.to_string())
+}
+
+fn parse_page_summary(text: &str) -> (Option<usize>, Option<usize>) {
+    let Some(rest) = text.split_once("Page").map(|(_, rest)| rest.trim_start()) else {
+        return (None, None);
+    };
+    let current_text = rest
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect::<String>();
+    let Some(total_rest) = rest
+        .get(current_text.len()..)
+        .map(str::trim_start)
+        .and_then(|value| value.strip_prefix("of"))
+    else {
+        return (None, None);
+    };
+    let total_text = total_rest
+        .trim_start()
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect::<String>();
+    (current_text.parse().ok(), total_text.parse().ok())
 }
 
 fn page_title(document: &Html) -> Result<Option<String>> {
@@ -795,9 +955,9 @@ fn selector(value: &str) -> Result<Selector> {
 #[cfg(test)]
 mod tests {
     use super::{
-        cell_text_with_breaks, detect_tips, parse_course_page, parse_elective_schedule, parse_plan_page,
-        parse_preselect_page, parse_query_page, parse_results_page, parse_supplement_page,
-        selector,
+        cell_text_with_breaks, detect_tips, parse_course_page, parse_elective_schedule,
+        parse_pagination, parse_plan_page, parse_preselect_page, parse_query_page,
+        parse_results_page, parse_supplement_page, selector,
     };
     use scraper::Html;
 
@@ -853,6 +1013,61 @@ mod tests {
     }
 
     #[test]
+    fn pagination_prefers_complete_next_link() {
+        let document = Html::parse_document(
+            r#"
+            <html><body>
+              Page 1 of 2
+              <form name="pageForm" action="/elective2008/edu/pku/stu/elective/controller/supplement/supplement.jsp">
+                <select name="netui_row">
+                  <option value="electableListGrid;0" selected="true">1</option>
+                  <option value="electableListGrid;20">2</option>
+                </select>
+              </form>
+              <a href="/elective2008/edu/pku/stu/elective/controller/supplement/supplement.jsp?netui_pagesize=electableListGrid%3B20&amp;xh=2400011461&amp;netui_row=electableListGrid%3B20">Next</a>
+            </body></html>
+        "#,
+        );
+        let pagination = parse_pagination(&document).expect("pagination should parse");
+        assert_eq!(pagination.current_page, 1);
+        assert_eq!(pagination.total_pages, 2);
+        assert_eq!(
+            pagination.next_url.as_deref(),
+            Some(
+                "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/supplement.jsp?netui_pagesize=electableListGrid%3B20&xh=2400011461&netui_row=electableListGrid%3B20"
+            )
+        );
+    }
+
+    #[test]
+    fn pagination_uses_exact_page_form_option_values() {
+        let document = Html::parse_document(
+            r#"
+            <html><body>
+              Page 2 of 3
+              <form name="pageForm" action="https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/queryCurriculum.jsp?keep=yes&amp;netui_row=stale">
+                <select name="netui_row">
+                  <option value="syllabusListGrid;0">1</option>
+                  <option value="syllabusListGrid;37" selected="true">2</option>
+                  <option value="syllabusListGrid;91">3</option>
+                </select>
+              </form>
+            </body></html>
+        "#,
+        );
+        let pagination = parse_pagination(&document).expect("pagination should parse");
+        assert_eq!(pagination.current_page, 2);
+        assert_eq!(pagination.total_pages, 3);
+        assert!(pagination.pages[2].url.contains("keep=yes"));
+        assert!(
+            pagination.pages[2]
+                .url
+                .contains("netui_row=syllabusListGrid%3B91")
+        );
+        assert!(!pagination.pages[2].url.contains("stale"));
+    }
+
+    #[test]
     fn parses_tips() {
         let html = r#"
         <div id="msgTips">
@@ -883,10 +1098,12 @@ mod tests {
         assert!(!parsed.courses.is_empty());
         assert_eq!(parsed.courses[0].course_id, "00437151");
         assert!(parsed.courses[0].delete_url.is_some());
-        assert!(parsed.courses[0]
-            .detail_url
-            .as_deref()
-            .is_some_and(|url| url.contains("/electivePlan/goNested.do")));
+        assert!(
+            parsed.courses[0]
+                .detail_url
+                .as_deref()
+                .is_some_and(|url| url.contains("/electivePlan/goNested.do"))
+        );
     }
 
     #[test]
@@ -906,10 +1123,12 @@ mod tests {
         assert!(!parsed.courses.is_empty());
         assert_eq!(parsed.courses[0].course_id, "01235260");
         assert!(parsed.courses[0].add_to_plan_url.is_some());
-        assert!(parsed.courses[0]
-            .detail_url
-            .as_deref()
-            .is_some_and(|url| url.contains("/courseQuery/goNested.do")));
+        assert!(
+            parsed.courses[0]
+                .detail_url
+                .as_deref()
+                .is_some_and(|url| url.contains("/courseQuery/goNested.do"))
+        );
     }
 
     #[test]

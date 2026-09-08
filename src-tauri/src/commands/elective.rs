@@ -40,11 +40,12 @@ pub async fn search_query_courses(
     };
 
     emit_message(&app, "info", "正在查询课程…")?;
-    let query_courses =
+    let page =
         handle_session_result(session.search_query_courses(&filters).await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_query_courses(query_courses);
+        orchestrator.set_latest_query_courses(page.courses);
+        orchestrator.set_latest_query_pagination(page.pagination);
     }
     emit_message(&app, "success", "课程查询已更新。")?;
     emit_snapshot_events(&app, &state).await
@@ -63,6 +64,157 @@ pub async fn fetch_course_detail(
     };
 
     handle_session_result(session.fetch_course_detail(&detail_url).await, &app, &state).await
+}
+
+async fn manual_session(state: &AppState) -> Result<elective_core::ElectiveSession, String> {
+    state
+        .manual_session
+        .lock()
+        .await
+        .clone()
+        .ok_or_else(|| "not logged in".to_string())
+}
+
+#[tauri::command]
+pub async fn paginate_preselect(
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = manual_session(&state).await?;
+    let referer = state
+        .orchestrator
+        .lock()
+        .await
+        .latest_preselect_pagination()
+        .current_url
+        .clone();
+    let page = handle_session_result(
+        session.fetch_preselect_page(&url, &referer).await,
+        &app,
+        &state,
+    )
+    .await?;
+    let mut orchestrator = state.orchestrator.lock().await;
+    orchestrator.set_latest_preselect_courses(page.courses);
+    if !page.selected_courses.is_empty() {
+        orchestrator.set_latest_preselected_courses(page.selected_courses);
+    }
+    orchestrator.set_latest_preselect_pagination(page.pagination);
+    drop(orchestrator);
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn paginate_plan(
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = manual_session(&state).await?;
+    let referer = state
+        .orchestrator
+        .lock()
+        .await
+        .latest_plan_pagination()
+        .current_url
+        .clone();
+    let page =
+        handle_session_result(session.fetch_plan_page(&url, &referer).await, &app, &state).await?;
+    let mut orchestrator = state.orchestrator.lock().await;
+    orchestrator.set_latest_plan_courses(page.courses);
+    orchestrator.set_latest_plan_pagination(page.pagination);
+    drop(orchestrator);
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn paginate_query(
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = manual_session(&state).await?;
+    let referer = state
+        .orchestrator
+        .lock()
+        .await
+        .latest_query_pagination()
+        .current_url
+        .clone();
+    let page =
+        handle_session_result(session.fetch_query_page(&url, &referer).await, &app, &state).await?;
+    let mut orchestrator = state.orchestrator.lock().await;
+    orchestrator.set_latest_query_courses(page.courses);
+    orchestrator.set_latest_query_pagination(page.pagination);
+    drop(orchestrator);
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn paginate_supplement(
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = manual_session(&state).await?;
+    let referer = state
+        .orchestrator
+        .lock()
+        .await
+        .latest_supplement_page()
+        .pagination
+        .current_url
+        .clone();
+    let mut page = handle_session_result(
+        session.fetch_supplement_page(&url, &referer).await,
+        &app,
+        &state,
+    )
+    .await?;
+    let mut orchestrator = state.orchestrator.lock().await;
+    let current = orchestrator.latest_supplement_page();
+    if page.selected_courses.is_empty() {
+        page.selected_courses = current.selected_courses.clone();
+        page.selected_credits = current.selected_credits.clone();
+    }
+    orchestrator.set_latest_supplement_page(page);
+    drop(orchestrator);
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
+pub async fn paginate_results(
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    let session = manual_session(&state).await?;
+    let referer = state
+        .orchestrator
+        .lock()
+        .await
+        .latest_results()
+        .pagination
+        .current_url
+        .clone();
+    let mut results = handle_session_result(
+        session.fetch_results_page(&url, &referer).await,
+        &app,
+        &state,
+    )
+    .await?;
+    let mut orchestrator = state.orchestrator.lock().await;
+    let current = orchestrator.latest_results();
+    if results.timetable.is_none() {
+        results.timetable = current.timetable.clone();
+        results.summary = current.summary.clone();
+        results.notice = current.notice.clone();
+        results.export_url = current.export_url.clone();
+    }
+    orchestrator.set_latest_results(results);
+    drop(orchestrator);
+    emit_snapshot_events(&app, &state).await
 }
 
 #[tauri::command]
@@ -126,18 +278,19 @@ pub async fn add_course_to_plan(
 
     emit_message(&app, "info", "正在加入选课计划…")?;
     handle_session_result(session.add_course_to_plan(&add_url).await, &app, &state).await?;
-    let plan_courses =
-        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
-    let query_courses =
-        handle_session_result(session.refresh_query_courses().await, &app, &state).await?;
-    let (preselect_courses, preselected_courses) =
-        handle_session_result(session.refresh_preselect_data().await, &app, &state).await?;
+    let plan = handle_session_result(session.refresh_plan_page().await, &app, &state).await?;
+    let query = handle_session_result(session.refresh_query_page().await, &app, &state).await?;
+    let preselect =
+        handle_session_result(session.refresh_preselect_page().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_plan_courses(plan_courses);
-        orchestrator.set_latest_query_courses(query_courses);
-        orchestrator.set_latest_preselect_courses(preselect_courses);
-        orchestrator.set_latest_preselected_courses(preselected_courses);
+        orchestrator.set_latest_plan_courses(plan.courses);
+        orchestrator.set_latest_plan_pagination(plan.pagination);
+        orchestrator.set_latest_query_courses(query.courses);
+        orchestrator.set_latest_query_pagination(query.pagination);
+        orchestrator.set_latest_preselect_courses(preselect.courses);
+        orchestrator.set_latest_preselected_courses(preselect.selected_courses);
+        orchestrator.set_latest_preselect_pagination(preselect.pagination);
     }
     emit_message(&app, "success", "课程已加入选课计划。")?;
     emit_snapshot_events(&app, &state).await
@@ -157,14 +310,16 @@ pub async fn remove_plan_course(
 
     emit_message(&app, "info", "正在移出选课计划…")?;
     handle_session_result(session.remove_plan_course(&delete_url).await, &app, &state).await?;
-    let plan_courses =
-        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
-    let preselect_courses =
-        handle_session_result(session.refresh_preselect_courses().await, &app, &state).await?;
+    let plan = handle_session_result(session.refresh_plan_page().await, &app, &state).await?;
+    let preselect =
+        handle_session_result(session.refresh_preselect_page().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_plan_courses(plan_courses);
-        orchestrator.set_latest_preselect_courses(preselect_courses);
+        orchestrator.set_latest_plan_courses(plan.courses);
+        orchestrator.set_latest_plan_pagination(plan.pagination);
+        orchestrator.set_latest_preselect_courses(preselect.courses);
+        orchestrator.set_latest_preselected_courses(preselect.selected_courses);
+        orchestrator.set_latest_preselect_pagination(preselect.pagination);
     }
     emit_message(&app, "success", "课程已移出选课计划。")?;
     emit_snapshot_events(&app, &state).await
@@ -196,6 +351,7 @@ pub async fn preselect_course(
     )
     .await?;
     let result = operation.result;
+    let page = handle_session_result(session.refresh_preselect_page().await, &app, &state).await?;
     logger::info(format!("preselect stage=action complete ok={}", result.ok));
     logger::info(format!(
         "preselect stage=refresh_preselect complete course_count={}",
@@ -203,8 +359,9 @@ pub async fn preselect_course(
     ));
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_preselect_courses(operation.courses);
-        orchestrator.set_latest_preselected_courses(operation.selected_courses);
+        orchestrator.set_latest_preselect_courses(page.courses);
+        orchestrator.set_latest_preselected_courses(page.selected_courses);
+        orchestrator.set_latest_preselect_pagination(page.pagination);
     }
     emit_message(
         &app,
@@ -237,10 +394,12 @@ pub async fn cancel_preselect_course(
     )
     .await?;
     let result = operation.result;
+    let page = handle_session_result(session.refresh_preselect_page().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_preselect_courses(operation.courses);
-        orchestrator.set_latest_preselected_courses(operation.selected_courses);
+        orchestrator.set_latest_preselect_courses(page.courses);
+        orchestrator.set_latest_preselected_courses(page.selected_courses);
+        orchestrator.set_latest_preselect_pagination(page.pagination);
     }
     emit_message(
         &app,

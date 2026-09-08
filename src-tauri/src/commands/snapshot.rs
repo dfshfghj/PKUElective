@@ -1,5 +1,5 @@
 use elective_core::{
-    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, PlanCourse,
+    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, Pagination, PlanCourse,
     PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
 };
 use serde::Serialize;
@@ -40,8 +40,11 @@ pub struct SnapshotView {
     pub courses: Vec<Course>,
     pub preselect_courses: Vec<PreselectCourse>,
     pub preselected_courses: Vec<PreselectedCourse>,
+    pub preselect_pagination: Pagination,
     pub plan_courses: Vec<PlanCourse>,
+    pub plan_pagination: Pagination,
     pub query_courses: Vec<QueryCourse>,
+    pub query_pagination: Pagination,
     pub supplement: SupplementPage,
     pub supplement_captcha_image_b64: Option<String>,
     pub supplement_captcha_recognized: Option<String>,
@@ -108,8 +111,11 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         courses: orchestrator.latest_courses().to_vec(),
         preselect_courses: orchestrator.latest_preselect_courses().to_vec(),
         preselected_courses: orchestrator.latest_preselected_courses().to_vec(),
+        preselect_pagination: orchestrator.latest_preselect_pagination().clone(),
         plan_courses: orchestrator.latest_plan_courses().to_vec(),
+        plan_pagination: orchestrator.latest_plan_pagination().clone(),
         query_courses: orchestrator.latest_query_courses().to_vec(),
+        query_pagination: orchestrator.latest_query_pagination().clone(),
         supplement: orchestrator.latest_supplement_page().clone(),
         supplement_captcha_image_b64,
         supplement_captcha_recognized,

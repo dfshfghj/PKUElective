@@ -212,12 +212,12 @@ pub async fn refresh_preselect_courses(
         guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
-    let (preselect_courses, preselected_courses) =
-        handle_session_result(session.refresh_preselect_data().await, &app, &state).await?;
+    let page = handle_session_result(session.refresh_preselect_page().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_preselect_courses(preselect_courses);
-        orchestrator.set_latest_preselected_courses(preselected_courses);
+        orchestrator.set_latest_preselect_courses(page.courses);
+        orchestrator.set_latest_preselected_courses(page.selected_courses);
+        orchestrator.set_latest_preselect_pagination(page.pagination);
     }
     emit_message(&app, "success", "预选列表已更新。")?;
 
@@ -235,11 +235,11 @@ pub async fn refresh_plan_courses(
         guard.clone().ok_or_else(|| "not logged in".to_string())?
     };
 
-    let plan_courses =
-        handle_session_result(session.refresh_plan_courses().await, &app, &state).await?;
+    let page = handle_session_result(session.refresh_plan_page().await, &app, &state).await?;
     {
         let mut orchestrator = state.orchestrator.lock().await;
-        orchestrator.set_latest_plan_courses(plan_courses);
+        orchestrator.set_latest_plan_courses(page.courses);
+        orchestrator.set_latest_plan_pagination(page.pagination);
     }
 
     emit_snapshot_events(&app, &state).await

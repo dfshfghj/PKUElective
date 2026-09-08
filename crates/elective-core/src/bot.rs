@@ -163,10 +163,10 @@ impl ElectiveBot {
         self.status = BotStatus::Looping;
         self.last_loop_time = Some(SystemTime::now());
         match self.session.search_query_courses(filters).await {
-            Ok(courses) => {
+            Ok(page) => {
                 self.last_error = None;
                 self.status = BotStatus::Idle;
-                Ok(courses)
+                Ok(page.courses)
             }
             Err(err) => self.fail_loop(err),
         }
