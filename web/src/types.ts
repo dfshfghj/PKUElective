@@ -237,7 +237,6 @@ export type SnapshotView = {
   auth: AuthStateView;
   config: AppConfig;
   automation_running: boolean;
-  elective_data_preloading: boolean;
   elective_schedule: ElectiveScheduleRow[];
   bots: BotView[];
   courses: Course[];

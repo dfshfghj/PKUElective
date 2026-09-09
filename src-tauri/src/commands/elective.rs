@@ -76,6 +76,18 @@ async fn manual_session(state: &AppState) -> Result<elective_core::ElectiveSessi
 }
 
 #[tauri::command]
+pub async fn refresh_schedule(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SnapshotView, String> {
+    logger::info("command: refresh_schedule");
+    let session = manual_session(&state).await?;
+    let schedule = handle_session_result(session.fetch_elective_schedule().await, &app, &state).await?;
+    *state.elective_schedule.lock().await = schedule;
+    emit_snapshot_events(&app, &state).await
+}
+
+#[tauri::command]
 pub async fn paginate_preselect(
     url: String,
     app: AppHandle,

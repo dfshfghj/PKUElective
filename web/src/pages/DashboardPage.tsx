@@ -1,10 +1,20 @@
+import { useEffect, useRef } from "react";
 import { EmptyState, PageHeader, Surface } from "../components";
+import { refreshSchedule } from "../api";
 import { useAppModel } from "../app-model";
 import { HIDE_AUTOMATION } from "../build-flags";
 
 export function DashboardPage() {
-  const { snapshot } = useAppModel();
+  const { snapshot, loadPage } = useAppModel();
   const schedule = snapshot.elective_schedule;
+  const enteredRef = useRef(false);
+
+  useEffect(() => {
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("dashboard", "刷新选课时间表", (current) => ({ ...current, elective_schedule: [] }), refreshSchedule);
+    }
+  }, []);
 
   return (
     <div className="min-w-0 max-w-full space-y-4 sm:space-y-6">
@@ -29,9 +39,7 @@ export function DashboardPage() {
       </div>
 
       <Surface title="选课时间表">
-        {schedule.length === 0 && snapshot.elective_data_preloading ? (
-          <div className="py-10 text-center text-sm text-stone-500 dark:text-stone-400">正在加载选课时间表…</div>
-        ) : schedule.length === 0 ? (
+        {schedule.length === 0 ? (
           <EmptyState text="当前没有可显示的选课时间表。" />
         ) : (
           <div className="max-w-full overflow-x-auto overscroll-x-contain">

@@ -66,7 +66,6 @@ export function AppSettingsPage() {
               <dt className="text-stone-500 dark:text-stone-400">安全凭据存储</dt>
               <dd><Badge variant={snapshot.auth.secure_store_available ? "secondary" : "outline"}>{snapshot.auth.secure_store_available ? "可用" : "不可用"}</Badge></dd>
             </div>
-            <InfoRow label="后台数据预加载" value={snapshot.elective_data_preloading ? "进行中" : "已空闲"} />
           </dl>
         </Surface>
       </div>

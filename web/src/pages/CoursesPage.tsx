@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { PreselectCourse, PreselectedCourse } from "@/types";
+import { refreshPreselectCourses } from "../api";
 
 export function CoursesPage() {
-  const { pending, snapshot, handleCancelPreselectCourse, handlePaginatePreselect, handlePreselectCourse, handleRefreshPreselect } = useAppModel();
+  const { pending, snapshot, handleCancelPreselectCourse, handlePaginatePreselect, handlePreselectCourse, loadPage } = useAppModel();
   const [preferenceDrafts, setPreferenceDrafts] = useState<Record<string, string>>({});
   const [cancelCandidate, setCancelCandidate] = useState<Pick<PreselectedCourse, "name" | "class_id" | "cancel_url"> | null>(null);
-  const hasAutoLoadedRef = useRef(false);
+  const enteredRef = useRef(false);
   const rows = useMemo(
     () =>
       snapshot.preselect_courses.map((course) => ({
@@ -217,21 +218,11 @@ export function CoursesPage() {
   );
 
   useEffect(() => {
-    if (
-      hasAutoLoadedRef.current
-      || !snapshot.auth.logged_in
-      || snapshot.elective_data_preloading
-      || pending !== null
-    ) {
-      return;
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("preselect", "刷新预选列表", (current) => ({ ...current, preselect_courses: [], preselected_courses: [] }), refreshPreselectCourses);
     }
-    if (snapshot.preselect_courses.length > 0 || snapshot.preselected_courses.length > 0) {
-      hasAutoLoadedRef.current = true;
-      return;
-    }
-    hasAutoLoadedRef.current = true;
-    void handleRefreshPreselect();
-  }, [handleRefreshPreselect, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.preselect_courses.length, snapshot.preselected_courses.length]);
+  }, []);
 
   return (
     <div className="space-y-5 sm:space-y-6">

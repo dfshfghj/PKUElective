@@ -14,11 +14,12 @@ import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
 import type { PlanCourse } from "@/types";
+import { refreshPlanCourses } from "../api";
 
 export function WishlistPage() {
-  const { snapshot, pending, handlePaginatePlan, handleRefreshPlan, handleRemovePlanCourse } = useAppModel();
+  const { snapshot, pending, handlePaginatePlan, handleRemovePlanCourse, loadPage } = useAppModel();
   const planRows = snapshot.plan_courses;
-  const hasTriggeredAutoRefresh = useRef(false);
+  const enteredRef = useRef(false);
   const columns = useMemo<ColumnDef<PlanCourse>[]>(
     () => [
       {
@@ -169,20 +170,11 @@ export function WishlistPage() {
   );
 
   useEffect(() => {
-    if (hasTriggeredAutoRefresh.current) {
-      return;
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("plan", "刷新选课计划", (current) => ({ ...current, plan_courses: [] }), refreshPlanCourses);
     }
-    if (!snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
-      return;
-    }
-    if (snapshot.plan_courses.length > 0) {
-      hasTriggeredAutoRefresh.current = true;
-      return;
-    }
-
-    hasTriggeredAutoRefresh.current = true;
-    void handleRefreshPlan();
-  }, [handleRefreshPlan, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.plan_courses.length]);
+  }, []);
 
   return (
     <div className="space-y-5 sm:space-y-6">

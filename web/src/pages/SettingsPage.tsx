@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Bot, Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { refreshAutomationCourses } from "../api";
 
 type AutomationCourseRow = ReturnType<typeof useAppModel>["courseRows"][number];
 
@@ -24,10 +25,19 @@ export function SettingsPage() {
     handleConfigToggle,
     handleRefreshBotCaptcha,
     handleRefreshAutomationCourses,
+    loadPage,
     handleRemoveWishlist,
     handleVerifyBotCaptcha,
   } = useAppModel();
   const [captchaInputs, setCaptchaInputs] = useState<Record<string, string>>({});
+  const enteredRef = useRef(false);
+
+  useEffect(() => {
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("automation", "刷新可抢课程", (current) => ({ ...current, courses: [] }), refreshAutomationCourses);
+    }
+  }, []);
 
   const wantedCount = snapshot.wishlist.length;
   const selectableWantedCount = courseRows.filter((course) => course.wanted && course.selectable).length;

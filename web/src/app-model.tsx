@@ -30,6 +30,7 @@ import {
   refreshPlanCourses,
   refreshPreselectCourses,
   refreshResults,
+  refreshSchedule,
   refreshAutomationCourses,
   removePlanCourse,
   logout,
@@ -72,7 +73,6 @@ const emptySnapshot: SnapshotView = {
     timeout_ms: 30000,
   },
   automation_running: false,
-  elective_data_preloading: false,
   elective_schedule: [],
   bots: [],
   courses: [],
@@ -135,10 +135,12 @@ type AppModel = {
   setWishlistForm: (updater: (current: WishlistFormState) => WishlistFormState) => void;
   syncSnapshot: (message?: string) => Promise<void>;
   runAction: (label: string, action: () => Promise<SnapshotView>) => Promise<void>;
+  loadPage: (key: string, label: string, clear: (snapshot: SnapshotView) => SnapshotView, action: () => Promise<SnapshotView>) => Promise<void>;
   handleLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleLogout: () => Promise<void>;
   handleAddBot: () => Promise<void>;
   handleRefreshAutomationCourses: () => Promise<void>;
+  handleRefreshSchedule: () => Promise<void>;
   handleRefreshBotCaptcha: (botId: string) => Promise<void>;
   handleVerifyBotCaptcha: (botId: string, code: string) => Promise<void>;
   handleRefresh: () => Promise<void>;
@@ -195,6 +197,7 @@ export function AppProvider(props: { children: ReactNode }) {
   const [message, setMessage] = useState("正在连接后端…");
   const [error, setError] = useState<string | null>(null);
   const authRestorePollTimer = useRef<number | null>(null);
+  const pageRequestIds = useRef(new Map<string, number>());
 
   useEffect(() => {
     void syncSnapshot("正在加载当前状态…");
@@ -341,17 +344,10 @@ export function AppProvider(props: { children: ReactNode }) {
       try {
         setMessage("登录成功，正在同步会话…");
 
-        let nextSnapshot = await getSnapshot();
+        const nextSnapshot = await getSnapshot();
         setSnapshot(nextSnapshot);
-
-        nextSnapshot = await refreshPreselectCourses();
-        setSnapshot(nextSnapshot);
-        nextSnapshot = await refreshPlanCourses();
-        setSnapshot(nextSnapshot);
-        nextSnapshot = await refreshResults();
-        setSnapshot(nextSnapshot);
-        setMessage("登录成功，课程数据已就绪。");
-        toast.success("登录成功，已自动完成初始化");
+        setMessage("登录成功，进入页面后将加载对应数据。");
+        toast.success("登录成功");
       } catch (err) {
         const message = toErrorMessage(err);
         setError(message);
@@ -378,6 +374,38 @@ export function AppProvider(props: { children: ReactNode }) {
 
   async function handleRefreshAutomationCourses() {
     await runAction("刷新可抢课程", refreshAutomationCourses);
+  }
+
+  async function loadPage(
+    key: string,
+    label: string,
+    clear: (current: SnapshotView) => SnapshotView,
+    action: () => Promise<SnapshotView>,
+  ) {
+    const requestId = (pageRequestIds.current.get(key) ?? 0) + 1;
+    pageRequestIds.current.set(key, requestId);
+    setSnapshot((current) => clear(current));
+    setPending(label);
+    setError(null);
+    setMessage(`${label}中…`);
+    try {
+      const nextSnapshot = await action();
+      if (pageRequestIds.current.get(key) === requestId) {
+        setSnapshot((current) => mergePageSnapshot(key, current, nextSnapshot));
+      }
+    } catch (err) {
+      if (pageRequestIds.current.get(key) !== requestId) return;
+      const message = toErrorMessage(err);
+      setError(message);
+      setMessage(`${label}失败。`);
+      toast.error(message);
+    } finally {
+      if (pageRequestIds.current.get(key) === requestId) setPending(null);
+    }
+  }
+
+  async function handleRefreshSchedule() {
+    await runAction("刷新选课时间表", refreshSchedule);
   }
 
   async function handleRefreshBotCaptcha(botId: string) {
@@ -578,10 +606,12 @@ export function AppProvider(props: { children: ReactNode }) {
     },
     syncSnapshot,
     runAction,
+    loadPage,
     handleLogin,
     handleLogout,
     handleAddBot,
     handleRefreshAutomationCourses,
+    handleRefreshSchedule,
     handleRefreshBotCaptcha,
     handleVerifyBotCaptcha,
     handleRefresh,
@@ -620,6 +650,32 @@ export function useAppModel() {
     throw new Error("useAppModel must be used within AppProvider");
   }
   return context;
+}
+
+function mergePageSnapshot(key: string, current: SnapshotView, next: SnapshotView): SnapshotView {
+  switch (key) {
+    case "dashboard":
+      return { ...current, elective_schedule: next.elective_schedule };
+    case "preselect":
+      return {
+        ...current,
+        preselect_courses: next.preselect_courses,
+        preselected_courses: next.preselected_courses,
+        preselect_pagination: next.preselect_pagination,
+      };
+    case "plan":
+      return { ...current, plan_courses: next.plan_courses, plan_pagination: next.plan_pagination };
+    case "supplement":
+      return { ...current, supplement: next.supplement };
+    case "results":
+      return { ...current, results: next.results };
+    case "automation":
+      return { ...current, courses: next.courses };
+    case "query":
+      return { ...current, query_courses: next.query_courses, query_pagination: next.query_pagination };
+    default:
+      return next;
+  }
 }
 
 function toErrorMessage(error: unknown) {

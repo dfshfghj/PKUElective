@@ -12,6 +12,7 @@ import { CourseDetailLink } from "@/components/course-detail-link";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { refreshSupplementPage } from "../api";
 
 type AvailableRow = SupplementAvailableCourse & { key: string; remaining: number };
 type SelectedRow = SupplementSelectedCourse & { key: string; remaining: number };
@@ -26,8 +27,9 @@ export function SupplementPage() {
     handlePaginateSupplement,
     handleSupplementCancelCourse,
     handleSupplementSelectCourse,
+    loadPage,
   } = useAppModel();
-  const hasAutoLoadedRef = useRef(false);
+  const enteredRef = useRef(false);
   const [captchaCode, setCaptchaCode] = useState("");
   const availableRows = useMemo<AvailableRow[]>(
     () =>
@@ -121,21 +123,11 @@ export function SupplementPage() {
   }, [snapshot.supplement_captcha_image_b64]);
 
   useEffect(() => {
-    if (hasAutoLoadedRef.current || !snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
-      return;
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("supplement", "刷新补选退选", (current) => ({ ...current, supplement: { ...current.supplement, notices: [], available_courses: [], selected_courses: [], selected_credits: null } }), refreshSupplementPage);
     }
-    if (
-      snapshot.supplement.notices.length > 0
-      || snapshot.supplement.available_courses.length > 0
-      || snapshot.supplement.selected_courses.length > 0
-      || snapshot.supplement.selected_credits !== null
-    ) {
-      hasAutoLoadedRef.current = true;
-      return;
-    }
-    hasAutoLoadedRef.current = true;
-    void handleRefreshSupplement();
-  }, [handleRefreshSupplement, pending, snapshot.auth.logged_in, snapshot.elective_data_preloading, snapshot.supplement]);
+  }, []);
 
   return (
     <div className="space-y-5 sm:space-y-6">

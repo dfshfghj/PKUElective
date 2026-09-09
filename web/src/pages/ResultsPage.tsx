@@ -11,6 +11,7 @@ import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-tab
 import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import type { CourseResult, TimetableCell } from "../types";
+import { refreshResults } from "../api";
 
 const fallbackHeaders = ["节数", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
 const compactWeekdayLabels: Record<string, string> = {
@@ -24,9 +25,9 @@ const compactWeekdayLabels: Record<string, string> = {
 };
 
 export function ResultsPage() {
-  const { snapshot, pending, handlePaginateResults, handleRefreshResults } = useAppModel();
+  const { snapshot, pending, handlePaginateResults, loadPage } = useAppModel();
   const isMobile = useIsCompactViewport();
-  const hasTriggeredAutoRefresh = useRef(false);
+  const enteredRef = useRef(false);
   const [selectedTimetableCell, setSelectedTimetableCell] = useState<{
     text: string;
     section: string;
@@ -78,20 +79,11 @@ export function ResultsPage() {
   );
 
   useEffect(() => {
-    if (hasTriggeredAutoRefresh.current) {
-      return;
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void loadPage("results", "刷新选课结果", (current) => ({ ...current, results: { ...current.results, courses: [], summary: null, timetable: null } }), refreshResults);
     }
-    if (!snapshot.auth.logged_in || snapshot.elective_data_preloading || pending !== null) {
-      return;
-    }
-    if (results.courses.length > 0 || results.summary !== null || results.timetable !== null) {
-      hasTriggeredAutoRefresh.current = true;
-      return;
-    }
-
-    hasTriggeredAutoRefresh.current = true;
-    void handleRefreshResults();
-  }, [handleRefreshResults, pending, results.courses.length, results.summary, results.timetable, snapshot.auth.logged_in, snapshot.elective_data_preloading]);
+  }, []);
 
   return (
     <div className="min-w-0 max-w-full space-y-4 sm:space-y-6">

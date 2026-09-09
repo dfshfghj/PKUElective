@@ -2,7 +2,6 @@ mod app_state;
 mod auth_persistence;
 mod commands;
 mod course_reviews;
-mod elective_preload;
 mod emit;
 mod inject;
 mod logger;
@@ -63,7 +62,6 @@ pub fn run() {
                     Ok(restored) => {
                         if restored {
                             logger::info("auth restored on startup");
-                            elective_preload::spawn(handle.clone());
                         } else {
                             logger::info("no persisted auth restored on startup");
                         }
@@ -92,6 +90,7 @@ pub fn run() {
             commands::bot::refresh_results,
             commands::bot::verify_bot_captcha,
             commands::elective::search_query_courses,
+            commands::elective::refresh_schedule,
             commands::elective::paginate_preselect,
             commands::elective::paginate_plan,
             commands::elective::paginate_query,

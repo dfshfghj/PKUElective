@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 
 use elective_captcha_rten::Recognizer;
@@ -15,7 +15,6 @@ pub struct AppState {
     pub auth_preferences: Mutex<AuthPreferences>,
     pub auth_restoring: Mutex<bool>,
     pub automation_running: Mutex<bool>,
-    pub elective_data_preloading: AtomicBool,
     pub elective_schedule: Mutex<Vec<ElectiveScheduleRow>>,
     pub auth_generation: AtomicU64,
     pub manual_captcha_image_b64: Mutex<Option<String>>,
@@ -36,7 +35,6 @@ impl Default for AppState {
             auth_preferences: Mutex::new(AuthPreferences::default()),
             auth_restoring: Mutex::new(true),
             automation_running: Mutex::new(false),
-            elective_data_preloading: AtomicBool::new(false),
             elective_schedule: Mutex::new(Vec::new()),
             auth_generation: AtomicU64::new(0),
             manual_captcha_image_b64: Mutex::new(None),
@@ -146,8 +144,6 @@ impl AppState {
 
     pub async fn clear_auth_state(&self) {
         self.auth_generation.fetch_add(1, Ordering::AcqRel);
-        self.elective_data_preloading
-            .store(false, Ordering::Release);
         {
             let mut credentials = self.credentials.lock().await;
             *credentials = None;
