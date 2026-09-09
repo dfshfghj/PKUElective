@@ -43,7 +43,7 @@ import {
   verifyBotCaptcha,
 } from "./api";
 import { subscribeToAppEvents } from "./events";
-import type { ConfigPatch, CourseQueryFilters, MessageEvent, SnapshotView } from "./types";
+import type { AppStateView, ConfigPatch, CourseQueryFilters, MessageEvent } from "./types";
 
 const emptyPagination = {
   current_page: 1,
@@ -54,7 +54,7 @@ const emptyPagination = {
   current_url: "",
 };
 
-const emptySnapshot: SnapshotView = {
+const emptySnapshot: AppStateView = {
   auth: {
     logged_in: false,
     username: null,
@@ -121,7 +121,7 @@ type WishlistFormState = {
 };
 
 type AppModel = {
-  snapshot: SnapshotView;
+  snapshot: AppStateView;
   loading: boolean;
   pending: string | null;
   message: string;
@@ -129,13 +129,13 @@ type AppModel = {
   loginForm: LoginFormState;
   wishlistForm: WishlistFormState;
   courseRows: Array<
-    SnapshotView["courses"][number] & { selectable: boolean; wanted: boolean; remaining: number }
+    AppStateView["courses"][number] & { selectable: boolean; wanted: boolean; remaining: number }
   >;
   setLoginForm: (updater: (current: LoginFormState) => LoginFormState) => void;
   setWishlistForm: (updater: (current: WishlistFormState) => WishlistFormState) => void;
   syncSnapshot: (message?: string) => Promise<void>;
-  runAction: (label: string, action: () => Promise<SnapshotView>) => Promise<void>;
-  loadPage: (key: string, label: string, clear: (snapshot: SnapshotView) => SnapshotView, action: () => Promise<SnapshotView>) => Promise<void>;
+  runAction: (label: string, action: () => Promise<AppStateView>) => Promise<void>;
+  loadPage: (key: string, label: string, clear: (snapshot: AppStateView) => AppStateView, action: () => Promise<AppStateView>) => Promise<void>;
   handleLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleLogout: () => Promise<void>;
   handleAddBot: () => Promise<void>;
@@ -178,7 +178,7 @@ type AppModel = {
 const AppModelContext = createContext<AppModel | null>(null);
 
 export function AppProvider(props: { children: ReactNode }) {
-  const [snapshot, setSnapshot] = useState<SnapshotView>(emptySnapshot);
+  const [snapshot, setSnapshot] = useState<AppStateView>(emptySnapshot);
   const [loginFormState, setLoginFormState] = useState<LoginFormState>({
     username: "",
     password: "",
@@ -295,7 +295,7 @@ export function AppProvider(props: { children: ReactNode }) {
       setMessage(nextMessage);
     }
 
-    let nextSnapshot: SnapshotView | null = null;
+    let nextSnapshot: AppStateView | null = null;
     try {
       nextSnapshot = await getSnapshot();
       setSnapshot(nextSnapshot);
@@ -316,7 +316,7 @@ export function AppProvider(props: { children: ReactNode }) {
     }
   }
 
-  async function runAction(label: string, action: () => Promise<SnapshotView>) {
+  async function runAction(label: string, action: () => Promise<AppStateView>) {
     setPending(label);
     setError(null);
     setMessage(`${label}中…`);
@@ -379,8 +379,8 @@ export function AppProvider(props: { children: ReactNode }) {
   async function loadPage(
     key: string,
     label: string,
-    clear: (current: SnapshotView) => SnapshotView,
-    action: () => Promise<SnapshotView>,
+    clear: (current: AppStateView) => AppStateView,
+    action: () => Promise<AppStateView>,
   ) {
     const requestId = (pageRequestIds.current.get(key) ?? 0) + 1;
     pageRequestIds.current.set(key, requestId);
@@ -652,7 +652,7 @@ export function useAppModel() {
   return context;
 }
 
-function mergePageSnapshot(key: string, current: SnapshotView, next: SnapshotView): SnapshotView {
+function mergePageSnapshot(key: string, current: AppStateView, next: AppStateView): AppStateView {
   switch (key) {
     case "dashboard":
       return { ...current, elective_schedule: next.elective_schedule };

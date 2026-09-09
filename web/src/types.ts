@@ -233,7 +233,7 @@ export type WishlistItem = {
   busy: boolean;
 };
 
-export type SnapshotView = {
+export type AppStateView = {
   auth: AuthStateView;
   config: AppConfig;
   automation_running: boolean;

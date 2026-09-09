@@ -2,7 +2,7 @@ use tauri::{AppHandle, Emitter};
 
 use crate::{
     app_state::AppState,
-    commands::snapshot::{self, AuthStateView, BotView, SnapshotView},
+    commands::snapshot::{self, AppStateView, AuthStateView, BotView},
     logger,
 };
 
@@ -20,11 +20,11 @@ pub struct MessageEvent {
     pub text: String,
 }
 
-pub async fn emit_snapshot_events(
+pub async fn emit_app_state_events(
     app: &AppHandle,
     state: &AppState,
-) -> Result<SnapshotView, String> {
-    let snapshot = snapshot::build_snapshot(state).await;
+) -> Result<AppStateView, String> {
+    let snapshot = snapshot::build_app_state(state).await;
 
     app.emit(EVENT_SNAPSHOT, &snapshot)
         .map_err(|err| err.to_string())?;

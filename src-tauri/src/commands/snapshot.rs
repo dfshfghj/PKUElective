@@ -29,7 +29,7 @@ pub struct BotView {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct SnapshotView {
+pub struct AppStateView {
     pub auth: AuthStateView,
     pub config: AppConfig,
     pub automation_running: bool,
@@ -52,7 +52,7 @@ pub struct SnapshotView {
     pub wishlist: Vec<WishlistItem>,
 }
 
-pub async fn build_snapshot(state: &AppState) -> SnapshotView {
+pub async fn build_app_state(state: &AppState) -> AppStateView {
     let auth = {
         let username = state.auth_username.lock().await.clone();
         let preferences = state.auth_preferences.lock().await.clone();
@@ -72,7 +72,8 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
     };
 
     let elective_schedule = state.elective_schedule.lock().await.clone();
-    let orchestrator = state.orchestrator.lock().await;
+    let orchestrator = state.automation.lock().await;
+    let page_state = state.page_state.lock().await;
     let automation_running = *state.automation_running.lock().await;
     let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
     let supplement_captcha_recognized = state.supplement_captcha_recognized.lock().await.clone();
@@ -99,31 +100,31 @@ pub async fn build_snapshot(state: &AppState) -> SnapshotView {
         })
         .collect();
 
-    SnapshotView {
+    AppStateView {
         auth,
         config: orchestrator.config().clone(),
         automation_running,
         elective_schedule,
         bots,
-        courses: orchestrator.latest_courses().to_vec(),
-        preselect_courses: orchestrator.latest_preselect_courses().to_vec(),
-        preselected_courses: orchestrator.latest_preselected_courses().to_vec(),
-        preselect_pagination: orchestrator.latest_preselect_pagination().clone(),
-        plan_courses: orchestrator.latest_plan_courses().to_vec(),
-        plan_pagination: orchestrator.latest_plan_pagination().clone(),
-        query_courses: orchestrator.latest_query_courses().to_vec(),
-        query_pagination: orchestrator.latest_query_pagination().clone(),
-        supplement: orchestrator.latest_supplement_page().clone(),
+        courses: page_state.courses.clone(),
+        preselect_courses: page_state.preselect_courses.clone(),
+        preselected_courses: page_state.preselected_courses.clone(),
+        preselect_pagination: page_state.preselect_pagination.clone(),
+        plan_courses: page_state.plan_courses.clone(),
+        plan_pagination: page_state.plan_pagination.clone(),
+        query_courses: page_state.query_courses.clone(),
+        query_pagination: page_state.query_pagination.clone(),
+        supplement: page_state.supplement.clone(),
         supplement_captcha_image_b64,
         supplement_captcha_recognized,
         supplement_captcha_recognition_error,
         captcha_model_error,
-        results: orchestrator.latest_results().clone(),
+        results: page_state.results.clone(),
         wishlist: orchestrator.wishlist().to_vec(),
     }
 }
 
 #[tauri::command]
-pub async fn get_snapshot(state: State<'_, AppState>) -> Result<SnapshotView, String> {
-    Ok(build_snapshot(&state).await)
+pub async fn get_app_state(state: State<'_, AppState>) -> Result<AppStateView, String> {
+    Ok(build_app_state(&state).await)
 }

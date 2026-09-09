@@ -1,10 +1,10 @@
-use elective_core::{Credentials, ElectiveSession};
+use elective_core::{Credentials, ElectiveService};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
 use crate::auth_persistence::{self, LoginPersistenceOptions};
 use crate::commands::snapshot::AuthStateView;
-use crate::emit::{emit_message, emit_snapshot_events};
+use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 use crate::session_persistence::{clear_session_and_auth, persist_session};
 
@@ -23,9 +23,10 @@ pub async fn login(
     let credentials =
         Credentials::try_from_parts(username, password, channel).map_err(|err| err.to_string())?;
 
-    let session = ElectiveSession::login(&credentials)
+    let service = ElectiveService::login(&credentials)
         .await
         .map_err(|err| err.to_string())?;
+    let session = service.session().clone();
     persist_session(&app, &session).await?;
     let effective_prefs = auth_persistence::persist_login_artifacts(
         &app,
@@ -45,7 +46,7 @@ pub async fn login(
             credentials.username.clone(),
         )
         .await;
-    let _ = emit_snapshot_events(&app, &state).await?;
+    let _ = emit_app_state_events(&app, &state).await?;
     if remember_password && !effective_prefs.remember_password {
         emit_message(
             &app,
@@ -73,11 +74,11 @@ pub async fn login(
 pub async fn logout(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<crate::commands::snapshot::SnapshotView, String> {
+) -> Result<crate::commands::snapshot::AppStateView, String> {
     logger::info("command: logout");
     clear_session_and_auth(&app, &state).await?;
     auth_persistence::disable_auto_login(&app, &state).await?;
     emit_message(&app, "info", "已退出登录。")?;
 
-    emit_snapshot_events(&app, &state).await
+    emit_app_state_events(&app, &state).await
 }

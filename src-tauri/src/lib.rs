@@ -5,10 +5,11 @@ mod course_reviews;
 mod emit;
 mod inject;
 mod logger;
+mod page_state;
 mod session_persistence;
 
 use crate::app_state::AppState;
-use crate::emit::emit_snapshot_events;
+use crate::emit::emit_app_state_events;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -71,7 +72,7 @@ pub fn run() {
                     }
                 }
                 state.finish_auth_restore().await;
-                if let Err(err) = emit_snapshot_events(&handle, state.inner()).await {
+                if let Err(err) = emit_app_state_events(&handle, state.inner()).await {
                     logger::error(format!("failed to emit startup snapshot events: {err}"));
                 }
             });
@@ -80,7 +81,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::auth::login,
             commands::auth::logout,
-            commands::snapshot::get_snapshot,
+            commands::snapshot::get_app_state,
             commands::bot::add_bot,
             commands::bot::refresh_bot_captcha,
             commands::bot::refresh_now,

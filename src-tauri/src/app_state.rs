@@ -2,13 +2,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 
 use elective_captcha_rten::Recognizer;
-use elective_core::{AppConfig, Credentials, ElectiveScheduleRow, ElectiveSession, Orchestrator};
+use elective_core::{AppConfig, AutomationManager, Credentials, ElectiveScheduleRow, ElectiveSession};
 use tokio::sync::Mutex;
 
 use crate::auth_persistence::AuthPreferences;
+use crate::page_state::PageState;
 
 pub struct AppState {
-    pub orchestrator: Mutex<Orchestrator>,
+    pub automation: Mutex<AutomationManager>,
+    pub page_state: Mutex<PageState>,
     pub credentials: Mutex<Option<Credentials>>,
     pub manual_session: Mutex<Option<ElectiveSession>>,
     pub auth_username: Mutex<Option<String>>,
@@ -28,7 +30,8 @@ impl Default for AppState {
     fn default() -> Self {
         let config = AppConfig::default();
         Self {
-            orchestrator: Mutex::new(Orchestrator::new(config)),
+            automation: Mutex::new(AutomationManager::new(config)),
+            page_state: Mutex::new(PageState::default()),
             credentials: Mutex::new(None),
             manual_session: Mutex::new(None),
             auth_username: Mutex::new(None),
@@ -157,13 +160,14 @@ impl AppState {
             *auth_username = None;
         }
         {
-            let mut orchestrator = self.orchestrator.lock().await;
+            let mut orchestrator = self.automation.lock().await;
             orchestrator.clear_runtime_state();
         }
         {
             let mut schedule = self.elective_schedule.lock().await;
             schedule.clear();
         }
+        *self.page_state.lock().await = PageState::default();
         {
             let mut captcha = self.manual_captcha_image_b64.lock().await;
             *captcha = None;

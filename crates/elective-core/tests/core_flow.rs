@@ -1,5 +1,5 @@
 use elective_core::{
-    AppConfig, Course, Orchestrator, WishlistItem,
+    AppConfig, AutomationManager, Course, WishlistItem,
     parser::{detect_fatal_error, parse_course_page},
 };
 
@@ -37,15 +37,15 @@ fn wishlist_matches_course() {
 
 #[test]
 fn orchestrator_keeps_wishlist_unique() {
-    let mut orchestrator = Orchestrator::new(AppConfig::default());
-    orchestrator.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "1", "张老师"));
-    orchestrator.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "1", "张老师"));
-    orchestrator.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "2", "李老师"));
-    assert_eq!(orchestrator.wishlist().len(), 2);
+    let mut automation = AutomationManager::new(AppConfig::default());
+    automation.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "1", "张老师"));
+    automation.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "1", "张老师"));
+    automation.add_wishlist(WishlistItem::new("04830010", "计算机系统导论", "2", "李老师"));
+    assert_eq!(automation.wishlist().len(), 2);
 
-    orchestrator.remove_wishlist("04830010", "1");
-    assert_eq!(orchestrator.wishlist().len(), 1);
-    assert_eq!(orchestrator.wishlist()[0].class_id, "2");
+    automation.remove_wishlist("04830010", "1");
+    assert_eq!(automation.wishlist().len(), 1);
+    assert_eq!(automation.wishlist()[0].class_id, "2");
 }
 
 #[test]

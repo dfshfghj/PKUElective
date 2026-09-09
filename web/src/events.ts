@@ -6,7 +6,7 @@ import type {
   BotView,
   Course,
   MessageEvent,
-  SnapshotView,
+  AppStateView,
   WishlistItem,
 } from "./types";
 
@@ -19,7 +19,7 @@ export const EVENT_CONFIG = "app://config-updated";
 export const EVENT_MESSAGE = "app://message";
 
 export type EventHandlers = {
-  onSnapshot: (payload: SnapshotView) => void;
+  onSnapshot: (payload: AppStateView) => void;
   onAuth: (payload: AuthStateView) => void;
   onBots: (payload: BotView[]) => void;
   onCourses: (payload: Course[]) => void;
@@ -30,7 +30,7 @@ export type EventHandlers = {
 
 export async function subscribeToAppEvents(handlers: EventHandlers): Promise<UnlistenFn> {
   const unlisteners = await Promise.all([
-    listen<SnapshotView>(EVENT_SNAPSHOT, (event) => handlers.onSnapshot(event.payload)),
+    listen<AppStateView>(EVENT_SNAPSHOT, (event) => handlers.onSnapshot(event.payload)),
     listen<AuthStateView>(EVENT_AUTH, (event) => handlers.onAuth(event.payload)),
     listen<BotView[]>(EVENT_BOTS, (event) => handlers.onBots(event.payload)),
     listen<Course[]>(EVENT_COURSES, (event) => handlers.onCourses(event.payload)),

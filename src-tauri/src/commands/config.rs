@@ -4,8 +4,8 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::app_state::AppState;
 use crate::commands::bot::auto_verify_bot_captcha;
-use crate::commands::snapshot::SnapshotView;
-use crate::emit::{emit_message, emit_snapshot_events};
+use crate::commands::snapshot::AppStateView;
+use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 
 #[derive(Debug, Deserialize)]
@@ -22,10 +22,10 @@ pub async fn update_config(
     patch: ConfigPatch,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<SnapshotView, String> {
+) -> Result<AppStateView, String> {
     logger::info("command: update_config");
     {
-        let mut orchestrator = state.orchestrator.lock().await;
+        let mut orchestrator = state.automation.lock().await;
         let current = orchestrator.config().clone();
         let merged = merge_config(current, patch);
         orchestrator.replace_config(merged.clone());
@@ -33,7 +33,7 @@ pub async fn update_config(
 
     emit_message(&app, "success", "配置已更新。")?;
     ensure_automation_runner(app.clone()).await;
-    emit_snapshot_events(&app, &state).await
+    emit_app_state_events(&app, &state).await
 }
 
 fn merge_config(current: AppConfig, patch: ConfigPatch) -> AppConfig {
@@ -49,7 +49,7 @@ fn merge_config(current: AppConfig, patch: ConfigPatch) -> AppConfig {
 async fn ensure_automation_runner(app: AppHandle) {
     let state = app.state::<AppState>();
     let should_run = {
-        let orchestrator = state.orchestrator.lock().await;
+        let orchestrator = state.automation.lock().await;
         orchestrator.config().auto_refresh
     };
     if !should_run {
@@ -69,7 +69,7 @@ async fn ensure_automation_runner(app: AppHandle) {
         loop {
             let state = app.state::<AppState>();
             let (should_continue, interval_ms) = {
-                let orchestrator = state.orchestrator.lock().await;
+                let orchestrator = state.automation.lock().await;
                 let config = orchestrator.config().clone();
                 (config.auto_refresh, config.interval_ms.max(500))
             };
@@ -79,7 +79,7 @@ async fn ensure_automation_runner(app: AppHandle) {
             }
 
             let tick_result = {
-                let mut orchestrator = state.orchestrator.lock().await;
+                let mut orchestrator = state.automation.lock().await;
                 orchestrator.run_automation_once().await
             };
 
@@ -113,7 +113,7 @@ async fn ensure_automation_runner(app: AppHandle) {
                 }
             }
 
-            if let Err(err) = emit_snapshot_events(&app, state.inner()).await {
+            if let Err(err) = emit_app_state_events(&app, state.inner()).await {
                 logger::error(format!("failed to emit automation snapshot events: {err}"));
             }
 
@@ -126,7 +126,7 @@ async fn ensure_automation_runner(app: AppHandle) {
             *running = false;
         }
         logger::info("automation runner stopped");
-        if let Err(err) = emit_snapshot_events(&app, state.inner()).await {
+        if let Err(err) = emit_app_state_events(&app, state.inner()).await {
             logger::error(format!(
                 "failed to emit stopped automation snapshot events: {err}"
             ));
@@ -136,7 +136,7 @@ async fn ensure_automation_runner(app: AppHandle) {
 
 async fn recover_bot_captcha(app: &AppHandle, state: &AppState) {
     let (enabled, bot_ids) = {
-        let orchestrator = state.orchestrator.lock().await;
+        let orchestrator = state.automation.lock().await;
         (
             orchestrator.config().auto_captcha,
             orchestrator.bots_requiring_captcha(),
@@ -147,7 +147,7 @@ async fn recover_bot_captcha(app: &AppHandle, state: &AppState) {
     }
     for bot_id in bot_ids {
         let refreshed = {
-            let mut orchestrator = state.orchestrator.lock().await;
+            let mut orchestrator = state.automation.lock().await;
             orchestrator.refresh_bot_captcha(&bot_id).await
         };
         if refreshed.is_err() {
