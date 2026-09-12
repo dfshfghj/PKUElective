@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Trash2 } from "lucide-react";
 
 import {
   EmptyState,
@@ -156,12 +157,14 @@ export function WishlistPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <SecondaryButton
+            aria-label="点击删除"
             disabled={pending !== null || !row.original.delete_url}
             onClick={() =>
               row.original.delete_url && void handleRemovePlanCourse(row.original.delete_url)
             }
           >
-            点击删除
+            <Trash2 className="size-4 sm:hidden" />
+            <span className="hidden sm:inline">点击删除</span>
           </SecondaryButton>
         ),
         header: () => <span className="px-2">删除</span>,
@@ -184,7 +187,14 @@ export function WishlistPage() {
         title="选课计划"
       />
 
-      <div className="grid gap-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
+      <div className="grid gap-2 text-xs leading-5 text-stone-500 sm:hidden dark:text-stone-400">
+        <p className="text-orange-700 dark:text-orange-300">
+          课程加入选课计划后，并不表示已经完成选择；后续仍需要进入“预选”或补选流程继续操作。
+        </p>
+        <p>添加课程请前往“课程查询”页；这里主要负责查看和删除当前选课计划中的课程。</p>
+      </div>
+
+      <div className="hidden gap-4 text-sm leading-6 text-stone-600 sm:grid dark:text-stone-300">
         <div className="rounded-2xl bg-orange-50/80 p-4 text-orange-900 dark:bg-orange-950/30 dark:text-orange-100">
           课程加入选课计划后，并不表示已经完成选择；后续仍需要进入“预选”或补选流程继续操作。
         </div>

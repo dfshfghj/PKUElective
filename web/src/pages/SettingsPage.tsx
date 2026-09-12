@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Bot, Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Bot, Check, Pause, Play, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 
 import { EmptyState, InputField, LoadingState, PageHeader, PrimaryButton, Surface, formatTimestamp } from "../components";
 import { useAppModel } from "../app-model";
@@ -46,13 +46,13 @@ export function SettingsPage() {
   const columns = useMemo<ColumnDef<AutomationCourseRow>[]>(
     () => [
       sortableTextColumn("course_id", "课程号"),
-      sortableTextColumn("name", "课程名"),
+      sortableTextColumn("name", "课程名", undefined, { mobileHidden: true }),
       sortableTextColumn("class_id", "班号"),
       sortableTextColumn("teacher", "教师", (value) => tableCellMuted(value)),
       {
         id: "availability",
         accessorFn: (row) => row.remaining,
-        meta: { label: "限数/已选" },
+        meta: { label: "限数/已选", mobileSlot: "summary" },
         cell: ({ row }) => (
           <div className="whitespace-nowrap">
             {row.original.volume_cnt} / {row.original.elected_cnt}
@@ -69,7 +69,7 @@ export function SettingsPage() {
       {
         id: "target",
         accessorFn: (row) => (row.wanted ? 1 : 0),
-        meta: { label: "待抢" },
+        meta: { label: "待抢", mobileHidden: true },
         cell: ({ row }) => (
           <Badge
             className={
@@ -91,12 +91,13 @@ export function SettingsPage() {
       },
       {
         id: "actions",
-        meta: { label: "操作" },
+        meta: { label: "操作", mobileSlot: "footer" },
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) =>
           row.original.wanted ? (
             <Button
+              aria-label="移出"
               className="gap-2"
               disabled={pending !== null}
               onClick={() =>
@@ -107,10 +108,11 @@ export function SettingsPage() {
               variant="outline"
             >
               <Trash2 className="size-4" />
-              移出
+              <span className="hidden sm:inline">移出</span>
             </Button>
           ) : (
             <Button
+              aria-label="待抢"
               className="gap-2"
               disabled={pending !== null}
               onClick={() =>
@@ -125,7 +127,7 @@ export function SettingsPage() {
               type="button"
             >
               <Plus className="size-4" />
-              待抢
+              <span className="hidden sm:inline">待抢</span>
             </Button>
           ),
         header: () => <span className="px-2">操作</span>,
@@ -158,21 +160,30 @@ export function SettingsPage() {
         }
       />
 
-      <div className="flex gap-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-8">
         <div className="grid gap-3">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center space-x-2">
-              <Switch onClick={() => void handleConfigToggle("auto_captcha")}></Switch>
-              <Label>验证码自动识别</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch onClick={() => void handleConfigToggle("notifications")}></Switch>
-              <Label>通知</Label>
-            </div>
-          </div>
+          <Label className="flex cursor-pointer items-center gap-3">
+            <Switch
+              checked={snapshot.config.auto_captcha}
+              disabled={pending !== null}
+              onCheckedChange={() => void handleConfigToggle("auto_captcha")}
+            />
+            <span>验证码自动识别</span>
+          </Label>
+          <Label className="flex cursor-pointer items-center gap-3">
+            <Switch
+              checked={snapshot.config.notifications}
+              disabled={pending !== null}
+              onCheckedChange={() => void handleConfigToggle("notifications")}
+            />
+            <span>通知</span>
+          </Label>
         </div>
 
-        <form className="grid content-center gap-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleConfigNumberSubmit}>
+        <form
+          className="grid w-full gap-3 sm:max-w-xl sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+          onSubmit={handleConfigNumberSubmit}
+        >
           <InputField
             label="刷新间隔/ms"
             name="interval_ms"
@@ -185,9 +196,10 @@ export function SettingsPage() {
             type="number"
             defaultValue={snapshot.config.timeout_ms}
           />
-          <div className="mt-auto">
-            <PrimaryButton disabled={pending !== null} type="submit">
-              保存
+          <div className="flex [&>button]:w-auto">
+            <PrimaryButton aria-label="保存" disabled={pending !== null} type="submit">
+              <Save className="size-4 sm:hidden" />
+              <span className="hidden sm:inline">保存</span>
             </PrimaryButton>
           </div>
         </form>
@@ -197,8 +209,9 @@ export function SettingsPage() {
           title="可抢课程"
           meta={courseRows.length > 0 ? `${courseRows.length} 门` : undefined}
         >
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
+          <div className="mb-4 flex flex-wrap gap-2 sm:gap-3 [&>button]:w-auto">
             <Button
+              aria-label="刷新扫描"
               className="gap-2"
               disabled={pending !== null}
               onClick={() => void handleRefreshAutomationCourses()}
@@ -206,9 +219,10 @@ export function SettingsPage() {
               variant="outline"
             >
               <RefreshCw className="size-4" />
-              刷新扫描
+              <span className="hidden sm:inline">刷新扫描</span>
             </Button>
             <Button
+              aria-label="添加 Bot"
               className="gap-2"
               disabled={pending !== null}
               onClick={() => void handleAddBot()}
@@ -216,7 +230,7 @@ export function SettingsPage() {
               variant="outline"
             >
               <Bot className="size-4" />
-              添加 Bot
+              <span className="hidden sm:inline">添加 Bot</span>
             </Button>
           </div>
 
@@ -231,6 +245,26 @@ export function SettingsPage() {
               columns={columns}
               data={courseRows}
               getRowId={(course) => `${course.course_id}-${course.class_id}`}
+              mobileCardTitle={(course) => course.name}
+              mobileCardDescription={(course) =>
+                [course.course_id, course.class_id].filter(Boolean).join(" · ")
+              }
+              mobileCardBadges={(course) => (
+                <>
+                  <Badge
+                    className={
+                      course.wanted
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                        : "border-stone-200 bg-stone-50 text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+                    }
+                  >
+                    {course.wanted ? "已加入" : "未加入"}
+                  </Badge>
+                  {course.wanted ? null : (
+                    <Badge variant="outline">{course.remaining} 剩余</Badge>
+                  )}
+                </>
+              )}
             />
           )}
         </Surface>
@@ -328,6 +362,7 @@ export function SettingsPage() {
                             value={captchaInputs[bot.id] ?? ""}
                           />
                           <Button
+                            aria-label="验证"
                             disabled={pending !== null || !(captchaInputs[bot.id] ?? "").trim()}
                             onClick={() => {
                               const code = (captchaInputs[bot.id] ?? "").trim();
@@ -338,16 +373,19 @@ export function SettingsPage() {
                             size="sm"
                             type="button"
                           >
-                            验证
+                            <Check className="size-4 sm:hidden" />
+                            <span className="hidden sm:inline">验证</span>
                           </Button>
                           <Button
+                            aria-label="刷新验证码"
                             disabled={pending !== null}
                             onClick={() => void handleRefreshBotCaptcha(bot.id)}
                             size="sm"
                             type="button"
                             variant="outline"
                           >
-                            刷新验证码
+                            <RefreshCw className="size-4 sm:hidden" />
+                            <span className="hidden sm:inline">刷新验证码</span>
                           </Button>
                         </div>
                       </div>
@@ -413,10 +451,11 @@ function sortableTextColumn<T extends AutomationCourseRow>(
   key: keyof T & string,
   label: string,
   render?: (value: string) => ReactNode,
+  meta?: { mobileHidden?: boolean; mobileSlot?: "content" | "summary" | "footer" },
 ): ColumnDef<T> {
   return {
     accessorKey: key,
-    meta: { label },
+    meta: { label, ...meta },
     cell: ({ row }) => render?.(String(row.original[key] ?? "")) ?? String(row.original[key] ?? ""),
     header: ({ column }) => (
       <SortableHeader

@@ -208,7 +208,7 @@ export function DataTable<TData>({
                         {footerCells.map((cell) => (
                           <div
                             key={cell.id}
-                            className="shrink-0 [&_button]:h-8 [&_button]:px-2.5 [&_button]:text-xs"
+                            className="shrink-0 [&_button]:h-8 [&_button]:px-2.5 [&_button]:text-xs max-sm:[&_button]:w-8 max-sm:[&_button]:px-0"
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>

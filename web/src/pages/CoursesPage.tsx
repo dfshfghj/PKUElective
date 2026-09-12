@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Check, Trash2 } from "lucide-react";
 
 import { EmptyState, LineBreakText, LoadingState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
 import { emptyPagination, useAppModel } from "../app-model";
@@ -188,10 +189,12 @@ export function CoursesPage() {
 
           return (
             <SecondaryButton
+              aria-label="预选"
               disabled={pending !== null || (!isRecommended && draftValue.trim() !== "" && Number.isNaN(parsedPreference))}
               onClick={() => void handlePreselectCourse(row.original.select_url, parsedPreference)}
             >
-              预选
+              <Check className="size-4 sm:hidden" />
+              <span className="hidden sm:inline">预选</span>
             </SecondaryButton>
           );
         },
@@ -210,7 +213,12 @@ export function CoursesPage() {
       { accessorKey: "schedule", meta: { label: "上课/考试信息" }, cell: ({ row }) => <LineBreakText text={row.original.schedule} />, header: () => "上课/考试信息" },
       {
         id: "actions", meta: { label: "取消", mobileSlot: "footer" }, enableHiding: false, enableSorting: false,
-        cell: ({ row }) => <SecondaryButton disabled={pending !== null} onClick={() => setCancelCandidate(row.original)}>取消预选</SecondaryButton>,
+        cell: ({ row }) => (
+          <SecondaryButton aria-label="取消预选" disabled={pending !== null} onClick={() => setCancelCandidate(row.original)}>
+            <Trash2 className="size-4 sm:hidden" />
+            <span className="hidden sm:inline">取消预选</span>
+          </SecondaryButton>
+        ),
         header: () => <span className="px-2">取消</span>,
       },
     ],

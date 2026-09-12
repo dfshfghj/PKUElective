@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { RefreshCw } from "lucide-react";
+import { Minus, Plus, RefreshCw } from "lucide-react";
 
-import { EmptyState, LineBreakText, LoadingState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
+import { EmptyState, LineBreakText, LoadingState, PageHeader, SecondaryButton, Surface } from "../components";
 import { emptyPagination, useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailLink } from "@/components/course-detail-link";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { SupplementAvailableCourse, SupplementSelectedCourse } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ export function SupplementPage() {
   const {
     pending,
     snapshot,
-    handleRefreshSupplement,
     handleRefreshSupplementCaptcha,
     handleRefreshSupplementLimit,
     handlePaginateSupplement,
@@ -31,6 +31,7 @@ export function SupplementPage() {
   } = useAppModel();
   const enteredRef = useRef(false);
   const [captchaCode, setCaptchaCode] = useState("");
+  const [cancelCandidate, setCancelCandidate] = useState<SelectedRow | null>(null);
   const availableRows = useMemo<AvailableRow[]>(
     () =>
       snapshot.supplement.available_courses.map((course, index) => ({
@@ -60,6 +61,7 @@ export function SupplementPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <SecondaryButton
+            aria-label={row.original.action_label || "补选"}
             disabled={pending !== null || !row.original.select_url}
             onClick={() =>
               row.original.select_url && void (
@@ -69,7 +71,12 @@ export function SupplementPage() {
               )
             }
           >
-            {row.original.action_label || "补选"}
+            {row.original.action_label === "刷新" ? (
+              <RefreshCw className="size-4 sm:hidden" />
+            ) : (
+              <Plus className="size-4 sm:hidden" />
+            )}
+            <span className="hidden sm:inline">{row.original.action_label || "补选"}</span>
           </SecondaryButton>
         ),
         header: () => <span className="px-2">补选</span>,
@@ -100,22 +107,18 @@ export function SupplementPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <SecondaryButton
+            aria-label="退选"
             disabled={pending !== null || !row.original.cancel_url}
-            onClick={() => {
-              if (!row.original.cancel_url) return;
-              const confirmed = window.confirm(`确认退选 ${row.original.name} ${row.original.class_id} 班？`);
-              if (confirmed) {
-                void handleSupplementCancelCourse(row.original.cancel_url, captchaCode);
-              }
-            }}
+            onClick={() => setCancelCandidate(row.original)}
           >
-            退选
+            <Minus className="size-4 sm:hidden" />
+            <span className="hidden sm:inline">退选</span>
           </SecondaryButton>
         ),
         header: () => <span className="px-2">退选</span>,
       },
     ],
-    [captchaCode, handleSupplementCancelCourse, pending],
+    [pending],
   );
 
   useEffect(() => {
@@ -135,34 +138,32 @@ export function SupplementPage() {
         breadcrumb="补选退选"
         title="补选退选"
         actions={
-          <>
-            <div className="rounded-full bg-white/70 px-4 py-2 text-sm text-stone-600 shadow-sm dark:bg-stone-900 dark:text-stone-300">
-              可补选 {availableRows.length} 门 · 已选上 {selectedRows.length} 门
-            </div>
-            <PrimaryButton
-              disabled={pending !== null}
-              onClick={() => void handleRefreshSupplement()}
-            >
-              <span className="inline-flex items-center gap-2">
-                <RefreshCw className="size-4" />
-                刷新
-              </span>
-            </PrimaryButton>
-          </>
+          <div className="rounded-full bg-white/70 px-4 py-2 text-sm text-stone-600 shadow-sm dark:bg-stone-900 dark:text-stone-300">
+            可补选 {availableRows.length} 门 · 已选上 {selectedRows.length} 门
+          </div>
         }
       />
 
       {snapshot.supplement.notices.length > 0 ? (
-        <div className="grid gap-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-          {snapshot.supplement.notices.slice(0, 3).map((notice, index) => (
-            <div
-              className="rounded-xl border border-orange-200/70 bg-orange-50/70 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/80"
-              key={`${notice}-${index}`}
-            >
-              {notice}
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="grid gap-2 text-xs leading-5 text-stone-500 sm:hidden dark:text-stone-400">
+            {snapshot.supplement.notices.slice(0, 3).map((notice, index) => (
+              <p className="text-orange-700 dark:text-orange-300" key={`${notice}-${index}`}>
+                {notice}
+              </p>
+            ))}
+          </div>
+          <div className="hidden gap-3 text-sm leading-6 text-stone-600 sm:grid dark:text-stone-300">
+            {snapshot.supplement.notices.slice(0, 3).map((notice, index) => (
+              <div
+                className="rounded-xl border border-orange-200/70 bg-orange-50/70 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/80"
+                key={`${notice}-${index}`}
+              >
+                {notice}
+              </div>
+            ))}
+          </div>
+        </>
       ) : null}
 
       <Surface title="选课计划中本学期可选列表">
@@ -175,7 +176,7 @@ export function SupplementPage() {
         ) : (
           <div>
             <div className="flex gap-4">
-              <div className="space-y-3">
+              <div className="min-w-0 space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-wrap">
                   <Input
                     className="h-7 w-full px-3 text-sm outline-none sm:w-40"
@@ -188,6 +189,7 @@ export function SupplementPage() {
                   />
                   <div className="flex gap-4">
                     <Button
+                      aria-label="刷新"
                       disabled={pending !== null}
                       variant="secondary"
                       size="sm"
@@ -197,16 +199,16 @@ export function SupplementPage() {
                       }}
                     >
                       <RefreshCw className="size-4" />
-                      <span>刷新</span>
+                      <span className="hidden sm:inline">刷新</span>
                     </Button>
                   </div>
                 </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 {snapshot.supplement_captcha_image_b64 ? (
                   <img
                     alt="补选退选验证码"
-                    className="block object-contain"
+                    className="block max-w-full object-contain"
                     src={`data:image/png;base64,${snapshot.supplement_captcha_image_b64}`}
                   />
                 ) : (
@@ -307,6 +309,27 @@ export function SupplementPage() {
           />
         )}
       </Surface>
+
+      <ConfirmDialog
+        confirmLabel="退选"
+        description={
+          cancelCandidate
+            ? `将退选“${cancelCandidate.name}”${cancelCandidate.class_id} 班，验证码沿用上方输入框中的内容。`
+            : ""
+        }
+        onConfirm={() => {
+          if (!cancelCandidate?.cancel_url) return;
+          const cancelUrl = cancelCandidate.cancel_url;
+          setCancelCandidate(null);
+          void handleSupplementCancelCourse(cancelUrl, captchaCode);
+        }}
+        onOpenChange={(open) => {
+          if (!open) setCancelCandidate(null);
+        }}
+        open={cancelCandidate !== null}
+        pending={pending !== null}
+        title="确认退选？"
+      />
     </div>
   );
 }

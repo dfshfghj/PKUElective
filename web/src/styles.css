@@ -160,6 +160,12 @@ select {
     --mobile-offset-left: max(1rem, var(--safe-area-left));
   }
 
+  [data-size="icon"],
+  [data-size="icon-sm"] {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
   .app-titlebar,
   .page-header-title {
     display: none;

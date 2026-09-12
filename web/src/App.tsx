@@ -8,9 +8,11 @@ import { AppProvider, useAppModel } from "./app-model";
 import { AppSidebar } from "./AppSidebar";
 import { HIDE_AUTOMATION } from "./build-flags";
 import { AppTitlebar } from "./components";
+import { PullToRefreshIndicator, usePullToRefresh } from "./components/pull-to-refresh";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { useIsMobile } from "./hooks/use-mobile";
 import { CoursesPage } from "./pages/CoursesPage";
 import { CourseQueryPage } from "./pages/CourseQueryPage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
@@ -26,13 +28,19 @@ import { UpdateProvider } from "./update-context";
 
 export function App() {
   const themeMode = useThemeMode();
+  const isMobile = useIsMobile();
 
   return (
     <AppProvider>
       <UpdateProvider>
         <TooltipProvider>
           <AppRoutes />
-          <Toaster closeButton richColors position="bottom-right" theme={themeMode} />
+          <Toaster
+            closeButton
+            richColors
+            position={isMobile ? "top-center" : "bottom-right"}
+            theme={themeMode}
+          />
         </TooltipProvider>
       </UpdateProvider>
     </AppProvider>
@@ -87,11 +95,18 @@ function GuestRoute() {
 }
 
 function ProtectedLayout() {
-  const { snapshot, loading, message } = useAppModel();
+  const model = useAppModel();
+  const { snapshot, loading, message } = model;
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const locationBreadcrumbs = breadcrumbsForLocation(pathname, searchParams);
   const mobileTitle = locationBreadcrumbs[locationBreadcrumbs.length - 1]?.label ?? "PKUElective";
+  const isMobile = useIsMobile();
+  const pullToRefresh = usePullToRefresh({
+    enabled: isMobile && !loading,
+    busy: model.pending !== null,
+    onRefresh: () => refreshActionForPath(pathname, model)?.() ?? Promise.resolve(),
+  });
 
   if (loading) {
     return <LoadingScreen message={message} />;
@@ -107,7 +122,7 @@ function ProtectedLayout() {
         <AppSidebar />
         <SidebarInset className="min-w-0 overflow-hidden">
           <AppTitlebar breadcrumbs={locationBreadcrumbs} />
-          <div className="mobile-app-bar flex items-end gap-2 border-b border-stone-200/80 bg-white/80 px-4 pb-2 backdrop-blur dark:border-stone-800 dark:bg-stone-950/80 md:hidden">
+          <div className="mobile-app-bar flex items-center gap-2 border-b border-stone-200/80 bg-white/80 px-4 pb-2 backdrop-blur dark:border-stone-800 dark:bg-stone-950/80 md:hidden">
             {pathname.endsWith("/course-detail") ? (
               <Link
                 aria-label="返回课程列表"
@@ -117,7 +132,7 @@ function ProtectedLayout() {
                 <ChevronLeft className="size-4" />
               </Link>
             ) : null}
-            <h2 className="min-w-0 flex-1 truncate pb-1 text-lg font-semibold leading-none text-stone-950 dark:text-stone-100">
+            <h2 className="min-w-0 flex-1 truncate text-lg font-semibold leading-none text-stone-950 dark:text-stone-100">
               {mobileTitle}
             </h2>
             <SidebarTrigger />
@@ -126,6 +141,12 @@ function ProtectedLayout() {
             className="relative min-h-0 min-w-0 flex w-full flex-1 overflow-hidden"
             id="app-main-content"
           >
+            {isMobile && (
+              <PullToRefreshIndicator
+                pull={pullToRefresh.pull}
+                refreshing={pullToRefresh.refreshing}
+              />
+            )}
             <ScrollArea
               className="h-full w-full"
               viewportClassName="overscroll-contain"
@@ -140,6 +161,31 @@ function ProtectedLayout() {
       </div>
     </SidebarProvider>
   );
+}
+
+function refreshActionForPath(pathname: string, model: ReturnType<typeof useAppModel>) {
+  const base = pathname.endsWith("/course-detail")
+    ? pathname.slice(0, -"/course-detail".length)
+    : pathname;
+
+  switch (base) {
+    case "/":
+      return () => model.handleRefresh();
+    case "/preselect":
+      return () => model.handleRefreshPreselect();
+    case "/plan":
+      return () => model.handleRefreshPlan();
+    case "/supplement":
+      return () => model.handleRefreshSupplement();
+    case "/results":
+      return () => model.handleRefreshResults();
+    case "/query":
+      return () => model.handleSearchQuery(model.snapshot.query_filters);
+    case "/automation":
+      return () => model.handleRefreshAutomationCourses();
+    default:
+      return undefined;
+  }
 }
 
 function breadcrumbsForLocation(pathname: string, searchParams: URLSearchParams) {

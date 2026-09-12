@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { X } from "lucide-react";
+import { FileSpreadsheet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 
 import { EmptyState, LineBreakText, LoadingState, PageHeader, Surface } from "../components";
@@ -96,8 +96,14 @@ export function ResultsPage() {
         <div className="grid gap-2 text-xs leading-5 text-stone-500 sm:hidden dark:text-stone-400">
           {results.notice ? <p>{results.notice}</p> : null}
           {results.export_url ? (
-            <a className="w-fit font-medium text-orange-700 dark:text-orange-300" href={results.export_url} rel="noreferrer" target="_blank">
-              导出 Excel
+            <a
+              aria-label="导出 Excel"
+              className="inline-flex w-fit items-center font-medium text-orange-700 dark:text-orange-300"
+              href={results.export_url}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <FileSpreadsheet className="size-4" />
             </a>
           ) : null}
         </div>

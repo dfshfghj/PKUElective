@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CheckedState } from "@radix-ui/react-checkbox";
+import { Eraser, Plus, Search } from "lucide-react";
 
 import {
   EmptyState,
@@ -306,13 +307,15 @@ export function CourseQueryPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <PrimaryButton
+            aria-label="加入选课计划"
             disabled={pending !== null || !row.original.add_to_plan_url}
             onClick={() =>
               row.original.add_to_plan_url &&
               void handleAddCourseToPlan(row.original.add_to_plan_url)
             }
           >
-            加入选课计划
+            <Plus className="size-4 sm:hidden" />
+            <span className="hidden sm:inline">加入选课计划</span>
           </PrimaryButton>
         ),
         header: () => <span className="px-2">加入选课计划</span>,
@@ -329,7 +332,7 @@ export function CourseQueryPage() {
       />
 
       <form
-        className="grid gap-4"
+        className="grid gap-3 sm:gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           void handleSearchQuery({
@@ -343,8 +346,9 @@ export function CourseQueryPage() {
           });
         }}
       >
-        <div className="grid gap-4 xl:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 xl:grid-cols-4">
           <SelectField
+            mobileInline
             label="课程分类"
             onChange={(value) =>
               setFilters((current) => {
@@ -360,18 +364,21 @@ export function CourseQueryPage() {
             value={filters.courseSettingType}
           />
           <InputField
+            mobileInline
             label="课程号"
             onChange={(value) => setFilters((current) => ({ ...current, courseId: value }))}
             placeholder="至少填一项"
             value={filters.courseId}
           />
           <InputField
+            mobileInline
             label="课程名"
             onChange={(value) => setFilters((current) => ({ ...current, courseName: value }))}
             placeholder="至少填一项"
             value={filters.courseName}
           />
           <SelectField
+            mobileInline
             label="开课单位"
             disabled={departmentState.disabled}
             onChange={(value) => setFilters((current) => ({ ...current, deptId: value }))}
@@ -379,20 +386,23 @@ export function CourseQueryPage() {
             value={filters.deptId}
           />
         </div>
-        <div className="grid gap-4 xl:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-3 sm:gap-4 xl:grid-cols-[1fr_1fr_auto]">
           <SelectField
+            mobileInline
             label="上课星期"
             onChange={(value) => setFilters((current) => ({ ...current, courseDay: value }))}
             options={courseDayOptions}
             value={filters.courseDay}
           />
           <SelectField
+            mobileInline
             label="上课节次"
             onChange={(value) => setFilters((current) => ({ ...current, courseTime: value }))}
             options={courseTimeOptions}
             value={filters.courseTime}
           />
-          <label className="flex items-center gap-3 pb-2 mt-auto text-sm text-stone-600 dark:text-stone-300">
+          <label className="flex items-center gap-3 text-sm text-stone-600 max-sm:text-xs sm:mt-auto sm:pb-2 dark:text-stone-300">
+            <span className="max-sm:w-16 max-sm:shrink-0 max-sm:text-right">时间反查</span>
             <Checkbox
               className="size-4"
               checked={filters.queryDateFlag}
@@ -403,14 +413,15 @@ export function CourseQueryPage() {
                 }))
               }
             />
-            <span>时间反查</span>
           </label>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
-          <PrimaryButton disabled={pending !== null} type="submit">
-            查询
+        <div className="flex flex-wrap gap-2 sm:gap-3 [&>button]:w-auto">
+          <PrimaryButton aria-label="查询" disabled={pending !== null} type="submit">
+            <Search className="size-4" />
+            <span className="text-sm">查询</span>
           </PrimaryButton>
           <SecondaryButton
+            aria-label="清空条件"
             disabled={pending !== null}
             onClick={() =>
               setFilters({
@@ -425,7 +436,8 @@ export function CourseQueryPage() {
             }
             type="button"
           >
-            清空条件
+            <Eraser className="size-4" />
+            <span className="text-sm">清空条件</span>
           </SecondaryButton>
         </div>
       </form>

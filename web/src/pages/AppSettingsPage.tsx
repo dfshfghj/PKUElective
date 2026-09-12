@@ -79,14 +79,15 @@ export function AppSettingsPage() {
               </p>
               {updater.notes ? <p className="mt-1 whitespace-pre-wrap text-sm text-stone-500 dark:text-stone-400">{updater.notes}</p> : null}
             </div>
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row [&>button]:w-full sm:[&>button]:w-auto">
-              <Button disabled={updater.phase === "checking" || updater.phase === "downloading"} onClick={() => void updater.checkForUpdates()} variant="outline">
+            <div className="flex shrink-0 flex-wrap gap-2 [&>button]:w-auto">
+              <Button aria-label="检查更新" disabled={updater.phase === "checking" || updater.phase === "downloading"} onClick={() => void updater.checkForUpdates()} variant="outline">
                 <RefreshCw className={`size-4 ${updater.phase === "checking" ? "animate-spin" : ""}`} />
-                检查更新
+                <span className="text-sm">检查更新</span>
               </Button>
               {updater.phase === "available" ? (
-                <Button onClick={() => void updater.installUpdate()}>
-                  <Download className="size-4" /> 安装并重启
+                <Button aria-label="安装并重启" onClick={() => void updater.installUpdate()}>
+                  <Download className="size-4" />
+                  <span className="text-sm">安装并重启</span>
                 </Button>
               ) : null}
             </div>
@@ -119,15 +120,22 @@ export function AppSettingsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 [&>button]:w-full sm:[&>button]:w-auto">
-            <Button disabled={busy !== null || !info} onClick={() => void handleExport()}>
-              <Download className="size-4" /> {busy === "export" ? "正在导出…" : "导出到下载目录"}
+          <div className="flex flex-wrap gap-2 sm:gap-3 [&>button]:w-auto">
+            <Button aria-label="导出到下载目录" disabled={busy !== null || !info} onClick={() => void handleExport()}>
+              <Download className="size-4" />
+              <span className={busy === "export" ? undefined : "hidden sm:inline"}>
+                {busy === "export" ? "正在导出…" : "导出到下载目录"}
+              </span>
             </Button>
-            <Button disabled={busy !== null || !info} onClick={() => setClearDialogOpen(true)} variant="destructive">
-              <Trash2 className="size-4" /> {busy === "clear" ? "正在清除…" : "清除日志"}
+            <Button aria-label="清除日志" disabled={busy !== null || !info} onClick={() => setClearDialogOpen(true)} variant="destructive">
+              <Trash2 className="size-4" />
+              <span className={busy === "clear" ? undefined : "hidden sm:inline"}>
+                {busy === "clear" ? "正在清除…" : "清除日志"}
+              </span>
             </Button>
-            <Button disabled={busy !== null} onClick={() => void refreshInfo()} variant="outline">
-              <RefreshCw className="size-4" /> 刷新信息
+            <Button aria-label="刷新信息" disabled={busy !== null} onClick={() => void refreshInfo()} variant="outline">
+              <RefreshCw className="size-4" />
+              <span className="hidden sm:inline">刷新信息</span>
             </Button>
           </div>
           {message ? <p className="text-sm text-stone-600 dark:text-stone-300">{message}</p> : null}

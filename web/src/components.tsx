@@ -123,6 +123,7 @@ export function PrimaryButton(props: {
   onClick?: () => void;
   disabled?: boolean;
   type?: "button" | "submit";
+  "aria-label"?: string;
   children: ReactNode;
 }) {
   return <Button {...props} />;
@@ -132,6 +133,7 @@ export function SecondaryButton(props: {
   onClick?: () => void;
   disabled?: boolean;
   type?: "button" | "submit";
+  "aria-label"?: string;
   children: ReactNode;
 }) {
   return <Button variant="secondary" {...props} />;
@@ -145,20 +147,37 @@ export function InputField(props: {
   name?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
+  mobileInline?: boolean;
 }) {
+  const input = (
+    <Input
+      className={props.mobileInline ? "max-sm:min-w-0 max-sm:flex-1" : undefined}
+      defaultValue={props.defaultValue}
+      name={props.name}
+      onChange={props.onChange ? (event) => props.onChange?.(event.target.value) : undefined}
+      placeholder={props.placeholder}
+      type={props.type}
+      value={props.value}
+    />
+  );
+
+  if (props.mobileInline) {
+    return (
+      <label className="flex gap-3 max-sm:items-center max-sm:text-xs sm:grid sm:gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 max-sm:w-16 max-sm:shrink-0 max-sm:text-right dark:text-stone-400">
+          {props.label}
+        </span>
+        {input}
+      </label>
+    );
+  }
+
   return (
     <label className="grid gap-2">
       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
         {props.label}
       </span>
-      <Input
-        defaultValue={props.defaultValue}
-        name={props.name}
-        onChange={props.onChange ? (event) => props.onChange?.(event.target.value) : undefined}
-        placeholder={props.placeholder}
-        type={props.type}
-        value={props.value}
-      />
+      {input}
     </label>
   );
 }
@@ -169,33 +188,52 @@ export function SelectField(props: {
   onChange: (value: string) => void;
   options: Array<{ label: string; value: string }>;
   disabled?: boolean;
+  mobileInline?: boolean;
 }) {
   const selectedOption = props.options.find((option) => option.value === props.value) ?? null;
+
+  const combobox = (
+    <Combobox
+      disabled={props.disabled}
+      itemToStringValue={(option) => option.label}
+      items={props.options}
+      onValueChange={(option) => props.onChange(option?.value ?? "")}
+      value={selectedOption}
+    >
+      <ComboboxInput
+        className={props.mobileInline ? "max-sm:min-w-0 max-sm:flex-1" : undefined}
+        placeholder={`搜索${props.label}...`}
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>没有匹配项</ComboboxEmpty>
+        <ComboboxList>
+          {(option) => (
+            <ComboboxItem key={option.value} value={option}>
+              {option.label}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+
+  if (props.mobileInline) {
+    return (
+      <label className="flex gap-3 max-sm:items-center max-sm:text-xs sm:grid sm:gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 max-sm:w-16 max-sm:shrink-0 max-sm:text-right dark:text-stone-400">
+          {props.label}
+        </span>
+        {combobox}
+      </label>
+    );
+  }
 
   return (
     <label className="grid gap-2">
       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
         {props.label}
       </span>
-      <Combobox
-        disabled={props.disabled}
-        itemToStringValue={(option) => option.label}
-        items={props.options}
-        onValueChange={(option) => props.onChange(option?.value ?? "")}
-        value={selectedOption}
-      >
-        <ComboboxInput placeholder={`搜索${props.label}...`} />
-        <ComboboxContent>
-          <ComboboxEmpty>没有匹配项</ComboboxEmpty>
-          <ComboboxList>
-            {(option) => (
-              <ComboboxItem key={option.value} value={option}>
-                {option.label}
-              </ComboboxItem>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
+      {combobox}
     </label>
   );
 }
