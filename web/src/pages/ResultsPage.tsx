@@ -3,8 +3,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { X } from "lucide-react";
 import { Dialog } from "radix-ui";
 
-import { EmptyState, LineBreakText, PageHeader, Surface } from "../components";
-import { useAppModel } from "../app-model";
+import { EmptyState, LineBreakText, LoadingState, PageHeader, Surface } from "../components";
+import { emptyPagination, useAppModel } from "../app-model";
 import { useIsCompactViewport } from "../hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
@@ -81,7 +81,7 @@ export function ResultsPage() {
   useEffect(() => {
     if (!enteredRef.current && snapshot.auth.logged_in) {
       enteredRef.current = true;
-      void loadPage("results", "刷新选课结果", (current) => ({ ...current, results: { ...current.results, courses: [], summary: null, timetable: null } }), refreshResults);
+      void loadPage("results", "刷新选课结果", (current) => ({ ...current, results: { ...current.results, courses: [], summary: null, timetable: null, pagination: { ...emptyPagination } } }), refreshResults);
     }
   }, []);
 
@@ -121,7 +121,11 @@ export function ResultsPage() {
 
       <Surface className="mobile-compact-surface" title="选课结果列表" meta={`${results.courses.length} 门`}>
         {results.courses.length === 0 ? (
-          <EmptyState text="还没有拿到选课结果，先刷新一次看看。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="还没有拿到选课结果，先刷新一次看看。" />
+          )
         ) : (
           <DataTable
             columns={resultColumns}
@@ -148,7 +152,11 @@ export function ResultsPage() {
 
       <Surface className="mobile-compact-surface" title={timetable?.caption ?? "学期课程表"}>
         {!timetable || timetable.rows.length === 0 ? (
-          <EmptyState text="当前没有可展示的课表数据。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前没有可展示的课表数据。" />
+          )
         ) : (
           isMobile ? (
             <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-stone-900/8 bg-white dark:border-stone-800 dark:bg-stone-950">

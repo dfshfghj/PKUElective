@@ -6,6 +6,7 @@ import {
   EmptyState,
   InputField,
   LineBreakText,
+  LoadingState,
   PageHeader,
   PrimaryButton,
   SecondaryButton,
@@ -424,7 +425,11 @@ export function CourseQueryPage() {
 
       <Surface title="查询结果">
         {snapshot.query_courses.length === 0 ? (
-          <EmptyState text="暂无更多结果。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="暂无更多结果。" />
+          )
         ) : (
           <DataTable
             columns={columns}
@@ -451,11 +456,13 @@ export function CourseQueryPage() {
             )}
           />
         )}
-        <ServerPagination
-          disabled={pending !== null}
-          onNavigate={(url) => void handlePaginateQuery(url)}
-          pagination={snapshot.query_pagination}
-        />
+        {snapshot.query_courses.length > 0 && (
+          <ServerPagination
+            disabled={pending !== null}
+            onNavigate={(url) => void handlePaginateQuery(url)}
+            pagination={snapshot.query_pagination}
+          />
+        )}
       </Surface>
     </div>
   );

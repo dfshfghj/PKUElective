@@ -4,11 +4,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   EmptyState,
   LineBreakText,
+  LoadingState,
   PageHeader,
   SecondaryButton,
   Surface,
 } from "../components";
-import { useAppModel } from "../app-model";
+import { emptyPagination, useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -172,7 +173,7 @@ export function WishlistPage() {
   useEffect(() => {
     if (!enteredRef.current && snapshot.auth.logged_in) {
       enteredRef.current = true;
-      void loadPage("plan", "刷新选课计划", (current) => ({ ...current, plan_courses: [] }), refreshPlanCourses);
+      void loadPage("plan", "刷新选课计划", (current) => ({ ...current, plan_courses: [], plan_pagination: { ...emptyPagination } }), refreshPlanCourses);
     }
   }, []);
 
@@ -194,7 +195,11 @@ export function WishlistPage() {
 
       <Surface title="选课计划列表">
         {planRows.length === 0 ? (
-          <EmptyState text="选课计划还是空的，先去课程查询页加入几门课试试。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="选课计划还是空的，先去课程查询页加入几门课试试。" />
+          )
         ) : (
           <DataTable
             columns={columns}

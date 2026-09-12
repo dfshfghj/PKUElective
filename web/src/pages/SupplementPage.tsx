@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { RefreshCw } from "lucide-react";
 
-import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
-import { useAppModel } from "../app-model";
+import { EmptyState, LineBreakText, LoadingState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
+import { emptyPagination, useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +125,7 @@ export function SupplementPage() {
   useEffect(() => {
     if (!enteredRef.current && snapshot.auth.logged_in) {
       enteredRef.current = true;
-      void loadPage("supplement", "刷新补选退选", (current) => ({ ...current, supplement: { ...current.supplement, notices: [], available_courses: [], selected_courses: [], selected_credits: null } }), refreshSupplementPage);
+      void loadPage("supplement", "刷新补选退选", (current) => ({ ...current, supplement: { ...current.supplement, notices: [], available_courses: [], selected_courses: [], selected_credits: null, pagination: { ...emptyPagination } } }), refreshSupplementPage);
     }
   }, []);
 
@@ -167,7 +167,11 @@ export function SupplementPage() {
 
       <Surface title="选课计划中本学期可选列表">
         {availableRows.length === 0 ? (
-          <EmptyState text="还没有补选课程数据，先刷新一次。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="还没有补选课程数据，先刷新一次。" />
+          )
         ) : (
           <div>
             <div className="flex gap-4">
@@ -269,7 +273,11 @@ export function SupplementPage() {
         meta={snapshot.supplement.selected_credits ? `总学分 ${snapshot.supplement.selected_credits}` : undefined}
       >
         {selectedRows.length === 0 ? (
-          <EmptyState text="当前没有已选上课程数据。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前没有已选上课程数据。" />
+          )
         ) : (
           <DataTable
             columns={selectedColumns}

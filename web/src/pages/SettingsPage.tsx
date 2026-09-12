@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Bot, Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
 
-import { EmptyState, InputField, PageHeader, PrimaryButton, Surface, formatTimestamp } from "../components";
+import { EmptyState, InputField, LoadingState, PageHeader, PrimaryButton, Surface, formatTimestamp } from "../components";
 import { useAppModel } from "../app-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -221,7 +221,11 @@ export function SettingsPage() {
           </div>
 
           {courseRows.length === 0 ? (
-            <EmptyState text="还没有可抢课程数据。先添加 Bot 或刷新一次扫描。" />
+            pending !== null ? (
+              <LoadingState />
+            ) : (
+              <EmptyState text="还没有可抢课程数据。先添加 Bot 或刷新一次扫描。" />
+            )
           ) : (
             <DataTable
               columns={columns}

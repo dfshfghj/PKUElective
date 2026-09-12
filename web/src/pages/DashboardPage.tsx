@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
-import { EmptyState, PageHeader, Surface } from "../components";
+import { EmptyState, LoadingState, PageHeader, Surface } from "../components";
 import { refreshSchedule } from "../api";
 import { useAppModel } from "../app-model";
 import { HIDE_AUTOMATION } from "../build-flags";
 
 export function DashboardPage() {
-  const { snapshot, loadPage } = useAppModel();
+  const { pending, snapshot, loadPage } = useAppModel();
   const schedule = snapshot.elective_schedule;
   const enteredRef = useRef(false);
 
@@ -40,7 +40,11 @@ export function DashboardPage() {
 
       <Surface title="选课时间表">
         {schedule.length === 0 ? (
-          <EmptyState text="当前没有可显示的选课时间表。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前没有可显示的选课时间表。" />
+          )
         ) : (
           <div className="max-w-full overflow-x-auto overscroll-x-contain">
             <table className="w-full table-fixed text-left text-xs sm:min-w-[680px] sm:table-auto sm:text-sm">
@@ -69,7 +73,11 @@ export function DashboardPage() {
 
       <Surface title="选课结果列表" meta={`${snapshot.results.courses.length} 门`}>
         {snapshot.results.courses.length === 0 ? (
-          <EmptyState text="当前还没有选课结果。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前还没有选课结果。" />
+          )
         ) : (
           <div className="max-w-full overflow-x-auto overscroll-x-contain">
             <table className="w-full table-fixed text-left text-xs sm:min-w-[560px] sm:table-auto sm:text-sm">

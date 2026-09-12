@@ -723,6 +723,9 @@ fn parse_pagination(document: &Html) -> Result<Pagination> {
         let Some(href) = link.value().attr("href") else {
             continue;
         };
+        if !href.contains("netui_row") {
+            continue;
+        }
         let Some(url) = resolve_site_url(href) else {
             continue;
         };
@@ -1065,6 +1068,30 @@ mod tests {
                 .contains("netui_row=syllabusListGrid%3B91")
         );
         assert!(!pagination.pages[2].url.contains("stale"));
+    }
+
+    #[test]
+    fn pagination_ignores_numeric_course_ids() {
+        let document = Html::parse_document(
+            r#"
+            <html><body>
+              Page 1 of 2
+              <a href="/elective2008/course/131470">131470</a>
+              <a href="/elective2008/course/6232000">6232000</a>
+              <a href="/elective2008/edu/pku/stu/elective/controller/supplement/supplement.jsp?netui_row=electableListGrid%3B20">Next</a>
+              <form name="pageForm" action="/elective2008/supplement.jsp">
+                <select name="netui_row">
+                  <option value="electableListGrid;0" selected="true">1</option>
+                  <option value="electableListGrid;20">2</option>
+                </select>
+              </form>
+            </body></html>
+        "#,
+        );
+        let pagination = parse_pagination(&document).expect("pagination should parse");
+        assert_eq!(pagination.current_page, 1);
+        assert_eq!(pagination.total_pages, 2);
+        assert!(pagination.pages.is_empty() || pagination.pages.iter().all(|p| p.page <= 2));
     }
 
     #[test]

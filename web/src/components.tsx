@@ -222,6 +222,21 @@ export function EmptyState(props: { text: string }) {
   );
 }
 
+export function LoadingState() {
+  return (
+    <div className="flex flex-col items-center gap-4 py-10">
+      <div className="relative size-9">
+        <div className="absolute inset-0 animate-spin rounded-full border-2 border-stone-200 border-t-stone-500 dark:border-stone-700 dark:border-t-stone-400" />
+      </div>
+      <div className="w-full max-w-md space-y-3 px-2">
+        <div className="h-4 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" style={{ width: "85%" }} />
+        <div className="h-4 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" style={{ width: "65%", animationDelay: "150ms" }} />
+        <div className="h-4 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" style={{ width: "75%", animationDelay: "300ms" }} />
+      </div>
+    </div>
+  );
+}
+
 export function LineBreakText({ text }: { text: string | null | undefined }) {
   if (!text || text.trim() === "") {
     return <span className="text-stone-400 dark:text-stone-500">—</span>;

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { EmptyState, LineBreakText, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
-import { useAppModel } from "../app-model";
+import { EmptyState, LineBreakText, LoadingState, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components";
+import { emptyPagination, useAppModel } from "../app-model";
 import { DataTable, SortableHeader, tableCellMuted } from "@/components/data-table";
 import { ServerPagination } from "@/components/server-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -220,7 +220,7 @@ export function CoursesPage() {
   useEffect(() => {
     if (!enteredRef.current && snapshot.auth.logged_in) {
       enteredRef.current = true;
-      void loadPage("preselect", "刷新预选列表", (current) => ({ ...current, preselect_courses: [], preselected_courses: [] }), refreshPreselectCourses);
+      void loadPage("preselect", "刷新预选列表", (current) => ({ ...current, preselect_courses: [], preselected_courses: [], preselect_pagination: { ...emptyPagination } }), refreshPreselectCourses);
     }
   }, []);
 
@@ -240,7 +240,11 @@ export function CoursesPage() {
 
       <Surface title="选课计划中本学期可选列表">
         {rows.length === 0 ? (
-          <EmptyState text="还没有预选课程数据，先刷新一次。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前没有预选课程数据。" />
+          )
         ) : (
           <DataTable
             columns={columns}
@@ -280,7 +284,11 @@ export function CoursesPage() {
 
       <Surface title="已选列表" meta={selectedRows.length ? `${selectedRows.length} 门课程` : undefined}>
         {selectedRows.length === 0 ? (
-          <EmptyState text="当前没有预选课程。" />
+          pending !== null ? (
+            <LoadingState />
+          ) : (
+            <EmptyState text="当前没有预选课程。" />
+          )
         ) : (
           <DataTable
             columns={selectedColumns}

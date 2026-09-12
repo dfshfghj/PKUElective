@@ -45,7 +45,7 @@ import {
 import { subscribeToAppEvents } from "./events";
 import type { AppStateView, ConfigPatch, CourseQueryFilters, MessageEvent } from "./types";
 
-const emptyPagination = {
+export const emptyPagination = {
   current_page: 1,
   total_pages: 1,
   pages: [],
@@ -134,7 +134,7 @@ type AppModel = {
   setLoginForm: (updater: (current: LoginFormState) => LoginFormState) => void;
   setWishlistForm: (updater: (current: WishlistFormState) => WishlistFormState) => void;
   syncSnapshot: (message?: string) => Promise<void>;
-  runAction: (label: string, action: () => Promise<AppStateView>) => Promise<void>;
+  runAction: (label: string, action: () => Promise<AppStateView>, options?: { silent?: boolean }) => Promise<void>;
   loadPage: (key: string, label: string, clear: (snapshot: AppStateView) => AppStateView, action: () => Promise<AppStateView>) => Promise<void>;
   handleLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleLogout: () => Promise<void>;
@@ -316,20 +316,27 @@ export function AppProvider(props: { children: ReactNode }) {
     }
   }
 
-  async function runAction(label: string, action: () => Promise<AppStateView>) {
-    setPending(label);
+  async function runAction(label: string, action: () => Promise<AppStateView>, options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setPending(label);
+      setMessage(`${label}中…`);
+    }
     setError(null);
-    setMessage(`${label}中…`);
     try {
       const nextSnapshot = await action();
       setSnapshot(nextSnapshot);
     } catch (err) {
       const message = toErrorMessage(err);
       setError(message);
-      setMessage(`${label}失败。`);
+      if (!silent) {
+        setMessage(`${label}失败。`);
+      }
       toast.error(message);
     } finally {
-      setPending(null);
+      if (!silent) {
+        setPending(null);
+      }
     }
   }
 
@@ -409,7 +416,7 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshBotCaptcha(botId: string) {
-    await runAction("刷新 Bot 验证码", () => refreshBotCaptcha(botId));
+    await runAction("刷新 Bot 验证码", () => refreshBotCaptcha(botId), { silent: true });
   }
 
   async function handleVerifyBotCaptcha(botId: string, code: string) {
@@ -437,7 +444,7 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshSupplementCaptcha() {
-    await runAction("刷新验证码", refreshSupplementCaptcha);
+    await runAction("刷新验证码", refreshSupplementCaptcha, { silent: true });
   }
 
   async function handleConfigToggle(key: "auto_refresh" | "auto_captcha" | "notifications") {
@@ -505,7 +512,7 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshSupplementLimit(selectUrl: string) {
-    await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl));
+    await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl), { silent: true });
   }
 
   async function handleAddWishlistDirect(
