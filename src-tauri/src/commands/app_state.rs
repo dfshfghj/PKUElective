@@ -1,7 +1,4 @@
-use elective_core::{
-    AppConfig, BotStatus, Course, ElectiveResults, ElectiveScheduleRow, Pagination, PlanCourse,
-    PreselectCourse, PreselectedCourse, QueryCourse, SupplementPage, WishlistItem,
-};
+use elective_core::{AppConfig, BotStatus, WishlistItem};
 use serde::Serialize;
 use tauri::State;
 
@@ -33,22 +30,11 @@ pub struct AppStateView {
     pub auth: AuthStateView,
     pub config: AppConfig,
     pub automation_running: bool,
-    pub elective_schedule: Vec<ElectiveScheduleRow>,
     pub bots: Vec<BotView>,
-    pub courses: Vec<Course>,
-    pub preselect_courses: Vec<PreselectCourse>,
-    pub preselected_courses: Vec<PreselectedCourse>,
-    pub preselect_pagination: Pagination,
-    pub plan_courses: Vec<PlanCourse>,
-    pub plan_pagination: Pagination,
-    pub query_courses: Vec<QueryCourse>,
-    pub query_pagination: Pagination,
-    pub supplement: SupplementPage,
     pub supplement_captcha_image_b64: Option<String>,
     pub supplement_captcha_recognized: Option<String>,
     pub supplement_captcha_recognition_error: Option<String>,
     pub captcha_model_error: Option<String>,
-    pub results: ElectiveResults,
     pub wishlist: Vec<WishlistItem>,
 }
 
@@ -71,9 +57,7 @@ pub async fn build_app_state(state: &AppState) -> AppStateView {
         }
     };
 
-    let elective_schedule = state.elective_schedule.lock().await.clone();
     let orchestrator = state.automation.lock().await;
-    let page_state = state.page_state.lock().await;
     let automation_running = *state.automation_running.lock().await;
     let supplement_captcha_image_b64 = state.manual_captcha_image_b64.lock().await.clone();
     let supplement_captcha_recognized = state.supplement_captcha_recognized.lock().await.clone();
@@ -104,22 +88,11 @@ pub async fn build_app_state(state: &AppState) -> AppStateView {
         auth,
         config: orchestrator.config().clone(),
         automation_running,
-        elective_schedule,
         bots,
-        courses: page_state.courses.clone(),
-        preselect_courses: page_state.preselect_courses.clone(),
-        preselected_courses: page_state.preselected_courses.clone(),
-        preselect_pagination: page_state.preselect_pagination.clone(),
-        plan_courses: page_state.plan_courses.clone(),
-        plan_pagination: page_state.plan_pagination.clone(),
-        query_courses: page_state.query_courses.clone(),
-        query_pagination: page_state.query_pagination.clone(),
-        supplement: page_state.supplement.clone(),
         supplement_captcha_image_b64,
         supplement_captcha_recognized,
         supplement_captcha_recognition_error,
         captcha_model_error,
-        results: page_state.results.clone(),
         wishlist: orchestrator.wishlist().to_vec(),
     }
 }

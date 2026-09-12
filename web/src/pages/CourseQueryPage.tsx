@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
@@ -134,15 +134,22 @@ function checkedStateToBoolean(checked: CheckedState) {
 
 export function CourseQueryPage() {
   const { snapshot, pending, handlePaginateQuery, handleSearchQuery, handleAddCourseToPlan } = useAppModel();
+  const enteredRef = useRef(false);
   const [filters, setFilters] = useState({
-    courseSettingType: "speciality",
-    courseId: "",
-    courseName: "",
-    deptId: "ALL",
-    courseDay: "",
-    courseTime: "",
-    queryDateFlag: false,
+    courseSettingType: snapshot.query_filters.course_setting_type ?? "speciality",
+    courseId: snapshot.query_filters.course_id ?? "",
+    courseName: snapshot.query_filters.course_name ?? "",
+    deptId: snapshot.query_filters.dept_id ?? "ALL",
+    courseDay: snapshot.query_filters.course_day ?? "",
+    courseTime: snapshot.query_filters.course_time ?? "",
+    queryDateFlag: snapshot.query_filters.query_date_flag,
   });
+  useEffect(() => {
+    if (!enteredRef.current && snapshot.auth.logged_in) {
+      enteredRef.current = true;
+      void handleSearchQuery(snapshot.query_filters);
+    }
+  }, [handleSearchQuery, snapshot.auth.logged_in, snapshot.query_filters]);
   const departmentState = departmentStateForCategory(filters.courseSettingType);
   const columns = useMemo<ColumnDef<QueryCourse>[]>(
     () => [

@@ -2,22 +2,19 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 
 use elective_captcha_rten::Recognizer;
-use elective_core::{AppConfig, AutomationManager, Credentials, ElectiveScheduleRow, ElectiveSession};
+use elective_core::{AppConfig, AutomationManager, Credentials, ElectiveSession};
 use tokio::sync::Mutex;
 
 use crate::auth_persistence::AuthPreferences;
-use crate::page_state::PageState;
 
 pub struct AppState {
     pub automation: Mutex<AutomationManager>,
-    pub page_state: Mutex<PageState>,
     pub credentials: Mutex<Option<Credentials>>,
     pub manual_session: Mutex<Option<ElectiveSession>>,
     pub auth_username: Mutex<Option<String>>,
     pub auth_preferences: Mutex<AuthPreferences>,
     pub auth_restoring: Mutex<bool>,
     pub automation_running: Mutex<bool>,
-    pub elective_schedule: Mutex<Vec<ElectiveScheduleRow>>,
     pub auth_generation: AtomicU64,
     pub manual_captcha_image_b64: Mutex<Option<String>>,
     pub supplement_captcha_recognized: Mutex<Option<String>>,
@@ -31,14 +28,12 @@ impl Default for AppState {
         let config = AppConfig::default();
         Self {
             automation: Mutex::new(AutomationManager::new(config)),
-            page_state: Mutex::new(PageState::default()),
             credentials: Mutex::new(None),
             manual_session: Mutex::new(None),
             auth_username: Mutex::new(None),
             auth_preferences: Mutex::new(AuthPreferences::default()),
             auth_restoring: Mutex::new(true),
             automation_running: Mutex::new(false),
-            elective_schedule: Mutex::new(Vec::new()),
             auth_generation: AtomicU64::new(0),
             manual_captcha_image_b64: Mutex::new(None),
             supplement_captcha_recognized: Mutex::new(None),
@@ -163,11 +158,6 @@ impl AppState {
             let mut orchestrator = self.automation.lock().await;
             orchestrator.clear_runtime_state();
         }
-        {
-            let mut schedule = self.elective_schedule.lock().await;
-            schedule.clear();
-        }
-        *self.page_state.lock().await = PageState::default();
         {
             let mut captcha = self.manual_captcha_image_b64.lock().await;
             *captcha = None;

@@ -16,11 +16,14 @@ use crate::{
 };
 
 const SUPPLY_CANCEL_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/SupplyCancel.do";
+const ELECT_SUPPLEMENT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/electSupplement.do";
 const CAPTCHA_URL: &str = "https://elective.pku.edu.cn/elective2008/DrawServlet";
 const CAPTCHA_VERIFY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/validate.do";
 const REFRESH_LIMIT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/refreshLimit.do";
 const ELECTIVE_PLAN_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electivePlan/ElectivePlanController.jpf";
 const COURSE_QUERY_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/CourseQueryController.jpf";
+const QUERY_PAGE_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/queryCurriculum.jsp";
+const SUPPLEMENT_PAGE_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/supplement/supplement.jsp";
 const COURSE_QUERY_FORM_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/courseQuery/getCurriculmByForm.do";
 const PRESELECT_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/ElectiveWorkController.jpf";
 const RESULTS_URL: &str = "https://elective.pku.edu.cn/elective2008/edu/pku/stu/elective/controller/electiveWork/showResults.do";
@@ -32,27 +35,27 @@ pub struct SelectResult {
     pub message: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreselectOperationResult {
     pub result: SelectResult,
     pub courses: Vec<PreselectCourse>,
     pub selected_courses: Vec<PreselectedCourse>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreselectPageData {
     pub courses: Vec<PreselectCourse>,
     pub selected_courses: Vec<PreselectedCourse>,
     pub pagination: Pagination,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanPageData {
     pub courses: Vec<PlanCourse>,
     pub pagination: Pagination,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryPageData {
     pub courses: Vec<QueryCourse>,
     pub pagination: Pagination,
@@ -124,7 +127,7 @@ impl ElectiveSession {
             .auth
             .client()
             .get(SUPPLY_CANCEL_URL)
-            .header(REFERER, SUPPLY_CANCEL_URL)
+            .header(REFERER, ELECT_SUPPLEMENT_URL)
             .query(&[("xh", self.auth.username())])
             .send()
             .await?
@@ -145,13 +148,14 @@ impl ElectiveSession {
         Ok(result)
     }
 
-    pub async fn fetch_supplement_page(&self, url: &str, referer: &str) -> Result<SupplementPage> {
-        validate_page_url(url, "/controller/supplement/")?;
-        let body = self.fetch_html(url, referer).await?;
+    pub async fn fetch_supplement_page(&self, page_number: usize) -> Result<SupplementPage> {
+        let url = self.pagination_url("supplement", page_number)?;
+        validate_page_url(&url, "/controller/supplement/")?;
+        let body = self.fetch_html(&url, ELECT_SUPPLEMENT_URL).await?;
         let page = parse_supplement_page(&body)?;
         validate_page(&page.title, "补选退选", page.fatal_error)?;
         let mut result = page.page;
-        result.pagination.current_url = url.to_string();
+        result.pagination.current_url = url;
         Ok(result)
     }
 
@@ -164,7 +168,7 @@ impl ElectiveSession {
             .auth
             .client()
             .get(CAPTCHA_URL)
-            .header(REFERER, SUPPLY_CANCEL_URL)
+            .header(REFERER, ELECT_SUPPLEMENT_URL)
             .query(&[("Rand", rand)])
             .send()
             .await?
@@ -177,7 +181,7 @@ impl ElectiveSession {
             .auth
             .client()
             .post(CAPTCHA_VERIFY_URL)
-            .header(REFERER, SUPPLY_CANCEL_URL)
+            .header(REFERER, ELECT_SUPPLEMENT_URL)
             .form(&[("validCode", code), ("xh", self.auth.username())])
             .send()
             .await?
@@ -207,7 +211,7 @@ impl ElectiveSession {
             .auth
             .client()
             .post(REFRESH_LIMIT_URL)
-            .header(REFERER, SUPPLY_CANCEL_URL)
+            .header(REFERER, ELECT_SUPPLEMENT_URL)
             .form(&[
                 ("index", index),
                 ("seq", seq),
@@ -252,21 +256,18 @@ impl ElectiveSession {
     }
 
     pub async fn refresh_preselect_page(&self) -> Result<PreselectPageData> {
-        self.fetch_preselect_page(PRESELECT_URL, PRESELECT_URL)
+        self.fetch_preselect_page(1)
             .await
     }
 
-    pub async fn fetch_preselect_page(
-        &self,
-        url: &str,
-        referer: &str,
-    ) -> Result<PreselectPageData> {
-        validate_page_url(url, "/controller/electiveWork/")?;
-        let body = self.fetch_html(url, referer).await?;
+    pub async fn fetch_preselect_page(&self, page_number: usize) -> Result<PreselectPageData> {
+        let url = self.pagination_url("preselect", page_number)?;
+        validate_page_url(&url, "/controller/electiveWork/")?;
+        let body = self.fetch_html(&url, PRESELECT_URL).await?;
         let page = parse_preselect_page(&body)?;
         validate_page(&page.title, "选课", page.fatal_error)?;
         let mut pagination = page.pagination;
-        pagination.current_url = url.to_string();
+        pagination.current_url = url;
         Ok(PreselectPageData {
             courses: page.courses,
             selected_courses: page.selected_courses,
@@ -363,17 +364,21 @@ impl ElectiveSession {
     }
 
     pub async fn refresh_plan_page(&self) -> Result<PlanPageData> {
-        self.fetch_plan_page(ELECTIVE_PLAN_URL, INITIAL_REFERER)
+        self.fetch_plan_page(1)
             .await
     }
 
-    pub async fn fetch_plan_page(&self, url: &str, referer: &str) -> Result<PlanPageData> {
-        validate_page_url(url, "/controller/electivePlan/")?;
-        let body = self.fetch_html(url, referer).await?;
+    pub async fn fetch_plan_page(&self, page_number: usize) -> Result<PlanPageData> {
+        if page_number != 1 {
+            return Err(ElectiveError::Config("选课计划不支持分页".into()));
+        }
+        let url = ELECTIVE_PLAN_URL.to_string();
+        validate_page_url(&url, "/controller/electivePlan/")?;
+        let body = self.fetch_html(&url, INITIAL_REFERER).await?;
         let page = parse_plan_page(&body)?;
         validate_page(&page.title, "选课计划", page.fatal_error)?;
-        let mut pagination = page.pagination;
-        pagination.current_url = url.to_string();
+        let mut pagination = Pagination::default();
+        pagination.current_url = url;
         Ok(PlanPageData {
             courses: page.courses,
             pagination,
@@ -411,17 +416,18 @@ impl ElectiveSession {
     }
 
     pub async fn refresh_query_page(&self) -> Result<QueryPageData> {
-        self.fetch_query_page(COURSE_QUERY_URL, INITIAL_REFERER)
+        self.fetch_query_page(1)
             .await
     }
 
-    pub async fn fetch_query_page(&self, url: &str, referer: &str) -> Result<QueryPageData> {
-        validate_page_url(url, "/controller/courseQuery/")?;
-        let body = self.fetch_html(url, referer).await?;
+    pub async fn fetch_query_page(&self, page_number: usize) -> Result<QueryPageData> {
+        let url = self.pagination_url("query", page_number)?;
+        validate_page_url(&url, "/controller/courseQuery/")?;
+        let body = self.fetch_html(&url, COURSE_QUERY_URL).await?;
         let page = parse_query_page(&body)?;
         validate_page(&page.title, "课程查询", page.fatal_error)?;
         let mut pagination = page.pagination;
-        pagination.current_url = url.to_string();
+        pagination.current_url = url;
         Ok(QueryPageData {
             courses: page.courses,
             pagination,
@@ -444,13 +450,14 @@ impl ElectiveSession {
         Ok(results)
     }
 
-    pub async fn fetch_results_page(&self, url: &str, referer: &str) -> Result<ElectiveResults> {
-        validate_page_url(url, "/controller/electiveWork/")?;
-        let body = self.fetch_html(url, referer).await?;
+    pub async fn fetch_results_page(&self, page_number: usize) -> Result<ElectiveResults> {
+        let url = self.pagination_url("results", page_number)?;
+        validate_page_url(&url, "/controller/electiveWork/")?;
+        let body = self.fetch_html(&url, PRESELECT_URL).await?;
         let page = parse_results_page(&body)?;
         validate_page(&page.title, "选课结果", page.fatal_error)?;
         let mut results = page.results;
-        results.pagination.current_url = url.to_string();
+        results.pagination.current_url = url;
         Ok(results)
     }
 
@@ -670,7 +677,7 @@ impl ElectiveSession {
             .auth
             .client()
             .post(select_url)
-            .header(REFERER, SUPPLY_CANCEL_URL)
+            .header(REFERER, ELECT_SUPPLEMENT_URL)
             .send()
             .await?
             .error_for_status()?;
@@ -692,7 +699,7 @@ impl ElectiveSession {
     }
 
     pub async fn cancel_supplement_course(&self, cancel_url: &str) -> Result<SelectResult> {
-        let body = self.fetch_html(cancel_url, SUPPLY_CANCEL_URL).await?;
+        let body = self.fetch_html(cancel_url, ELECT_SUPPLEMENT_URL).await?;
         let page = parse_supplement_page(&body)?;
 
         if let Some(error) = page.fatal_error {
@@ -707,6 +714,48 @@ impl ElectiveSession {
             ok: !message.contains("失败"),
             message,
         })
+    }
+
+    fn pagination_url(&self, key: &'static str, page_number: usize) -> Result<String> {
+        if page_number == 0 {
+            return Err(ElectiveError::Config("invalid pagination page".into()));
+        }
+        match key {
+            "supplement" => {
+                let offset = (page_number - 1) * 20;
+                return Ok(if page_number == 1 {
+                    SUPPLY_CANCEL_URL.to_string()
+                } else {
+                    format!("{SUPPLEMENT_PAGE_URL}?netui_row=electableListGrid%3B{offset}")
+                });
+            }
+            "query" => {
+                let offset = (page_number - 1) * 100;
+                return Ok(if page_number == 1 {
+                    COURSE_QUERY_URL.to_string()
+                } else {
+                    format!("{QUERY_PAGE_URL}?netui_row=syllabusListGrid%3B{offset}")
+                });
+            }
+            "preselect" => {
+                let offset = (page_number - 1) * 20;
+                Ok(if page_number == 1 {
+                    PRESELECT_URL.to_string()
+                } else {
+                    format!("{PRESELECT_URL}?netui_row=electableListGrid%3B{offset}")
+                })
+            }
+            "results" => {
+                let offset = (page_number - 1) * 20;
+                Ok(if page_number == 1 {
+                    RESULTS_URL.to_string()
+                } else {
+                    format!("{RESULTS_URL}?netui_row=electableListGrid%3B{offset}")
+                })
+            }
+            "plan" => Err(ElectiveError::Config("选课计划不支持分页".into())),
+            _ => Err(ElectiveError::Config("unknown pagination page".into())),
+        }
     }
 
     async fn fetch_html(&self, url: &str, referer: &str) -> Result<String> {

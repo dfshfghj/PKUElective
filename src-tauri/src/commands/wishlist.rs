@@ -3,8 +3,7 @@ use tauri::{AppHandle, State};
 use elective_core::WishlistItem;
 
 use crate::app_state::AppState;
-use crate::commands::snapshot::AppStateView;
-use crate::emit::{emit_app_state_events, emit_message};
+use crate::emit::emit_message;
 use crate::logger;
 
 #[tauri::command]
@@ -15,7 +14,7 @@ pub async fn add_wishlist(
     teacher: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<Vec<WishlistItem>, String> {
     logger::info("command: add_wishlist");
     let label = format!(
         "已加入待选列表：{} {}班（{}）",
@@ -27,7 +26,7 @@ pub async fn add_wishlist(
     }
     emit_message(&app, "success", label)?;
 
-    emit_app_state_events(&app, &state).await
+    Ok(state.automation.lock().await.wishlist().to_vec())
 }
 
 #[tauri::command]
@@ -36,7 +35,7 @@ pub async fn remove_wishlist(
     class_id: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<Vec<WishlistItem>, String> {
     logger::info("command: remove_wishlist");
     let label = format!("已移出待选列表：{} {}班", course_id, class_id);
     {
@@ -45,5 +44,5 @@ pub async fn remove_wishlist(
     }
     emit_message(&app, "info", label)?;
 
-    emit_app_state_events(&app, &state).await
+    Ok(state.automation.lock().await.wishlist().to_vec())
 }

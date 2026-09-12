@@ -76,24 +76,24 @@ impl ElectiveService {
         self.session.fetch_course_detail(detail_url).await
     }
 
-    pub async fn paginate_preselect(&self, url: &str, referer: &str) -> Result<PreselectPageData> {
-        self.session.fetch_preselect_page(url, referer).await
+    pub async fn paginate_preselect(&self, page: usize) -> Result<PreselectPageData> {
+        self.session.fetch_preselect_page(page).await
     }
 
-    pub async fn paginate_plan(&self, url: &str, referer: &str) -> Result<PlanPageData> {
-        self.session.fetch_plan_page(url, referer).await
+    pub async fn paginate_plan(&self, page: usize) -> Result<PlanPageData> {
+        self.session.fetch_plan_page(page).await
     }
 
-    pub async fn paginate_query(&self, url: &str, referer: &str) -> Result<QueryPageData> {
-        self.session.fetch_query_page(url, referer).await
+    pub async fn paginate_query(&self, page: usize) -> Result<QueryPageData> {
+        self.session.fetch_query_page(page).await
     }
 
-    pub async fn paginate_supplement(&self, url: &str, referer: &str) -> Result<SupplementPage> {
-        self.session.fetch_supplement_page(url, referer).await
+    pub async fn paginate_supplement(&self, page: usize) -> Result<SupplementPage> {
+        self.session.fetch_supplement_page(page).await
     }
 
-    pub async fn paginate_results(&self, url: &str, referer: &str) -> Result<ElectiveResults> {
-        self.session.fetch_results_page(url, referer).await
+    pub async fn paginate_results(&self, page: usize) -> Result<ElectiveResults> {
+        self.session.fetch_results_page(page).await
     }
 
     pub async fn fetch_captcha(&self) -> Result<Vec<u8>> {

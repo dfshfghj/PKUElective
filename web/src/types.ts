@@ -239,6 +239,15 @@ export type AppStateView = {
   automation_running: boolean;
   elective_schedule: ElectiveScheduleRow[];
   bots: BotView[];
+  supplement_captcha_image_b64: string | null;
+  supplement_captcha_recognized: string | null;
+  supplement_captcha_recognition_error: string | null;
+  captcha_model_error: string | null;
+  wishlist: WishlistItem[];
+};
+
+export type PageDataState = {
+  elective_schedule: ElectiveScheduleRow[];
   courses: Course[];
   preselect_courses: PreselectCourse[];
   preselected_courses: PreselectedCourse[];
@@ -247,14 +256,18 @@ export type AppStateView = {
   plan_pagination: PaginationState;
   query_courses: QueryCourse[];
   query_pagination: PaginationState;
+  query_filters: CourseQueryFilters;
   supplement: SupplementPage;
-  supplement_captcha_image_b64: string | null;
-  supplement_captcha_recognized: string | null;
-  supplement_captcha_recognition_error: string | null;
-  captcha_model_error: string | null;
   results: ElectiveResults;
-  wishlist: WishlistItem[];
 };
+
+export type PreselectPageData = {
+  courses: PreselectCourse[];
+  selected_courses: PreselectedCourse[];
+  pagination: PaginationState;
+};
+export type PlanPageData = { courses: PlanCourse[]; pagination: PaginationState };
+export type QueryPageData = { courses: QueryCourse[]; pagination: PaginationState };
 
 export type ConfigPatch = Partial<AppConfig>;
 

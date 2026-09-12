@@ -1,8 +1,8 @@
-use elective_core::ElectiveService;
+use elective_core::{ElectiveResults, ElectiveService, PlanPageData, PreselectPageData};
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
-use crate::commands::snapshot::AppStateView;
+use crate::commands::app_state::AppStateView;
 use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 use crate::session_persistence::handle_session_result;
@@ -152,7 +152,7 @@ pub async fn verify_bot_captcha(
 pub async fn refresh_now(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<(), String> {
     logger::info("command: refresh_now");
     let session = {
         let guard = state.manual_session.lock().await;
@@ -160,33 +160,20 @@ pub async fn refresh_now(
     };
 
     let service = ElectiveService::new(session);
-    let courses = handle_session_result(service.refresh_courses().await, &app, &state).await?;
-    let preselect_courses = handle_session_result(
-        service.refresh_preselect_courses().await,
-        &app,
-        &state,
-    )
-    .await?;
-    let plan_courses = handle_session_result(service.refresh_plan_courses().await, &app, &state).await?;
-    let query_courses = handle_session_result(service.refresh_query_courses().await, &app, &state).await?;
-    let results = handle_session_result(service.refresh_results().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.courses = courses;
-    pages.preselect_courses = preselect_courses;
-    pages.plan_courses = plan_courses;
-    pages.query_courses = query_courses;
-    pages.results = results;
-    drop(pages);
+    handle_session_result(service.refresh_courses().await, &app, &state).await?;
+    handle_session_result(service.refresh_preselect_courses().await, &app, &state).await?;
+    handle_session_result(service.refresh_plan_courses().await, &app, &state).await?;
+    handle_session_result(service.refresh_query_courses().await, &app, &state).await?;
+    handle_session_result(service.refresh_results().await, &app, &state).await?;
     emit_message(&app, "success", "课程列表已更新。")?;
-
-    emit_app_state_events(&app, &state).await
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn refresh_automation_courses(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<Vec<elective_core::Course>, String> {
     logger::info("command: refresh_automation_courses");
     let session = {
         let guard = state.manual_session.lock().await;
@@ -196,17 +183,15 @@ pub async fn refresh_automation_courses(
     emit_message(&app, "info", "正在刷新可抢课程…")?;
     let service = ElectiveService::new(session);
     let courses = handle_session_result(service.refresh_courses().await, &app, &state).await?;
-    state.page_state.lock().await.courses = courses;
     emit_message(&app, "success", "可抢课程已更新。")?;
-
-    emit_app_state_events(&app, &state).await
+    Ok(courses)
 }
 
 #[tauri::command]
 pub async fn refresh_preselect_courses(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PreselectPageData, String> {
     logger::info("command: refresh_preselect_courses");
     let session = {
         let guard = state.manual_session.lock().await;
@@ -215,21 +200,15 @@ pub async fn refresh_preselect_courses(
 
     let service = ElectiveService::new(session);
     let page = handle_session_result(service.refresh_preselect().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.preselect_courses = page.courses;
-    pages.preselected_courses = page.selected_courses;
-    pages.preselect_pagination = page.pagination;
-    drop(pages);
     emit_message(&app, "success", "预选列表已更新。")?;
-
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn refresh_plan_courses(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PlanPageData, String> {
     logger::info("command: refresh_plan_courses");
     let session = {
         let guard = state.manual_session.lock().await;
@@ -238,19 +217,14 @@ pub async fn refresh_plan_courses(
 
     let service = ElectiveService::new(session);
     let page = handle_session_result(service.refresh_plan().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.plan_courses = page.courses;
-    pages.plan_pagination = page.pagination;
-    drop(pages);
-
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn refresh_results(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<ElectiveResults, String> {
     logger::info("command: refresh_results");
     let session = {
         let guard = state.manual_session.lock().await;
@@ -259,8 +233,6 @@ pub async fn refresh_results(
 
     let service = ElectiveService::new(session);
     let results = handle_session_result(service.refresh_results().await, &app, &state).await?;
-    state.page_state.lock().await.results = results;
     emit_message(&app, "success", "选课结果已更新。")?;
-
-    emit_app_state_events(&app, &state).await
+    Ok(results)
 }

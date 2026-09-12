@@ -1,6 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { AppStateView, AuthStateView, ConfigPatch, CourseDetail, CourseQueryFilters } from "./types";
+import type {
+  AppStateView, AuthStateView, ConfigPatch, Course, CourseDetail, CourseQueryFilters, WishlistItem,
+  ElectiveResults, ElectiveScheduleRow, PlanPageData, PreselectPageData, QueryPageData,
+  SupplementPage,
+} from "./types";
+
+export type PlanActionData = { plan: PlanPageData; query: QueryPageData; preselect: PreselectPageData };
+export type PlanMutationData = { plan: PlanPageData; preselect: PreselectPageData };
+export type SupplementLimitData = { limit: number; elected: number };
 
 type Channel = "bzx" | "bfx" | "";
 
@@ -69,28 +77,28 @@ export async function verifyBotCaptcha(botId: string, code: string): Promise<App
   return invoke<AppStateView>("verify_bot_captcha", { botId, code });
 }
 
-export async function refreshNow(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_now");
+export async function refreshNow(): Promise<void> {
+  return invoke("refresh_now");
 }
 
-export async function refreshSchedule(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_schedule");
+export async function refreshSchedule(): Promise<ElectiveScheduleRow[]> {
+  return invoke<ElectiveScheduleRow[]>("refresh_schedule");
 }
 
-export async function refreshAutomationCourses(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_automation_courses");
+export async function refreshAutomationCourses(): Promise<Course[]> {
+  return invoke<Course[]>("refresh_automation_courses");
 }
 
-export async function refreshPreselectCourses(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_preselect_courses");
+export async function refreshPreselectCourses(): Promise<PreselectPageData> {
+  return invoke<PreselectPageData>("refresh_preselect_courses");
 }
 
-export async function refreshPlanCourses(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_plan_courses");
+export async function refreshPlanCourses(): Promise<PlanPageData> {
+  return invoke<PlanPageData>("refresh_plan_courses");
 }
 
-export async function refreshResults(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_results");
+export async function refreshResults(): Promise<ElectiveResults> {
+  return invoke<ElectiveResults>("refresh_results");
 }
 
 export async function addWishlist(
@@ -98,8 +106,8 @@ export async function addWishlist(
   name: string,
   classId: string,
   teacher: string,
-): Promise<AppStateView> {
-  return invoke<AppStateView>("add_wishlist", {
+): Promise<WishlistItem[]> {
+  return invoke<WishlistItem[]>("add_wishlist", {
     courseId,
     name,
     classId,
@@ -107,28 +115,28 @@ export async function addWishlist(
   });
 }
 
-export async function paginatePreselect(url: string): Promise<AppStateView> {
-  return invoke<AppStateView>("paginate_preselect", { url });
+export async function paginatePreselect(page: number): Promise<PreselectPageData> {
+  return invoke<PreselectPageData>("paginate_preselect", { page });
 }
 
-export async function paginatePlan(url: string): Promise<AppStateView> {
-  return invoke<AppStateView>("paginate_plan", { url });
+export async function paginatePlan(page: number): Promise<PlanPageData> {
+  return invoke<PlanPageData>("paginate_plan", { page });
 }
 
-export async function paginateQuery(url: string): Promise<AppStateView> {
-  return invoke<AppStateView>("paginate_query", { url });
+export async function paginateQuery(page: number): Promise<QueryPageData> {
+  return invoke<QueryPageData>("paginate_query", { page });
 }
 
-export async function paginateSupplement(url: string): Promise<AppStateView> {
-  return invoke<AppStateView>("paginate_supplement", { url });
+export async function paginateSupplement(page: number): Promise<SupplementPage> {
+  return invoke<SupplementPage>("paginate_supplement", { page });
 }
 
-export async function paginateResults(url: string): Promise<AppStateView> {
-  return invoke<AppStateView>("paginate_results", { url });
+export async function paginateResults(page: number): Promise<ElectiveResults> {
+  return invoke<ElectiveResults>("paginate_results", { page });
 }
 
-export async function removeWishlist(courseId: string, classId: string): Promise<AppStateView> {
-  return invoke<AppStateView>("remove_wishlist", {
+export async function removeWishlist(courseId: string, classId: string): Promise<WishlistItem[]> {
+  return invoke<WishlistItem[]>("remove_wishlist", {
     courseId,
     classId,
   });
@@ -138,8 +146,8 @@ export async function updateConfig(patch: ConfigPatch): Promise<AppStateView> {
   return invoke<AppStateView>("update_config", { patch });
 }
 
-export async function searchQueryCourses(filters: CourseQueryFilters): Promise<AppStateView> {
-  return invoke<AppStateView>("search_query_courses", { filters });
+export async function searchQueryCourses(filters: CourseQueryFilters): Promise<QueryPageData> {
+  return invoke<QueryPageData>("search_query_courses", { filters });
 }
 
 export async function getAppInfo(): Promise<AppInfo> {
@@ -182,44 +190,44 @@ export async function closeCourseReviewWebview(): Promise<void> {
   return invoke("close_course_review_webview");
 }
 
-export async function refreshSupplementPage(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_supplement_page");
+export async function refreshSupplementPage(): Promise<SupplementPage> {
+  return invoke<SupplementPage>("refresh_supplement_page");
 }
 
-export async function refreshSupplementCaptcha(): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_supplement_captcha");
+export async function refreshSupplementCaptcha(): Promise<void> {
+  return invoke("refresh_supplement_captcha");
 }
 
-export async function addCourseToPlan(addUrl: string): Promise<AppStateView> {
-  return invoke<AppStateView>("add_course_to_plan", { addUrl });
+export async function addCourseToPlan(addUrl: string): Promise<PlanActionData> {
+  return invoke<PlanActionData>("add_course_to_plan", { addUrl });
 }
 
-export async function removePlanCourse(deleteUrl: string): Promise<AppStateView> {
-  return invoke<AppStateView>("remove_plan_course", { deleteUrl });
+export async function removePlanCourse(deleteUrl: string): Promise<PlanMutationData> {
+  return invoke<PlanMutationData>("remove_plan_course", { deleteUrl });
 }
 
 export async function preselectCourse(
   selectUrl: string,
   preference?: number | null,
-): Promise<AppStateView> {
-  return invoke<AppStateView>("preselect_course", {
+): Promise<PreselectPageData> {
+  return invoke<PreselectPageData>("preselect_course", {
     selectUrl,
     preference: preference ?? null,
   });
 }
 
-export async function cancelPreselectCourse(cancelUrl: string): Promise<AppStateView> {
-  return invoke<AppStateView>("cancel_preselect_course", { cancelUrl });
+export async function cancelPreselectCourse(cancelUrl: string): Promise<PreselectPageData> {
+  return invoke<PreselectPageData>("cancel_preselect_course", { cancelUrl });
 }
 
-export async function supplementSelectCourse(selectUrl: string, captchaCode: string): Promise<AppStateView> {
-  return invoke<AppStateView>("supplement_select_course", { selectUrl, captchaCode });
+export async function supplementSelectCourse(selectUrl: string, captchaCode: string): Promise<SupplementPage> {
+  return invoke<SupplementPage>("supplement_select_course", { selectUrl, captchaCode });
 }
 
-export async function refreshSupplementLimit(selectUrl: string): Promise<AppStateView> {
-  return invoke<AppStateView>("refresh_supplement_limit", { selectUrl });
+export async function refreshSupplementLimit(selectUrl: string): Promise<SupplementLimitData> {
+  return invoke<SupplementLimitData>("refresh_supplement_limit", { selectUrl });
 }
 
-export async function supplementCancelCourse(cancelUrl: string, captchaCode: string): Promise<AppStateView> {
-  return invoke<AppStateView>("supplement_cancel_course", { cancelUrl, captchaCode });
+export async function supplementCancelCourse(cancelUrl: string, captchaCode: string): Promise<SupplementPage> {
+  return invoke<SupplementPage>("supplement_cancel_course", { cancelUrl, captchaCode });
 }

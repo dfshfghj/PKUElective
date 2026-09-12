@@ -3,7 +3,7 @@ use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
 use crate::auth_persistence::{self, LoginPersistenceOptions};
-use crate::commands::snapshot::AuthStateView;
+use crate::commands::app_state::AuthStateView;
 use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 use crate::session_persistence::{clear_session_and_auth, persist_session};
@@ -74,7 +74,7 @@ pub async fn login(
 pub async fn logout(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<crate::commands::snapshot::AppStateView, String> {
+) -> Result<crate::commands::app_state::AppStateView, String> {
     logger::info("command: logout");
     clear_session_and_auth(&app, &state).await?;
     auth_persistence::disable_auto_login(&app, &state).await?;

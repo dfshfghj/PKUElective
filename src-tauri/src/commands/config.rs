@@ -4,7 +4,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::app_state::AppState;
 use crate::commands::bot::auto_verify_bot_captcha;
-use crate::commands::snapshot::AppStateView;
+use crate::commands::app_state::AppStateView;
 use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 

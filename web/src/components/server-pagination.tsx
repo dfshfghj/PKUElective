@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 type ServerPaginationProps = {
   pagination: PaginationState;
   disabled?: boolean;
-  onNavigate: (url: string) => void;
+  onNavigate: (page: number) => void;
 };
 
 export function ServerPagination({ pagination, disabled = false, onNavigate }: ServerPaginationProps) {
@@ -22,9 +22,9 @@ export function ServerPagination({ pagination, disabled = false, onNavigate }: S
   const hasNavigation = pagination.total_pages > 1 || pagination.previous_url || pagination.next_url;
   if (!hasNavigation) return null;
 
-  function navigate(event: MouseEvent<HTMLAnchorElement>, url: string | null) {
+  function navigate(event: MouseEvent<HTMLAnchorElement>, page: number | null) {
     event.preventDefault();
-    if (!disabled && url) onNavigate(url);
+    if (!disabled && page) onNavigate(page);
   }
 
   return (
@@ -39,7 +39,7 @@ export function ServerPagination({ pagination, disabled = false, onNavigate }: S
               aria-disabled={disabled || !pagination.previous_url}
               className={cn((disabled || !pagination.previous_url) && "pointer-events-none opacity-50")}
               href={pagination.previous_url ?? "#"}
-              onClick={(event) => navigate(event, pagination.previous_url)}
+              onClick={(event) => navigate(event, pagination.previous_url ? pagination.current_page - 1 : null)}
             />
           </PaginationItem>
           {visiblePages.map((entry, index) =>
@@ -54,7 +54,7 @@ export function ServerPagination({ pagination, disabled = false, onNavigate }: S
                   className={cn((disabled || entry.page === pagination.current_page) && "pointer-events-none", disabled && "opacity-50")}
                   href={entry.url}
                   isActive={entry.page === pagination.current_page}
-                  onClick={(event) => navigate(event, entry.url)}
+                  onClick={(event) => navigate(event, entry.page)}
                 >
                   {entry.page}
                 </PaginationLink>
@@ -66,7 +66,7 @@ export function ServerPagination({ pagination, disabled = false, onNavigate }: S
               aria-disabled={disabled || !pagination.next_url}
               className={cn((disabled || !pagination.next_url) && "pointer-events-none opacity-50")}
               href={pagination.next_url ?? "#"}
-              onClick={(event) => navigate(event, pagination.next_url)}
+              onClick={(event) => navigate(event, pagination.next_url ? pagination.current_page + 1 : null)}
             />
           </PaginationItem>
         </PaginationContent>

@@ -1,14 +1,36 @@
-use elective_core::{CourseDetail, CourseQueryFilters, ElectiveService};
+use elective_core::{
+    CourseDetail, CourseQueryFilters, ElectiveResults, ElectiveScheduleRow, ElectiveService,
+    PlanPageData, PreselectPageData, QueryPageData, SupplementPage,
+};
+use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::app_state::AppState;
-use crate::commands::snapshot::AppStateView;
 use crate::emit::{emit_app_state_events, emit_message};
 use crate::logger;
 use crate::session_persistence::handle_session_result;
 
 fn encode_captcha(bytes: &[u8]) -> String {
     base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanActionData {
+    pub plan: PlanPageData,
+    pub query: QueryPageData,
+    pub preselect: PreselectPageData,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanMutationData {
+    pub plan: PlanPageData,
+    pub preselect: PreselectPageData,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SupplementLimitData {
+    pub limit: u32,
+    pub elected: u32,
 }
 
 async fn recognize_supplement_captcha(state: &AppState, captcha: &[u8]) {
@@ -32,7 +54,7 @@ pub async fn search_query_courses(
     filters: CourseQueryFilters,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<QueryPageData, String> {
     logger::info("command: search_query_courses");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -42,12 +64,8 @@ pub async fn search_query_courses(
     emit_message(&app, "info", "正在查询课程…")?;
     let page =
         handle_session_result(service.search_query(&filters).await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.query_courses = page.courses;
-    pages.query_pagination = page.pagination;
-    drop(pages);
     emit_message(&app, "success", "课程查询已更新。")?;
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
@@ -79,129 +97,90 @@ async fn manual_service(state: &AppState) -> Result<ElectiveService, String> {
 pub async fn refresh_schedule(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<Vec<ElectiveScheduleRow>, String> {
     logger::info("command: refresh_schedule");
     let service = manual_service(&state).await?;
     let schedule = handle_session_result(service.refresh_schedule().await, &app, &state).await?;
-    *state.elective_schedule.lock().await = schedule;
-    emit_app_state_events(&app, &state).await
+    Ok(schedule)
 }
 
 #[tauri::command]
 pub async fn paginate_preselect(
-    url: String,
+    page: usize,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PreselectPageData, String> {
     let service = manual_service(&state).await?;
-    let referer = state.page_state.lock().await.preselect_pagination.current_url.clone();
     let page = handle_session_result(
-        service.paginate_preselect(&url, &referer).await,
+        service.paginate_preselect(page).await,
         &app,
         &state,
     )
     .await?;
-    let mut pages = state.page_state.lock().await;
-    pages.preselect_courses = page.courses;
-    if !page.selected_courses.is_empty() {
-        pages.preselected_courses = page.selected_courses;
-    }
-    pages.preselect_pagination = page.pagination;
-    drop(pages);
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn paginate_plan(
-    url: String,
+    page: usize,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PlanPageData, String> {
     let service = manual_service(&state).await?;
-    let referer = state.page_state.lock().await.plan_pagination.current_url.clone();
     let page =
-        handle_session_result(service.paginate_plan(&url, &referer).await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.plan_courses = page.courses;
-    pages.plan_pagination = page.pagination;
-    drop(pages);
-    emit_app_state_events(&app, &state).await
+        handle_session_result(service.paginate_plan(page).await, &app, &state).await?;
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn paginate_query(
-    url: String,
+    page: usize,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<QueryPageData, String> {
     let service = manual_service(&state).await?;
-    let referer = state.page_state.lock().await.query_pagination.current_url.clone();
     let page =
-        handle_session_result(service.paginate_query(&url, &referer).await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.query_courses = page.courses;
-    pages.query_pagination = page.pagination;
-    drop(pages);
-    emit_app_state_events(&app, &state).await
+        handle_session_result(service.paginate_query(page).await, &app, &state).await?;
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn paginate_supplement(
-    url: String,
+    page: usize,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<SupplementPage, String> {
     let service = manual_service(&state).await?;
-    let referer = state.page_state.lock().await.supplement.pagination.current_url.clone();
-    let mut page = handle_session_result(
-        service.paginate_supplement(&url, &referer).await,
+    let page = handle_session_result(
+        service.paginate_supplement(page).await,
         &app,
         &state,
     )
     .await?;
-    let mut pages = state.page_state.lock().await;
-    let current = &pages.supplement;
-    if page.selected_courses.is_empty() {
-        page.selected_courses = current.selected_courses.clone();
-        page.selected_credits = current.selected_credits.clone();
-    }
-    pages.supplement = page;
-    drop(pages);
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
 pub async fn paginate_results(
-    url: String,
+    page: usize,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<ElectiveResults, String> {
     let service = manual_service(&state).await?;
-    let referer = state.page_state.lock().await.results.pagination.current_url.clone();
-    let mut results = handle_session_result(
-        service.paginate_results(&url, &referer).await,
+    let results = handle_session_result(
+        service.paginate_results(page).await,
         &app,
         &state,
     )
     .await?;
-    let mut pages = state.page_state.lock().await;
-    let current = &pages.results;
-    if results.timetable.is_none() {
-        results.timetable = current.timetable.clone();
-        results.summary = current.summary.clone();
-        results.notice = current.notice.clone();
-        results.export_url = current.export_url.clone();
-    }
-    pages.results = results;
-    drop(pages);
-    emit_app_state_events(&app, &state).await
+    Ok(results)
 }
 
 #[tauri::command]
 pub async fn refresh_supplement_page(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<SupplementPage, String> {
     logger::info("command: refresh_supplement_page");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -212,18 +191,18 @@ pub async fn refresh_supplement_page(
     let supplement =
         handle_session_result(service.refresh_supplement().await, &app, &state).await?;
     let captcha = handle_session_result(service.fetch_captcha().await, &app, &state).await?;
-    state.page_state.lock().await.supplement = supplement;
     *state.manual_captcha_image_b64.lock().await = Some(encode_captcha(&captcha));
     recognize_supplement_captcha(&state, &captcha).await;
     emit_message(&app, "success", "补选退选列表已更新。")?;
-    emit_app_state_events(&app, &state).await
+    emit_app_state_events(&app, &state).await?;
+    Ok(supplement)
 }
 
 #[tauri::command]
 pub async fn refresh_supplement_captcha(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<(), String> {
     logger::info("command: refresh_supplement_captcha");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -238,7 +217,8 @@ pub async fn refresh_supplement_captcha(
     }
     recognize_supplement_captcha(&state, &captcha).await;
     emit_message(&app, "success", "验证码已刷新。")?;
-    emit_app_state_events(&app, &state).await
+    emit_app_state_events(&app, &state).await?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -246,7 +226,7 @@ pub async fn add_course_to_plan(
     add_url: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PlanActionData, String> {
     logger::info("command: add_course_to_plan");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -259,17 +239,8 @@ pub async fn add_course_to_plan(
     let query = handle_session_result(service.refresh_query().await, &app, &state).await?;
     let preselect =
         handle_session_result(service.refresh_preselect().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.plan_courses = plan.courses;
-    pages.plan_pagination = plan.pagination;
-    pages.query_courses = query.courses;
-    pages.query_pagination = query.pagination;
-    pages.preselect_courses = preselect.courses;
-    pages.preselected_courses = preselect.selected_courses;
-    pages.preselect_pagination = preselect.pagination;
-    drop(pages);
     emit_message(&app, "success", "课程已加入选课计划。")?;
-    emit_app_state_events(&app, &state).await
+    Ok(PlanActionData { plan, query, preselect })
 }
 
 #[tauri::command]
@@ -277,7 +248,7 @@ pub async fn remove_plan_course(
     delete_url: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PlanMutationData, String> {
     logger::info("command: remove_plan_course");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -289,15 +260,8 @@ pub async fn remove_plan_course(
     let plan = handle_session_result(service.refresh_plan().await, &app, &state).await?;
     let preselect =
         handle_session_result(service.refresh_preselect().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.plan_courses = plan.courses;
-    pages.plan_pagination = plan.pagination;
-    pages.preselect_courses = preselect.courses;
-    pages.preselected_courses = preselect.selected_courses;
-    pages.preselect_pagination = preselect.pagination;
-    drop(pages);
     emit_message(&app, "success", "课程已移出选课计划。")?;
-    emit_app_state_events(&app, &state).await
+    Ok(PlanMutationData { plan, preselect })
 }
 
 #[tauri::command]
@@ -306,7 +270,7 @@ pub async fn preselect_course(
     preference: Option<u32>,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PreselectPageData, String> {
     logger::info("command: preselect_course");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -332,11 +296,6 @@ pub async fn preselect_course(
         "preselect stage=refresh_preselect complete course_count={}",
         operation.courses.len()
     ));
-    let mut pages = state.page_state.lock().await;
-    pages.preselect_courses = page.courses;
-    pages.preselected_courses = page.selected_courses;
-    pages.preselect_pagination = page.pagination;
-    drop(pages);
     emit_message(
         &app,
         if result.ok { "success" } else { "error" },
@@ -346,7 +305,7 @@ pub async fn preselect_course(
             result.message
         },
     )?;
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
@@ -354,7 +313,7 @@ pub async fn cancel_preselect_course(
     cancel_url: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<PreselectPageData, String> {
     let service = {
         let guard = state.manual_session.lock().await;
         ElectiveService::new(guard.clone().ok_or_else(|| "not logged in".to_string())?)
@@ -369,17 +328,12 @@ pub async fn cancel_preselect_course(
     .await?;
     let result = operation.result;
     let page = handle_session_result(service.refresh_preselect().await, &app, &state).await?;
-    let mut pages = state.page_state.lock().await;
-    pages.preselect_courses = page.courses;
-    pages.preselected_courses = page.selected_courses;
-    pages.preselect_pagination = page.pagination;
-    drop(pages);
     emit_message(
         &app,
         if result.ok { "success" } else { "error" },
         result.message,
     )?;
-    emit_app_state_events(&app, &state).await
+    Ok(page)
 }
 
 #[tauri::command]
@@ -388,7 +342,7 @@ pub async fn supplement_select_course(
     captcha_code: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<SupplementPage, String> {
     logger::info("command: supplement_select_course");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -413,7 +367,6 @@ pub async fn supplement_select_course(
     .await?;
     let supplement =
         handle_session_result(service.refresh_supplement().await, &app, &state).await?;
-    state.page_state.lock().await.supplement = supplement;
     if result.ok {
         let captcha = handle_session_result(service.fetch_captcha().await, &app, &state).await?;
         *state.manual_captcha_image_b64.lock().await = Some(encode_captcha(&captcha));
@@ -428,7 +381,8 @@ pub async fn supplement_select_course(
             result.message
         },
     )?;
-    emit_app_state_events(&app, &state).await
+    emit_app_state_events(&app, &state).await?;
+    Ok(supplement)
 }
 
 #[tauri::command]
@@ -436,7 +390,7 @@ pub async fn refresh_supplement_limit(
     select_url: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<SupplementLimitData, String> {
     logger::info("command: refresh_supplement_limit");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -450,23 +404,8 @@ pub async fn refresh_supplement_limit(
         &state,
     )
     .await?;
-    {
-        let mut pages = state.page_state.lock().await;
-        if let Some(course) = pages
-            .supplement
-            .available_courses
-            .iter_mut()
-            .find(|course| course.select_url.as_deref() == Some(select_url.as_str()))
-        {
-            course.volume_cnt = limit;
-            course.elected_cnt = elected;
-            if elected < limit {
-                course.action_label = "补选".to_string();
-            }
-        }
-    }
     emit_message(&app, "success", "课程名额已更新。")?;
-    emit_app_state_events(&app, &state).await
+    Ok(SupplementLimitData { limit, elected })
 }
 
 #[tauri::command]
@@ -475,7 +414,7 @@ pub async fn supplement_cancel_course(
     captcha_code: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<AppStateView, String> {
+) -> Result<SupplementPage, String> {
     logger::info("command: supplement_cancel_course");
     let service = {
         let guard = state.manual_session.lock().await;
@@ -500,7 +439,6 @@ pub async fn supplement_cancel_course(
     .await?;
     let supplement =
         handle_session_result(service.refresh_supplement().await, &app, &state).await?;
-    state.page_state.lock().await.supplement = supplement;
     if result.ok {
         let captcha = handle_session_result(service.fetch_captcha().await, &app, &state).await?;
         *state.manual_captcha_image_b64.lock().await = Some(encode_captcha(&captcha));
@@ -515,5 +453,6 @@ pub async fn supplement_cancel_course(
             result.message
         },
     )?;
-    emit_app_state_events(&app, &state).await
+    emit_app_state_events(&app, &state).await?;
+    Ok(supplement)
 }

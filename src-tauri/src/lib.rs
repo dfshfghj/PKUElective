@@ -5,7 +5,6 @@ mod course_reviews;
 mod emit;
 mod inject;
 mod logger;
-mod page_state;
 mod session_persistence;
 
 use crate::app_state::AppState;
@@ -81,7 +80,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::auth::login,
             commands::auth::logout,
-            commands::snapshot::get_app_state,
+            commands::app_state::get_app_state,
             commands::bot::add_bot,
             commands::bot::refresh_bot_captcha,
             commands::bot::refresh_now,

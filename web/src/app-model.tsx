@@ -43,7 +43,9 @@ import {
   verifyBotCaptcha,
 } from "./api";
 import { subscribeToAppEvents } from "./events";
-import type { AppStateView, ConfigPatch, CourseQueryFilters, MessageEvent } from "./types";
+import type { AppStateView, ConfigPatch, CourseQueryFilters, MessageEvent, PageDataState } from "./types";
+
+type AppModelState = AppStateView & PageDataState;
 
 export const emptyPagination = {
   current_page: 1,
@@ -54,7 +56,7 @@ export const emptyPagination = {
   current_url: "",
 };
 
-const emptySnapshot: AppStateView = {
+const emptySnapshot: AppModelState = {
   auth: {
     logged_in: false,
     username: null,
@@ -83,6 +85,15 @@ const emptySnapshot: AppStateView = {
   plan_pagination: { ...emptyPagination },
   query_courses: [],
   query_pagination: { ...emptyPagination },
+  query_filters: {
+    course_setting_type: "speciality",
+    course_id: null,
+    course_name: null,
+    dept_id: "ALL",
+    course_day: null,
+    course_time: null,
+    query_date_flag: false,
+  },
   supplement: {
     notices: [],
     available_courses: [],
@@ -121,7 +132,7 @@ type WishlistFormState = {
 };
 
 type AppModel = {
-  snapshot: AppStateView;
+  snapshot: AppModelState;
   loading: boolean;
   pending: string | null;
   message: string;
@@ -129,13 +140,13 @@ type AppModel = {
   loginForm: LoginFormState;
   wishlistForm: WishlistFormState;
   courseRows: Array<
-    AppStateView["courses"][number] & { selectable: boolean; wanted: boolean; remaining: number }
+    AppModelState["courses"][number] & { selectable: boolean; wanted: boolean; remaining: number }
   >;
   setLoginForm: (updater: (current: LoginFormState) => LoginFormState) => void;
   setWishlistForm: (updater: (current: WishlistFormState) => WishlistFormState) => void;
   syncSnapshot: (message?: string) => Promise<void>;
-  runAction: (label: string, action: () => Promise<AppStateView>, options?: { silent?: boolean }) => Promise<void>;
-  loadPage: (key: string, label: string, clear: (snapshot: AppStateView) => AppStateView, action: () => Promise<AppStateView>) => Promise<void>;
+  runAction: (label: string, action: () => Promise<unknown>, options?: { silent?: boolean; update?: (current: AppModelState, result: unknown) => AppModelState }) => Promise<void>;
+  loadPage: (key: string, label: string, clear: (snapshot: AppModelState) => AppModelState, action: () => Promise<unknown>) => Promise<void>;
   handleLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleLogout: () => Promise<void>;
   handleAddBot: () => Promise<void>;
@@ -150,11 +161,11 @@ type AppModel = {
   handleRefreshSupplement: () => Promise<void>;
   handleRefreshSupplementCaptcha: () => Promise<void>;
   handleRefreshSupplementLimit: (selectUrl: string) => Promise<void>;
-  handlePaginatePreselect: (url: string) => Promise<void>;
-  handlePaginatePlan: (url: string) => Promise<void>;
-  handlePaginateQuery: (url: string) => Promise<void>;
-  handlePaginateSupplement: (url: string) => Promise<void>;
-  handlePaginateResults: (url: string) => Promise<void>;
+  handlePaginatePreselect: (page: number) => Promise<void>;
+  handlePaginatePlan: (page: number) => Promise<void>;
+  handlePaginateQuery: (page: number) => Promise<void>;
+  handlePaginateSupplement: (page: number) => Promise<void>;
+  handlePaginateResults: (page: number) => Promise<void>;
   handleConfigToggle: (key: "auto_refresh" | "auto_captcha" | "notifications") => Promise<void>;
   handleConfigSave: (patch: ConfigPatch) => Promise<void>;
   handleConfigNumberSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -178,7 +189,7 @@ type AppModel = {
 const AppModelContext = createContext<AppModel | null>(null);
 
 export function AppProvider(props: { children: ReactNode }) {
-  const [snapshot, setSnapshot] = useState<AppStateView>(emptySnapshot);
+  const [snapshot, setSnapshot] = useState<AppModelState>(emptySnapshot);
   const [loginFormState, setLoginFormState] = useState<LoginFormState>({
     username: "",
     password: "",
@@ -228,17 +239,14 @@ export function AppProvider(props: { children: ReactNode }) {
     let unlisten: (() => void) | undefined;
 
     void subscribeToAppEvents({
-      onSnapshot(payload) {
-        if (!disposed) setSnapshot(payload);
+      onAppState(payload) {
+        if (!disposed) setSnapshot((current) => ({ ...current, ...payload }));
       },
       onAuth(payload) {
         if (!disposed) setSnapshot((current) => ({ ...current, auth: payload }));
       },
       onBots(payload) {
         if (!disposed) setSnapshot((current) => ({ ...current, bots: payload }));
-      },
-      onCourses(payload) {
-        if (!disposed) setSnapshot((current) => ({ ...current, courses: payload }));
       },
       onWishlist(payload) {
         if (!disposed) setSnapshot((current) => ({ ...current, wishlist: payload }));
@@ -298,7 +306,7 @@ export function AppProvider(props: { children: ReactNode }) {
     let nextSnapshot: AppStateView | null = null;
     try {
       nextSnapshot = await getSnapshot();
-      setSnapshot(nextSnapshot);
+      setSnapshot((current) => ({ ...current, ...nextSnapshot }));
       if (nextSnapshot.auth.auth_restoring) {
         setMessage(nextSnapshot.auth.auto_login ? "正在自动登录…" : "正在恢复登录状态…");
       } else {
@@ -316,7 +324,7 @@ export function AppProvider(props: { children: ReactNode }) {
     }
   }
 
-  async function runAction(label: string, action: () => Promise<AppStateView>, options?: { silent?: boolean }) {
+  async function runAction(label: string, action: () => Promise<unknown>, options?: { silent?: boolean; update?: (current: AppModelState, result: unknown) => AppModelState }) {
     const silent = options?.silent ?? false;
     if (!silent) {
       setPending(label);
@@ -324,8 +332,8 @@ export function AppProvider(props: { children: ReactNode }) {
     }
     setError(null);
     try {
-      const nextSnapshot = await action();
-      setSnapshot(nextSnapshot);
+      const result = await action();
+      if (options?.update) setSnapshot((current) => options.update!(current, result));
     } catch (err) {
       const message = toErrorMessage(err);
       setError(message);
@@ -352,7 +360,7 @@ export function AppProvider(props: { children: ReactNode }) {
         setMessage("登录成功，正在同步会话…");
 
         const nextSnapshot = await getSnapshot();
-        setSnapshot(nextSnapshot);
+        setSnapshot((current) => ({ ...current, ...nextSnapshot }));
         setMessage("登录成功，进入页面后将加载对应数据。");
         toast.success("登录成功");
       } catch (err) {
@@ -380,14 +388,14 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshAutomationCourses() {
-    await runAction("刷新可抢课程", refreshAutomationCourses);
+    await runAction("刷新可抢课程", refreshAutomationCourses, { update: (current, result) => ({ ...current, courses: result as AppModelState["courses"] }) });
   }
 
   async function loadPage(
     key: string,
     label: string,
-    clear: (current: AppStateView) => AppStateView,
-    action: () => Promise<AppStateView>,
+    clear: (current: AppModelState) => AppModelState,
+    action: () => Promise<unknown>,
   ) {
     const requestId = (pageRequestIds.current.get(key) ?? 0) + 1;
     pageRequestIds.current.set(key, requestId);
@@ -398,7 +406,7 @@ export function AppProvider(props: { children: ReactNode }) {
     try {
       const nextSnapshot = await action();
       if (pageRequestIds.current.get(key) === requestId) {
-        setSnapshot((current) => mergePageSnapshot(key, current, nextSnapshot));
+        setSnapshot((current) => applyPageResult(key, current, nextSnapshot));
       }
     } catch (err) {
       if (pageRequestIds.current.get(key) !== requestId) return;
@@ -412,7 +420,7 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshSchedule() {
-    await runAction("刷新选课时间表", refreshSchedule);
+    await runAction("刷新选课时间表", refreshSchedule, { update: (current, result) => ({ ...current, elective_schedule: result as AppModelState["elective_schedule"] }) });
   }
 
   async function handleRefreshBotCaptcha(botId: string) {
@@ -428,19 +436,19 @@ export function AppProvider(props: { children: ReactNode }) {
   }
 
   async function handleRefreshPreselect() {
-    await runAction("刷新预选列表", refreshPreselectCourses);
+    await runAction("刷新预选列表", refreshPreselectCourses, { update: (current, result) => applyPageResult("preselect", current, result) });
   }
 
   async function handleRefreshPlan() {
-    await runAction("刷新选课计划", refreshPlanCourses);
+    await runAction("刷新选课计划", refreshPlanCourses, { update: (current, result) => ({ ...current, plan_courses: (result as { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }).courses, plan_pagination: (result as { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }).pagination }) });
   }
 
   async function handleRefreshResults() {
-    await runAction("刷新选课结果", refreshResults);
+    await runAction("刷新选课结果", refreshResults, { update: (current, result) => ({ ...current, results: result as AppModelState["results"] }) });
   }
 
   async function handleRefreshSupplement() {
-    await runAction("刷新补选退选", refreshSupplementPage);
+    await runAction("刷新补选退选", refreshSupplementPage, { update: (current, result) => ({ ...current, supplement: result as AppModelState["supplement"] }) });
   }
 
   async function handleRefreshSupplementCaptcha() {
@@ -491,28 +499,31 @@ export function AppProvider(props: { children: ReactNode }) {
     setWishlistFormState({ courseId: "", name: "", classId: "", teacher: "" });
   }
 
-  async function handlePaginatePreselect(url: string) {
-    await runAction("切换预选页码", () => paginatePreselect(url));
+  async function handlePaginatePreselect(page: number) {
+    await runAction("切换预选页码", () => paginatePreselect(page), { update: (current, result) => applyPageResult("preselect", current, result) });
   }
 
-  async function handlePaginatePlan(url: string) {
-    await runAction("切换选课计划页码", () => paginatePlan(url));
+  async function handlePaginatePlan(page: number) {
+    await runAction("切换选课计划页码", () => paginatePlan(page), { update: (current, result) => ({ ...current, plan_courses: (result as { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }).courses, plan_pagination: (result as { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }).pagination }) });
   }
 
-  async function handlePaginateQuery(url: string) {
-    await runAction("切换课程查询页码", () => paginateQuery(url));
+  async function handlePaginateQuery(page: number) {
+    await runAction("切换课程查询页码", () => paginateQuery(page), { update: (current, result) => ({ ...current, query_courses: (result as { courses: AppModelState["query_courses"]; pagination: AppModelState["query_pagination"] }).courses, query_pagination: (result as { courses: AppModelState["query_courses"]; pagination: AppModelState["query_pagination"] }).pagination }) });
   }
 
-  async function handlePaginateSupplement(url: string) {
-    await runAction("切换补选退选页码", () => paginateSupplement(url));
+  async function handlePaginateSupplement(page: number) {
+    await runAction("切换补选退选页码", () => paginateSupplement(page), { update: (current, result) => ({ ...current, supplement: result as AppModelState["supplement"] }) });
   }
 
-  async function handlePaginateResults(url: string) {
-    await runAction("切换选课结果页码", () => paginateResults(url));
+  async function handlePaginateResults(page: number) {
+    await runAction("切换选课结果页码", () => paginateResults(page), { update: (current, result) => ({ ...current, results: result as AppModelState["results"] }) });
   }
 
   async function handleRefreshSupplementLimit(selectUrl: string) {
-    await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl), { silent: true });
+    await runAction("刷新课程名额", () => refreshSupplementLimit(selectUrl), { silent: true, update: (current, result) => {
+      const data = result as { limit: number; elected: number };
+      return { ...current, supplement: { ...current.supplement, available_courses: current.supplement.available_courses.map((course) => course.select_url === selectUrl ? { ...course, volume_cnt: data.limit, elected_cnt: data.elected } : course) } };
+    } });
   }
 
   async function handleAddWishlistDirect(
@@ -521,39 +532,45 @@ export function AppProvider(props: { children: ReactNode }) {
     classId: string,
     teacher: string,
   ) {
-    await runAction("加入待选列表", () => addWishlist(courseId, name, classId, teacher));
+    await runAction("加入待选列表", () => addWishlist(courseId, name, classId, teacher), { update: (current, result) => ({ ...current, wishlist: result as AppModelState["wishlist"] }) });
   }
 
   async function handleRemoveWishlist(courseId: string, classId: string) {
-    await runAction("移出待选列表", () => removeWishlist(courseId, classId));
+    await runAction("移出待选列表", () => removeWishlist(courseId, classId), { update: (current, result) => ({ ...current, wishlist: result as AppModelState["wishlist"] }) });
   }
 
   async function handleSearchQuery(filters: CourseQueryFilters) {
-    await runAction("查询课程", () => searchQueryCourses(filters));
+    setSnapshot((current) => ({
+      ...current,
+      query_filters: filters,
+      query_courses: [],
+      query_pagination: { ...emptyPagination },
+    }));
+    await runAction("查询课程", () => searchQueryCourses(filters), { update: (current, result) => ({ ...current, query_filters: filters, query_courses: (result as { courses: AppModelState["query_courses"]; pagination: AppModelState["query_pagination"] }).courses, query_pagination: (result as { courses: AppModelState["query_courses"]; pagination: AppModelState["query_pagination"] }).pagination }) });
   }
 
   async function handleAddCourseToPlan(addUrl: string) {
-    await runAction("加入选课计划", () => addCourseToPlan(addUrl));
+    await runAction("加入选课计划", () => addCourseToPlan(addUrl), { update: (current, result) => applyPageResult("plan-action", current, result) });
   }
 
   async function handleRemovePlanCourse(deleteUrl: string) {
-    await runAction("移出选课计划", () => removePlanCourse(deleteUrl));
+    await runAction("移出选课计划", () => removePlanCourse(deleteUrl), { update: (current, result) => applyPageResult("plan-mutation", current, result) });
   }
 
   async function handlePreselectCourse(selectUrl: string, preference?: number | null) {
-    await runAction("提交预选", () => preselectCourse(selectUrl, preference));
+    await runAction("提交预选", () => preselectCourse(selectUrl, preference), { update: (current, result) => applyPageResult("preselect", current, result) });
   }
 
   async function handleCancelPreselectCourse(cancelUrl: string) {
-    await runAction("取消预选", () => cancelPreselectCourse(cancelUrl));
+    await runAction("取消预选", () => cancelPreselectCourse(cancelUrl), { update: (current, result) => applyPageResult("preselect", current, result) });
   }
 
   async function handleSupplementSelectCourse(selectUrl: string, captchaCode: string) {
-    await runAction("提交补选", () => supplementSelectCourse(selectUrl, captchaCode));
+    await runAction("提交补选", () => supplementSelectCourse(selectUrl, captchaCode), { update: (current, result) => ({ ...current, supplement: result as AppModelState["supplement"] }) });
   }
 
   async function handleSupplementCancelCourse(cancelUrl: string, captchaCode: string) {
-    await runAction("提交退选", () => supplementCancelCourse(cancelUrl, captchaCode));
+    await runAction("提交退选", () => supplementCancelCourse(cancelUrl, captchaCode), { update: (current, result) => ({ ...current, supplement: result as AppModelState["supplement"] }) });
   }
 
   function applyMessage(payload: MessageEvent) {
@@ -659,29 +676,38 @@ export function useAppModel() {
   return context;
 }
 
-function mergePageSnapshot(key: string, current: AppStateView, next: AppStateView): AppStateView {
+function applyPageResult(key: string, current: AppModelState, next: unknown): AppModelState {
   switch (key) {
     case "dashboard":
-      return { ...current, elective_schedule: next.elective_schedule };
+      return { ...current, elective_schedule: next as AppModelState["elective_schedule"] };
     case "preselect":
+    case "preselect-action":
       return {
         ...current,
-        preselect_courses: next.preselect_courses,
-        preselected_courses: next.preselected_courses,
-        preselect_pagination: next.preselect_pagination,
+        preselect_courses: (next as { courses: AppModelState["preselect_courses"] }).courses,
+        preselected_courses: (next as { selected_courses: AppModelState["preselected_courses"] }).selected_courses,
+        preselect_pagination: (next as { pagination: AppModelState["preselect_pagination"] }).pagination,
       };
+    case "plan-action": {
+      const data = next as { plan: { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }; query: { courses: AppModelState["query_courses"]; pagination: AppModelState["query_pagination"] }; preselect: { courses: AppModelState["preselect_courses"]; selected_courses: AppModelState["preselected_courses"]; pagination: AppModelState["preselect_pagination"] } };
+      return { ...current, plan_courses: data.plan.courses, plan_pagination: data.plan.pagination, query_courses: data.query.courses, query_pagination: data.query.pagination, preselect_courses: data.preselect.courses, preselected_courses: data.preselect.selected_courses, preselect_pagination: data.preselect.pagination };
+    }
+    case "plan-mutation": {
+      const data = next as { plan: { courses: AppModelState["plan_courses"]; pagination: AppModelState["plan_pagination"] }; preselect: { courses: AppModelState["preselect_courses"]; selected_courses: AppModelState["preselected_courses"]; pagination: AppModelState["preselect_pagination"] } };
+      return { ...current, plan_courses: data.plan.courses, plan_pagination: data.plan.pagination, preselect_courses: data.preselect.courses, preselected_courses: data.preselect.selected_courses, preselect_pagination: data.preselect.pagination };
+    }
     case "plan":
-      return { ...current, plan_courses: next.plan_courses, plan_pagination: next.plan_pagination };
+      return { ...current, plan_courses: (next as { courses: AppModelState["plan_courses"] }).courses, plan_pagination: (next as { pagination: AppModelState["plan_pagination"] }).pagination };
     case "supplement":
-      return { ...current, supplement: next.supplement };
+      return { ...current, supplement: next as AppModelState["supplement"] };
     case "results":
-      return { ...current, results: next.results };
+      return { ...current, results: next as AppModelState["results"] };
     case "automation":
-      return { ...current, courses: next.courses };
+      return { ...current, courses: next as AppModelState["courses"] };
     case "query":
-      return { ...current, query_courses: next.query_courses, query_pagination: next.query_pagination };
+      return { ...current, query_courses: (next as { courses: AppModelState["query_courses"] }).courses, query_pagination: (next as { pagination: AppModelState["query_pagination"] }).pagination };
     default:
-      return next;
+      return current;
   }
 }
 

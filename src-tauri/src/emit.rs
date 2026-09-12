@@ -2,14 +2,13 @@ use tauri::{AppHandle, Emitter};
 
 use crate::{
     app_state::AppState,
-    commands::snapshot::{self, AppStateView, AuthStateView, BotView},
+    commands::app_state::{self, AppStateView, AuthStateView, BotView},
     logger,
 };
 
-pub const EVENT_SNAPSHOT: &str = "app://snapshot";
+pub const EVENT_APP_STATE: &str = "app://app-state";
 pub const EVENT_AUTH: &str = "app://auth-updated";
 pub const EVENT_BOTS: &str = "app://bots-updated";
-pub const EVENT_COURSES: &str = "app://courses-updated";
 pub const EVENT_WISHLIST: &str = "app://wishlist-updated";
 pub const EVENT_CONFIG: &str = "app://config-updated";
 pub const EVENT_MESSAGE: &str = "app://message";
@@ -24,15 +23,13 @@ pub async fn emit_app_state_events(
     app: &AppHandle,
     state: &AppState,
 ) -> Result<AppStateView, String> {
-    let snapshot = snapshot::build_app_state(state).await;
+    let snapshot = app_state::build_app_state(state).await;
 
-    app.emit(EVENT_SNAPSHOT, &snapshot)
+    app.emit(EVENT_APP_STATE, &snapshot)
         .map_err(|err| err.to_string())?;
     app.emit(EVENT_AUTH, &snapshot.auth)
         .map_err(|err| err.to_string())?;
     app.emit(EVENT_BOTS, &snapshot.bots)
-        .map_err(|err| err.to_string())?;
-    app.emit(EVENT_COURSES, &snapshot.courses)
         .map_err(|err| err.to_string())?;
     app.emit(EVENT_WISHLIST, &snapshot.wishlist)
         .map_err(|err| err.to_string())?;
